@@ -1,0 +1,393 @@
+datilera/
+├─ pyproject.toml
+├─ README.md
+├─ .env.example
+├─ requirements.txt
+├─ scripts/
+│  ├─ dev.sh
+│  ├─ lint.sh
+│  ├─ format.sh
+│  └─ seed_dev.py
+├─ deploy/
+│  ├─ nginx.conf
+│  ├─ datilera.service
+│  └─ alembic.ini
+├─ migrations/
+│  └─ versions/
+├─ assets/
+│  ├─ logo/
+│  │  └─ DatileraLogo.png
+│  └─ templates_legales/
+│     └─ confirmacion_cbba.docx
+├─ app/
+│  ├─ config/
+│  │  ├─ settings.py
+│  │  └─ logging.py
+│  ├─ kernel/
+│  │  ├─ domain/
+│  │  │  ├─ common/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ identifiers.py
+│  │  │  │  ├─ money.py
+│  │  │  │  └─ pagination.py
+│  │  │  ├─ seguridad/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ academico/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ inscripcion/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ finanzas/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ inventario/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ comunicaciones/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ cursos_extra/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  ├─ ia/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ models.py
+│  │  │  └─ importaciones/
+│  │  │     ├─ __init__.py
+│  │  │     └─ models.py
+│  │  ├─ application/
+│  │  │  ├─ seguridad/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ crear_usuario.py
+│  │  │  │  ├─ asignar_rol.py
+│  │  │  │  └─ obtener_roles.py
+│  │  │  ├─ academico/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ crear_paralelo.py
+│  │  │  │  ├─ asignar_horario.py
+│  │  │  │  └─ inscribir_alumno_paralelo.py
+│  │  │  ├─ inscripcion/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ crear_formulario.py
+│  │  │  │  ├─ subir_documento.py
+│  │  │  │  ├─ firmar_formulario.py
+│  │  │  │  └─ generar_contrato.py
+│  │  │  ├─ finanzas/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ registrar_pago.py
+│  │  │  │  ├─ generar_arqueo.py
+│  │  │  │  └─ generar_libro_caja.py
+│  │  │  ├─ inventario/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ mover_stock.py
+│  │  │  │  ├─ registrar_item.py
+│  │  │  │  └─ generar_alertas.py
+│  │  │  ├─ comunicaciones/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ enviar_mensaje.py
+│  │  │  │  └─ notificar_evento.py
+│  │  │  ├─ cursos_extra/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ crear_curso.py
+│  │  │  │  └─ inscribir_curso.py
+│  │  │  ├─ ia/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  └─ consultar_ia.py
+│  │  │  └─ importaciones/
+│  │  │     ├─ __init__.py
+│  │  │     └─ importar_excel.py
+│  │  └─ ports/
+│  │     ├─ repositorios/
+│  │     │  ├─ __init__.py
+│  │     │  ├─ seguridad/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ usuarios_repo.py
+│  │     │  │  ├─ roles_repo.py
+│  │     │  │  └─ permisos_repo.py
+│  │     │  ├─ academico/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ grupos_repo.py
+│  │     │  │  ├─ paralelos_repo.py
+│  │     │  │  └─ horarios_repo.py
+│  │     │  ├─ alumnos/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ alumnos_repo.py
+│  │     │  │  └─ asistencia_repo.py
+│  │     │  ├─ inscripcion/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ formularios_repo.py
+│  │     │  │  └─ contratos_repo.py
+│  │     │  ├─ finanzas/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ pagos_repo.py
+│  │     │  │  ├─ libro_caja_repo.py
+│  │     │  │  └─ arqueos_repo.py
+│  │     │  ├─ inventario/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ items_repo.py
+│  │     │  │  └─ stock_repo.py
+│  │     │  ├─ comunicaciones/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  ├─ chat_repo.py
+│  │     │  │  └─ notifs_repo.py
+│  │     │  ├─ cursos_extra/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  └─ cursos_repo.py
+│  │     │  ├─ ia/
+│  │     │  │  ├─ __init__.py
+│  │     │  │  └─ ia_repo.py
+│  │     │  └─ importaciones/
+│  │     │     ├─ __init__.py
+│  │     │     └─ jobs_repo.py
+│  │     ├─ colas/
+│  │     │  ├─ __init__.py
+│  │     │  └─ broker.py
+│  │     ├─ almacenamiento/
+│  │     │  ├─ __init__.py
+│  │     │  └─ local.py
+│  │     ├─ notificaciones/
+│  │     │  ├─ __init__.py
+│  │     │  └─ gateway.py
+│  │     ├─ ia/
+│  │     │  ├─ __init__.py
+│  │     │  └─ client.py
+│  │     └─ pdf/
+│  │        ├─ __init__.py
+│  │        └─ renderer.py
+│  ├─ infrastructure/
+│  │  ├─ db/
+│  │  │  ├─ base.py
+│  │  │  ├─ session.py
+│  │  │  ├─ models/
+│  │  │  │  ├─ __init__.py
+│  │  │  │  ├─ seguridad/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ sedes.py
+│  │  │  │  │  ├─ usuarios.py
+│  │  │  │  │  ├─ roles.py
+│  │  │  │  │  ├─ permisos.py
+│  │  │  │  │  ├─ usuarios_roles.py
+│  │  │  │  │  ├─ roles_permisos.py
+│  │  │  │  │  ├─ sesiones.py
+│  │  │  │  │  ├─ tokens_revocados.py
+│  │  │  │  │  └─ preferencias_usuario.py
+│  │  │  │  ├─ auditoria/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  └─ auditoria_acciones.py
+│  │  │  │  ├─ acceso/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  └─ codigos_acceso.py
+│  │  │  │  ├─ academico/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ grupos.py
+│  │  │  │  │  ├─ paralelos.py
+│  │  │  │  │  ├─ paralelos_profesoras.py
+│  │  │  │  │  ├─ horarios.py
+│  │  │  │  │  └─ horarios_paralelos.py
+│  │  │  │  ├─ alumnos/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ alumnos.py
+│  │  │  │  │  ├─ alumnos_paralelos.py
+│  │  │  │  │  ├─ asistencia_alumnos.py
+│  │  │  │  │  ├─ asistencia_personal.py
+│  │  │  │  │  ├─ permisos_personal.py
+│  │  │  │  │  └─ consentimientos.py
+│  │  │  │  ├─ inscripcion/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ formularios_inscripcion.py
+│  │  │  │  │  ├─ formularios_respuestas.py
+│  │  │  │  │  ├─ documentos_inscripcion.py
+│  │  │  │  │  ├─ firmas.py
+│  │  │  │  │  └─ contratos.py
+│  │  │  │  ├─ portafolio/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ actividades.py
+│  │  │  │  │  ├─ actividad_media.py
+│  │  │  │  │  ├─ reportes_diarios.py
+│  │  │  │  │  └─ reporte_lecturas_tutores.py
+│  │  │  │  ├─ finanzas/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ categorias_pago.py
+│  │  │  │  │  ├─ turnos.py
+│  │  │  │  │  ├─ precios_turnos.py
+│  │  │  │  │  ├─ pagos.py
+│  │  │  │  │  ├─ comprobantes.py
+│  │  │  │  │  ├─ conciliaciones.py
+│  │  │  │  │  ├─ planes_pago.py
+│  │  │  │  │  ├─ planes_cuotas.py
+│  │  │  │  │  ├─ estado_cuenta_nino.py
+│  │  │  │  │  ├─ libro_caja.py
+│  │  │  │  │  └─ arqueos.py
+│  │  │  │  ├─ inventario/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ familias.py
+│  │  │  │  │  ├─ categorias.py
+│  │  │  │  │  ├─ items.py
+│  │  │  │  │  ├─ items_atributos.py
+│  │  │  │  │  ├─ stock_sede.py
+│  │  │  │  │  ├─ movimientos_stock.py
+│  │  │  │  │  ├─ prestamos_uniformes.py
+│  │  │  │  │  ├─ alertas_stock.py
+│  │  │  │  │  └─ alertas_vencimiento.py
+│  │  │  │  ├─ comunicaciones/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ conversaciones.py
+│  │  │  │  │  ├─ mensajes.py
+│  │  │  │  │  ├─ mensajes_adjuntos.py
+│  │  │  │  │  ├─ notificaciones.py
+│  │  │  │  │  └─ notificacion_vistas.py
+│  │  │  │  ├─ cursos_extra/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  ├─ cursos_extra.py
+│  │  │  │  │  ├─ inscripciones_curso_extra.py
+│  │  │  │  │  ├─ costos_curso_extra.py
+│  │  │  │  │  └─ balance_curso_extra.py
+│  │  │  │  ├─ ia/
+│  │  │  │  │  ├─ __init__.py
+│  │  │  │  │  └─ ia_consultas.py
+│  │  │  │  └─ importaciones/
+│  │  │  │     ├─ __init__.py
+│  │  │  │     └─ import_jobs.py
+│  │  │  └─ repositories/
+│  │  │     ├─ __init__.py
+│  │  │     ├─ seguridad/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ usuarios_sql.py
+│  │  │     │  ├─ roles_sql.py
+│  │  │     │  └─ permisos_sql.py
+│  │  │     ├─ academico/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ grupos_sql.py
+│  │  │     │  ├─ paralelos_sql.py
+│  │  │     │  └─ horarios_sql.py
+│  │  │     ├─ alumnos/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ alumnos_sql.py
+│  │  │     │  └─ asistencia_sql.py
+│  │  │     ├─ inscripcion/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ formularios_sql.py
+│  │  │     │  └─ contratos_sql.py
+│  │  │     ├─ finanzas/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ pagos_sql.py
+│  │  │     │  ├─ libro_caja_sql.py
+│  │  │     │  └─ arqueos_sql.py
+│  │  │     ├─ inventario/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ items_sql.py
+│  │  │     │  └─ stock_sql.py
+│  │  │     ├─ comunicaciones/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  ├─ chat_sql.py
+│  │  │     │  └─ notifs_sql.py
+│  │  │     ├─ cursos_extra/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  └─ cursos_sql.py
+│  │  │     ├─ ia/
+│  │  │     │  ├─ __init__.py
+│  │  │     │  └─ ia_sql.py
+│  │  │     └─ importaciones/
+│  │  │        ├─ __init__.py
+│  │  │        └─ jobs_sql.py
+│  ├─ infrastructure/storage/
+│  │  ├─ local_fs.py
+│  │  ├─ watermarker.py
+│  │  └─ pdfs.py
+│  ├─ infrastructure/queues/
+│  │  ├─ broker.py
+│  │  └─ tasks/
+│  │     ├─ multimedia_tasks.py
+│  │     ├─ reportes_tasks.py
+│  │     └─ recordatorios_tasks.py
+│  ├─ infrastructure/ws/
+│  │  ├─ manager.py
+│  │  └─ events.py
+│  ├─ infrastructure/external/
+│  │  ├─ whatsapp_link.py
+│  │  └─ ia_client.py
+│  ├─ interfaces/
+│  │  ├─ api/
+│  │  │  └─ v1/
+│  │  │     ├─ deps.py
+│  │  │     ├─ seguridad.py
+│  │  │     ├─ academico.py
+│  │  │     ├─ inscripcion.py
+│  │  │     ├─ finanzas.py
+│  │  │     ├─ inventario.py
+│  │  │     ├─ comunicaciones.py
+│  │  │     ├─ cursos_extra.py
+│  │  │     ├─ ia.py
+│  │  │     └─ importaciones.py
+│  │  └─ web/
+│  │     ├─ templates/
+│  │     │  ├─ _layout_base.html
+│  │     │  ├─ _components/
+│  │     │  │  ├─ navbar.html
+│  │     │  │  ├─ sidebar.html
+│  │     │  │  ├─ table.html
+│  │     │  │  ├─ pagination.html
+│  │     │  │  ├─ uploader.html
+│  │     │  │  └─ campanita.html
+│  │     │  ├─ seguridad/
+│  │     │  │  ├─ login.html
+│  │     │  │  └─ perfil.html
+│  │     │  ├─ dashboard/
+│  │     │  │  └─ index.html
+│  │     │  ├─ academico/
+│  │     │  │  ├─ grupos.html
+│  │     │  │  ├─ paralelos.html
+│  │     │  │  └─ asistencia.html
+│  │     │  ├─ inscripcion/
+│  │     │  │  ├─ formulario.html
+│  │     │  │  └─ contrato_confirmacion.html
+│  │     │  ├─ finanzas/
+│  │     │  │  ├─ pagos.html
+│  │     │  │  ├─ libro_caja.html
+│  │     │  │  └─ arqueo.html
+│  │     │  ├─ inventario/
+│  │     │  │  ├─ catalogo.html
+│  │     │  │  ├─ stock.html
+│  │     │  │  └─ alertas.html
+│  │     │  └─ comunicaciones/
+│  │     │     ├─ chat.html
+│  │     │     └─ notificaciones.html
+│  │     └─ static/
+│  │        ├─ css/
+│  │        └─ js/
+│  │           ├─ core/
+│  │           │  ├─ fetcher.js
+│  │           │  ├─ errors.js
+│  │           │  ├─ storage.js
+│  │           │  └─ ws.js
+│  │           ├─ mod/
+│  │           │  ├─ pagos.js
+│  │           │  ├─ inventario.js
+│  │           │  ├─ inscripcion.js
+│  │           │  ├─ asistencia.js
+│  │           │  ├─ chat.js
+│  │           │  └─ notifs.js
+│  │           └─ widgets/
+│  │              ├─ uploader.js
+│  │              └─ tables.js
+│  ├─ middleware/
+│  │  ├─ auth.py
+│  │  ├─ rbac.py
+│  │  ├─ rate_limit.py
+│  │  └─ csrf.py
+│  ├─ main.py
+│  ├─ startup.py
+│  └─ seeds/
+│     ├─ base_sedes_roles.py
+│     ├─ inventario_cbba.py
+│     └─ precios_cbba.py
+├─ tests/
+│  ├─ unit/
+│  └─ integration/
+└─ docs/
+   ├─ openapi.json
+   ├─ manuales/
+   │  └─ por_rol.md
+   └─ decisiones_arq.md
