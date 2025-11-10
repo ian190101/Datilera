@@ -9,4 +9,5 @@ from .tokens_revocados_repo import TokensRevocadosRepository
 __all__ = [
     "UsuariosRepository", "RolesRepository", "PermisosRepository",
     "SesionesRepository", "PreferenciasUsuarioRepository", "TokensRevocadosRepository",
+    "UsuarioRolRepository",
 ]

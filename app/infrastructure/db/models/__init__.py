@@ -87,7 +87,7 @@ from .finanzas import (
     EstadoCuota,
     EstadoCuentaNino,
     LibroCaja,
-    TipoMovCaja,  # alias de TipoMovimiento de libro_caja
+    TipoMovimiento as TipoMovCaja,  # alias de TipoMovimiento de libro_caja
     Arqueo,
 )
 

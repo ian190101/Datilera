@@ -1,0 +1,600 @@
+1/10/2025
+Entrevista con la Lic. Verónica Hinojosa Irahola directora del centro Datilera sede Cochabamba
+Adjunto audio del problema contado.
+Existen varios grupos de niños:
+•	Sala cuna de 6 meses a 1 año 
+•	Sala maternal de 1 a 2 anos 
+•	Pre-nidito de 2 a 3 años.
+•	Nidito de 3 a 4 años 
+•	Apoyo pre escolar de 4 a 6 años 
+•	Apoyo escolar 6 a 8 años 
+Con la predisposición de crear mas grupos, los roles que tendrán ese permiso es los dueños o superadadmins y los administradores.
+En 1 grupo hay varios niños, 1 profesora es encardada de uno o más grupos, en un horario puede haber más de un grupo, es decir que por ejemplo en la mañana puede haber 1 o mas sala cuna, 1 o mas nidito o cualquiera de estos. Un curso puede tener más de 1 auxiliar. Una auxiliar puede llegar a ser profesora, De hecho, las mismas profesoras son las que son auxiliares y profesoras, es decir que no se diferencia por rol, sino que por cargo dentro del grupo es decir la profesora A es profe del grupo Z de nidito, pero La profesora A también es auxiliar del grupo maternal Y. 
+Para el registro se necesita primero obviamente presencia del padre o madre o ambos (en este caso es depende si son separados y quien tiene la custodia). Para esto se necesita el llenado de un formulario (El cual lo hacen a mano). Entonces se decidió para el sistema que el formulario lo llenaran de manera digital. Para esto se debe generar en el perfil de la directora un código aleatorio para que el papa pueda registrarse con su nombre de usuario y poner las credenciales que ellos deseen, de esa forma tienen la cuenta para poder llenar el formulario. Para este punto el niño ya debe estar registrado ya que cada niño deberá tener un código único, para poder compartir por WhatsApp es decir que al terminar de registrar a un niño aparezca el código de 5 caracteres alfanuméricos aleatorios y haya un botón para compartir en WhatsApp obviamente anotando el numero antes. De esa forma el padre obtiene un código que deberá ingresar para poder crearse la cuenta. Al llenar el formulario y enviarlo debe guardarse en la base de datos para poder tener acceso desde el panel de administrador ósea de la directora, al confirmar la información se debe poder imprimir un contrato de aceptación del formulario y que la institución no se hace responsable de cosas que no hayan estado en el formulario. Este formulario abarca información sensible como alergias medicación y demás, se adjunta formulario completo. También se deja documentación en físico que de igual forma se desea guardar en digital como imagen o PDF, los documentos son los siguientes:
+Certificado de nacimiento del niño(a) (fotocopia).
+• Libreta de control de vacunas (fotocopia).
+• Carnet o Certificado de Vacuna COVID-19, de papá, mamá y/o tutor (fotocopia).
+• Carnet de asegurado del niño (a) (fotocopia).
+• Carnet de identidad del niño(a) (fotocopia).
+• Carnet de ambos progenitores o apoderados (fotocopia).
+• Carnet de las personas autorizadas a recoger (fotocopia)
+• Llenado del formulario de datos proporcionado por el Centro Infantil La Casa de los Niños Datilera (debe llenarse 
+en el momento de la inscripción) Este es el formulario que mencionamos al inicio.
+Los turnos son los siguientes:
+• Turno Mañana. Hora. 08:00 a 12:00 el precio 950bs
+• Turno Tarde. Hora. 14:00 a 18:00 el precio es de 950bs
+• Turno continuo: Hora. 08:00 a 15:30 el precio es de 1700bs
+• Turno completo. Hora. 08:00 a 18:00 el precio es 2200bs
+También los horarios deben ser posible agregar editar eliminar y ver horarios.
+El padre madre o tutor debe escoger uno de estos horarios, el precio es variable y solo el superadmin o dueños y la directora de cada sede es la que puede cambiar esto. Además, el precio de cada turno varia de sede en sede.
+Una vez se hace el registro de todo lo anterior se pasa al pago, cabe aclarar que no hay matricula en la sede Cochabamba y cada sede puede ver de si pagar matricula o no, la matricula se paga anualmente en conjunto con la mensualidad al principio de la inscripción. Dependiendo al día de la inscripción se debe prorratear el primer pago solo el primer pago. El prorrateo se hace de la siguiente forma:   Se toma el total del pago de mensualidad de acuerdo al horario por ejemplo turno tarde o mañana que es de 950 bs, en el mes se toma en cuenta 20 días hábiles porque cada semana son 5 días y son cuatro semanas. Eso se tomará como referencia siempre, no importa que el mes tenga más o menos días hábiles, siempre se tomara en cuenta 20 días hábiles entonces se divide el total del pago que en este caso son 950bs entre los 20 días que sale a 47,5 bs del día, por ejemplo, si solo vine 12 días del mes pues debería cancelar 570bs. Hay una regla que se debe cumplir, si se inscribe 3 días o menos para que acabe el mes se debe pasar como si se huniera inscrito el 1 del siguiente mes. Tambien se hacen descuentos los descuentos si se paga el anio o mitad de anio si es mitad es 3% de descuento y el completo el anio es 6% del total. Esto de los descuentos solo se maneja en sede Cochabamba  El año se toma en cuenta desde el 6 de enero hasta el ultimo viernes antes de navidad y siempre se cumple esa regla. 
+Este es el formulario de inscripción o primera entrevista:
+
+Nombres y Apellidos del niño o niña:
+
+Fecha de Nacimiento
+
+Nombre de la madre o tutora
+
+Profesión
+
+Lugar de Trabajo
+
+Dirección de Trabajo
+
+
+correo electronico	Teléfono - Celular
+
+Nombre del Padre o tutor
+
+Profesión
+
+Lugar de Trabajo
+
+Dirección de Trabajo
+
+
+correo electronico	Teléfono - Celular
+
+Dirección Familiar
+
+Persona a la que se avisa en caso de necesidad
+
+Relación de familiares autorizados a recoger al niño (a) en el centro
+
+
+ 
+
+
+
+
+
+Otros miembros de la familia que viven en casa
+
+Familiar con el que se relaciona más
+
+
+El embarazo transcurrió con: Normalidad 	COMPLICACIONES 	¿Cuáles?
+
+El parto fue con: NORMALIDAD 	COMPLICACIONES 	¿Cuáles?
+
+
+Peso al nacer	Talla
+	
+
+
+Enfermedad	Edad
+	
+
+Enfermedad	Edad
+	
+
+Enfermedad	Edad
+	
+
+¿Tiene algún problema?
+AUDITIVO		CEREBRAL	
+ALÉRGICO		VISUAL	
+RESPIRATORIO		DIGESTIVO	
+MOTRIZ		LENGUAJE	
+OTROS ¿CUÁLES?
+
+¿Tiene algún tratamiento o medicación actual? 	¿Cuáles?
+
+
+¿Ha sufrido caídas o traumatismos? 	En caso afirmativo, explicite las consecuencias
+
+
+ 
+Horario del sueño Nocturno:
+
+Horarios del sueño durante el día
+
+
+Costumbres y hábitos con respecto al sueño:
+Plantea problemas: ¿ANTES – DURANTE O DESPUES DE DORMIR?
+
+¿Cuáles?
+
+¿Cómo responde usted cuando surge los problemas?
+
+¿Dónde duerme?
+
+¿Con quién?
+
+
+De bebé ¿Con quién dormía? Papá, Mamá, ambos; hermanos, solo o con otras personas
+¿Hasta qué edad?
+
+¿Se despierta con pesadillas? ¿Con qué frecuencia?
+
+
+Usa chupete 	Postura durante el sueño 	
+Se duerme en brazos, con canciones o acunándolo 	
+Otros hábitos
+
+
+¿Ha tenido problemas de succión, al tragar o de masticación? 	¿Cuáles?
+
+Lactancia Materna: ¿Durante cuánto tiempo?
+
+Biberón 	¿Desde cuándo?
+
+
+Actualmente, su dieta contiene:
+LECHE		ZUMOS	
+FRUTA		VERDURAS	
+CEREALES		CARNES	
+OTROS:
+
+¿Toman los alimentos en puré o enteros?
+
+Alergia o intolerancia a algún alimento	¿A Cuál?
+
+Plantea problemas al comer 	¿Cuáles?
+
+¿Cómo responde usted, cuando surgen los problemas?
+
+¿Qué alimentos rechaza?
+
+¿Qué alimentos prefiere?
+
+¿Le costó pasar de la alimentación liquida a la sólida? 	¿Cuándo paso?
+
+¿Plantea actualmente problemas al comer? 	¿Cuáles?
+
+
+¿Cuándo empezó a controlar el movimiento de la cabeza?
+
+¿A qué edad comenzó a sentarse sin ayuda?
+
+¿A qué edad comenzó a gatear?
+
+¿Cuándo comenzó a levantarse y sostenerse de pie?
+
+
+¿Ha empezado a caminar?	¿A qué edad?
+
+¿Ha tenido algún problema para la marcha? ¿Cuáles?
+
+
+¿Cuándo empezó a balbucear?	¿Y a decir sus primeras palabras?
+
+	
+¿A qué edad le salieron las primeras piezas dentales?
+
+¿Qué síntomas presenta cuando le va a salir una pieza dental?
+
+
+ 
+¿Quién le atiende?
+
+¿Qué actividades realiza habitualmente el niño (a) con los papás?
+
+¿Cuáles son los sentimientos y emociones que más expresa?
+
+
+¿Suele llorar habitualmente? 	 ¿En qué circunstancias?
+
+¿Tiene algún objeto afectivo? 	¿Cuál?
+
+¿Con quién juega?
+
+¿Cuáles son sus juguetes preferidos?
+
+¿Cómo se relaciona con desconocidos?
+
+
+El formulario es muy largo, pero como se observa esta dividido en partes y cada parte aun tiene muchas preguntas, podemos dividir eso en 3 preguntas por vista para que no se haga largo, de igual forma se quiere que el llenado del formulario sea lo mas rápido y eficaz posible Teniendo ya opciones predeterminadas cuando la pregunta es abierta siempre teniendo opción de otros para especificar. Tambien al finalizar el llenado de las preguntas se requiere un apartado como una cajita de dibujo donde puedan firmar y se guarde como imagen la firma. La firma debe ser por el papa y Mama en caso de tener ambos o solo 1 de ellos o el tutor.
+El padre o madre lo guarda desde su cuenta y la directora debe ser capaz de al formulario aumentar observaciones que tiene ella o que tengala sucursal del centro hacia el niño desde su cuenta la directora también 
+Al terminar de guardar la directora debe poder imprimir un documento membretado, el cual debe ser el mismo para todos el membrete o marca de agua debe ser esl logo que mas adelante estará y debe decir que como madre padre o tutor se lleno el formulario de inscripción y se detallo la información adecuadamente de su hijo o hija y que esta de acuerdo. Mas abajo la firma de ambos padres con numero de carnet.
+Toda la información anterior debe guardarse, pero se debe poder imprimir un file.
+El file debe guardarse algo asi:
+ 
+Como notas la edad del niño debe especificarse en años meses, es decir si el niño tiene 6 meses solo poner meses pero si el niño tiene año y medio poner 1 año y 6 meses.
+Este es el file de cada niño que debe poder imprimirse que esta con la información mas importante.
+
+
+
+Pagos:
+Los precios varían de sucursal en sucursal.
+Casi todas las cosas varian así en cada sucursal.
+Los pagos son el 10 de cada mes, si se atrasan se debe notificar 1 3 5 dias despues del 10 de cada mes.
+Tiene que tener categoria de pagos que debe ser variable y diferente para cada sucursal, para crear categoria de pago debe tener nombre descripción(opcional) y monto.
+Para hacer los pagos quiero que se pueda pagar desde la misma tabla de niños que haya un icono de billete y que ahí se pueda realizar todos los pagos que hay como mensualidad merienda material etc. Y que en la sección de pagos se pueda ver los pagos con fechas solo ver nada más.
+Se debe hacer un arqueo a fin de mes y tiene que salir bien y todo cuadrando. Para esto se adjunta un libro de Excel para referencia. 
+Los planes de pago se hacen para solo material y merienda. Cada uno tiene diferentr plan personalizado.
+Material y merienda se paga 3400 anual, se puede pagar una cuota inicial del 40% o 1000 bs o dividir en cuotas mensuales. Una opcion para personalizar planes de pago de acuerdo a la directora y se puede adelantar los pagos por meses o todo en uno.
+Incluir pagos de almuerzos que sea un pago variable.
+Los 3400 deben estar específicos para uniformes(muchas categorias) materiales(muchas categorias) Ingredientes(muchas categorias) 
+Productos de limpieza(muchas categorías)
+
+Inventario:
+Cada inventario por categorías, categorías dinámicas.
+Para uniformes categorías: mandil y deportivo y en cada uno por tallas. Igual forma poder agregar tallas y categorías.
+Materiales categoritas dinámicas.
+ categorías dinamicas. Dentro de material existe una categoría que es carpetas de avance que debe tener subcategorias por nidito prenidito y demas que ya se mencionó antes.
+Ingredientes categorias dinamicas igual que todo tener la opción de poner fecha de vencimiento que sea opcional y recordar si el producto va a vencer 5 3 1 dias antes de que vensa.
+Productos de limpieza: igual categorías dinamicas con opcional de vencimiento y las notificaciones igual los mismos dias.
+Activos del inmueble: igual que tengan categorías dinamicas igual que todo, las categorias serán ambientes o zonas del centro como por ejemplo rincon de construccion(donde los niños arman cosas) cocina, dirección etc de igual forma deben de tener subcategorias como electronicos muebles etc. 
+
+
+Que permita la codificación SKU automático para cosas fijas tener la opcion si es fijo o no para esto( Con marca color talla dependiendo del tipo de cosa del inventario esto es para todas las cosas que son fijas).
+Aqui para los uniformes para las profesoras no se les vende ni se les dregala es como si les prestara. Por ejemplo para esto si sería usar el SKU. Pero para los uniformes de los niños como ya mencionamos se compra, que es en el pago de los 3400.
+Se debe fijar un mínimo de stock por cada cosa del inventario para alertar.
+
+Se debe usar cookies.
+Cursos extras por sucursal, pueden inscribirse ñiños solo al evento o niños inscritos, los costos son diferenciados para los niños inscritos y esto se debe aplicar dinamismo por curso. El precio debe ser dinámico por cada curso. Se debe trabajar el balance extra y por curso osea ganancia inversion total. Se debe saber número de niños inscritos en total con buscador y filtros para niños inscritos y no inscritos al centro. Se puee inscribir a un niño inscrito y debe ser más facil que a un niño nuevo.
+Datos para un evento o curso extra:
+Nombre completo del niño.
+persona encargada mama papa o tutor.
+Número de celular del tutor.
+Edad del niño.
+Fecha que ingresa al curso.
+El tiempo del curso es variable al igual que número de cursos por sede. 
+Por curso extra se debe tener un límite que debe ser variable por curso.
+El profesor de cada curso solo debe figurar como registro de empleado sin acceso al sistema solo para ver o editar información.
+Reportes:
+Balance general aparte de los cursos ingresos egresos ganancias en una card que se pueda ver por filtros: por mes o por fecha específica.
+Para ingresar ingreso o egreso de caja se debe ingresar con monto desceipcion e imagen o pdf de respaldo.
+Graficas:
+- Inscritos por mes.
+- Nuevos inscritos por mes.
+- Incluir gráficos que se vea conveniente.
+En esta parte se debe incluir la api de chatgpt integrado a la bd para hacer preguntas sobre cualquier cosa de la base de datos o del uso del sistema o de un niño o padre o cualquier información .
+Registros: Como ya sabemos que necesitas para registrar a un niño( incluso foto del formulario hay)
+Para registro de profesora: 
+Nombre completo
+Nunero de celular
+Nunero de CI
+dirección escrita
+Curso al que está encargada.
+Por ejemplo sala cuna pero de sala cuna. Puede haber varios paralelos, por ejm a b c 
+Y necesito que la profesora juanita esté encargada de sala cuna b.
+Aquí se debe generar un código de 6 caracteres diferentes entre letras y números solamente. Ojo que cada código debe ser único y se debe poder enviar directo un whatsapp con el código con la función wa.me/591numero/mensaje+codigo
+Registro de paralelos en grupos de niños:
+Cada grupo de niños puede tener más de un paralelo que debe ser número dinámico y por sucursal. Se debe escoger de que grupo se quiere escoger el paralelo y poner un nombre al paralelo.
+Generación de roles:
+El admin puede crear diferentes roles y otorgar vistas y o permisos( creacion edicion vista) 
+Perfil: 
+Como se quedó que cada quién creará su cuenta con un código excepto servicio técnico que como quedamos es un superadmin con mas privilegios que tendrá por defecto su usr y pswrd que también lo puede cambiar.
+Entonces que pueda cambiar su foto de perfil su nombre de usuario y si contraseña. 
+Obviamente en el nav debe haber el icono de notificaciones, de perfil dónde se verá la foto de perfil y su nombre de usuario y al hacer clic aparezca cerrar sesión.
+En el sidebar arriba debe estar su foto de perfil y decir hola, nombre de usuario.debe haber el menú de opciones y también la parte del perfil y abajo cerrar sesion. Esto para todos los roles.
+Para administrador poder ver vista de cada profesora en la lista de registros de profesoras.
+Rol Profesora:
+En inicio de sesión un boton para ingresar código y de acuerdo a eso determinar el tipo de rol. En este caso profesora.
+Una vez ingresado el código se debe hacer la creación de la cuenta con nombre de usuario y contraseña y repetir contraseña. Y de ahí redirigir a la pagina de inicio de sesión para ingresar credenciales(nombre de usuario y contraseña).
+Tener un apartado aparte de la lista de niños mas su información.(la que detallamos atrás.
+Con las actividades de los niños cómo se muestra: y mandar o habilitar el reporte a la cuenta del padre madre o tutor del niño a las 8:00pm todos los días.
+Esta masomenos es la vista de las profesoras, los rectángulos azules no se debe tomar en cuenta:
+ 
+Donde comunicados cambiaremos a notificaciones que como se explico estará en el navbar junto con la foto de perfil, son todas las notificaciones que pueden mandar a los padres y todas las notificaciones que les manda la directora.
+Actividades literalmente esta en actividades. Se ve cuantas hay de cada actividad y existe un estado este estado es para ver si el tutor abrió no abrió o confirmo el reporte mandado por la profesora.
+Conversaciones es un chat entre la profesora y el tutor o padre, pero la directora también puede responder como directora.
+Calendario es para poner que festividad o acontecimiento hay ese dia como dia del árbol cumpleaños de tal o Halloween.
+Planificacion esta sección debe ser para planificar que se hará una determinada fecha por ejm el dia del árbol, la actividad ser de 10 am  a 12 medio dia entonces de 10 a 10:15 decoracion de 10:15 a 11:00 canciones de 11 a 11:30 reflexion, de 11:30 a 12 juego.
+Reportes, este apartado es para ver todos los reportes.
+Las actividades de cada niño son de tipo:
+ 
+
+Este es el reporte de un niño que la profesora debe llenar: con todas las actividades del niño durante su estadia diaria dependiendo al horario:
+ 
+De igual forma el apartado de perfil que como se menciono podrá cambiar de foto de perfil nombre de usuario y contraseña.
+
+
+
+
+Rol tutor:
+Mismo proceso de registro que de profes.
+Ellos ponen sus datos para registro que debe aparecer en lista.
+De ahi similar a profesoras pero de su hijo.
+Es decir al inscribir al niño saldrá un código de 6 digitos de exactamente las mismas características que de las profes, ek padre madre o tutor recibe el código por whatsapp ya que habrá un apartado con numero de referencia y se pondrá el numero en un input, se uutilizara wa.me/591elnumero+mensaje+código,  pondrá el código en el apartado de inicio de sesión para poder crear su cuenta deben ingresar estos datos básicos:
+ 
+Una vez llenado los datos y crear su cuenta con contraseña y nombre de usuario, debe iniciar sesión, al iniciar sesión por primera vez debe mandarle al formulario de primera entrevista o inscripción inmediatamente, debe poder completarse los pocos datos que lleno al registrar su cuenta.
+Puede haber 2 o mas tutores por niño porsiacaso asi que en caso de este rol se debe poder crear multiples cuentas con el mismo código.
+Al entrar vera una pantalla con un dashboard similar al de profesoras solo que solo tendrá acceso a lo referente de su hijo, sus actividades, sus reportes, sus asistencias ;as notificaciones que pueden ser de la profesora o de la directora o ambas, el apartado de conversaciones que es el chat que mencionamos antes y poder editar su perfil y la foto de perfil de su hijo. Tambien en reportes debe poder confirmar que leyó el reporte y debe avisar si lo abrió o no lo abrió como ya se menciono.
+Rol Superadmin: 
+Este rol de tener la capacidad de crear nuevas sedes o sucursales y por sede debe tener exactamente la misma vista qe la directora o admi. Puede mandar notificación por sede o a todas las sedes, solo a la directora de la sede o a la directora y las profes o solo a las profes y obviamente como tendrá la misma vista que la directora de cada sede podrá hacer lo mismo.
+Rol Superadmin/Servicio Tecnico: 
+Es lo mismo que el superadmin pero con la capacidad de ver errores logs mandar notificaciones a cualquier usuario o por grupos reportes graficos del sistema, quienes están conectados en el sistema y cualquier cosa que sea útil para poder administrar el sistema en relación al servicio técnico.
+
+
+
+
+
+
+Logo:
+ 
+Preguntas para aclarar algunas cosas:
+✅ Bloque A: Preguntas para la directora (Administrativo, Financiero, Inventario, Seguridad)
+1. Contexto General
+•	¿Cuántas sedes gestionan actualmente y cuántas esperan tener en el futuro?
+R.- Actualmente son 2 sucursales, se espera en un futuro tener 9 sucursales, y quizá con el tiempo más.
+•	¿Cómo se asignan los usuarios a cada sede? ¿Hay personal que trabaja en más de una sede?
+R.- Los usuarios solo se asignan a una sola sede y no hay excepciones, solo los dueños y socios son los que pueden ver todas las sedes.
+•	¿Qué roles existen hoy (ej. directora, secretaria, contadora, etc.) y qué permisos necesita cada uno?
+R.-Actualmente hay en la sede directora que cumple el papel de administrativo y parte de finanzas de la sede. Las profesoras que se encargan de lo académico y la comunicación con los padres. La señora de cocina que se encarga de preparar el almuerzo de las profesoras y las meriendas de los niños, la señora de limpieza que se encarga de la limpieza de la sede y obviamente los padres de familia que normalmente son 2 por cada niño que pueden ver comunicados de la directora y de las profesoras, como también los avances de sus hijos.
+Los roles serán creados por la directora o por la dueña(Admin y Superadmin) Quienes se les dará permisos de vista edición creación y obviamente a que partes del sistema podrán tener acceso.
+•	¿Qué tareas administrativas considera más críticas o que más tiempo consumen?
+R.- El registro de niños el llenado de formulario el arqueo que se debe hacer cada mes y obviamente cada gestión. Registro de pagos 
+2. Gestión Académica (visión administrativa)
+•	¿Cómo manejan las asistencias y las bajas médicas de las profesoras? ¿Quién las aprueba?
+R.- Las profes pueden hacer una petición de bajas medicas o permisos con un titulo una descripción y una imagen/pdf de respaldo. La directora es la que debe aprobar o desaprobar el permiso. 
+Los niños simplemente los padres mandan mensaje avisando que no iran y ya asi que no es necesario para los niños 
+
+3. Pagos y Finanzas
+•	¿Cómo registran los pagos (mensualidades, materiales, merienda)?
+•	¿Qué métodos de pago aceptan (efectivo, QR, transferencia)?
+R.- Los pagos se realizan mediante código QR o efectivo, en ambos casos se realiza un depósito a la cuenta de la dueña, es decir cuando el pago es en efectivo, la directora debe depositar a su cuenta el dinero de los pagos totales de un cierto tiempo y debe pasar el dinero a la cuenta de la dueña, posteriormente se manda el comprobante, aquí se debe registrar el comprobante mandado por WhatsApp en sistema para mayor control. En caso de que sea QR, se hace un QR del celular de la directora se hace el depósito y se manda el comprobante del pago por WhatsApp a la dueña, ese es el comprobante que se debe subir. En resumen se debe adjuntar comprobante en cada caso. Ya sea en imagen o pdf.
+•	 ¿Cada cuánto tiempo la directora deposita el dinero de los pagosen su cuenta y cada cuánto lo transfiere?
+R.-  Cada viernes se hace la transferencia
+•	¿Cómo manejan comprobantes? ¿Son físicos, digitales o ambos?
+R.- Digitales.
+•	¿Cómo llevan el libro de caja? ¿Hacen cierres mensuales o por gestión?
+R.- Mensualmente y por gestión. Se debe hacer un arqueo de caja de todos los pagos, cursos extras, ingresos egresos y de todo cada mes. Esto debe hacerse casi automatico un reporte en Excel y pdf, cada 6 de cada mes se debe configurar bien la fecha de ese reporte, porque algunos pagan hasta el 5 del mes(Osea retrasados).
+•	¿Necesitan exportar reportes (Excel/PDF)? ¿Qué columnas son críticas?
+R.- Las exportaciones de reportes son necesarias en formato PDF y Excel, algunas veces se necesitan de toda la tabla, es decir la tabla completa, otras se deben escoger que columnas exportar.
+4. Inventarios
+•	¿Cómo evidencian movimientos (fotos, PDFs)?
+R.- la directora es la única que puede sacar material y no se necesita una evidencia de movimiento de inventario
+
+5. Comunicaciones
+•	¿Cómo se comunican hoy con profesoras y padres? (WhatsApp, llamadas, cuadernos)
+R.- La comunicación de padres además de ser por WhatsApp, se realiza mediante un software de terceros llamado el cuaderno rojo, que aparte de que el costo sale del bolsillo de las profesoras, no está nada centralizado ni integrado con las hojas de Excel que se manejan desde administración.
+•	¿Necesitan mensajes masivos por sede? ¿Adjuntos (imágenes, PDFs)?
+R.- Lo que se necesitan son notificaciones, además de un chat de padres con profesoras o directora. Como ya se había explicado.
+•	¿Qué problemas tienen con los canales actuales?
+El servicio de cuaderno rojo es muy costoso, además que no esta centralizado o unificado con el Excel de administración.
+6. Auditoría y Seguridad
+•	¿Qué acciones necesitan auditar (ver, editar, eliminar, exportar)?
+R.- Se necesitan auditar todas las acciones, de esa forma poder saber quién hace que, también se debe poder ver esa parte desde servicio técnico (ósea desde el perfil de servicio técnico, para que pueda ayudarnos a corregir errores)
+•	¿Cómo manejan datos sensibles (alergias, medicación)? ¿Quién puede verlos?
+R.- Estos datos son los del formulario originalemte puede verlos la superadmin, admin profesoras y el tutor/es del hijo. De ahí como se especifico la creación de roles y otorgación de permisos. 
+•	¿Por cuánto tiempo deben conservar los registros?
+Los registros deben estar almacenados hasta que se eliminen manualmente.
+7. Reportes y Métricas
+•	¿Qué reportes son indispensables para la directora?
+R.- Ingresos egresos ganacias cantidad de niños ppor gripos, alimnos inscrityos en el mes.
+•	¿Qué indicadores revisan con más frecuencia (ej. asistencia, pagos, stock)?
+R.- Pagos e inventarios
+
+👩‍🏫 Bloque B: Preguntas para la Profesora (Académico, Comunicación con Padres)
+1. Gestión Académica
+•	¿Cómo pasan lista actualmente? ¿Qué opciones usan (presente, falta, retraso)?
+R.- La lista se maneja con presente falta y retraso, en caso de retraso especificar la hora de retraso. Para esto se requiere que sea solo un botoncito con la P presente un botoncito con la F falta y uno con la R retraso que al apretar se marque como lo que es, para la parte de especificar la hora se quiere que sea un reloj como de alarma de iphone.
+De esta forma será mejor en UI/UX, de todas maneras mejorar lo mas que se pueda la UI/UX en todo el sistema.
+•	¿Cómo manejan el consentimiento para fotos/videos?
+Debe haber un  espacio en el formulario donde los padres deben aceptar esto.
+•	¿Qué problemas enfrentan al subir contenido multimedia?
+R.- Se tarda demasiado en subir.
+4. Notificaciones
+•	¿Qué alertas les gustaría recibir en tiempo real? (ej. stock bajo, mensajes de padres, recordatorios)
+R.- Todas las alertas que se puedan.
+
+🔍 Bloque C: Preguntas Transversales (para ambos roles)
+•	¿Qué tareas les consumen más tiempo actualmente?
+R.- Registro de pagos, Cuadrar( es decir que por niño se tenga cuanto se pago de cada cosa por ejm mensualidad 1000, material 100 merienda 100) de otro niño igual y asi del niño A se hizo un total de 1200 del niño B se hizo un total de 1300 el total de todos los niños es 2500 y asi de todso lo que es ingreso y egreso que todo este de acuerdo a lko que hay en caja que es ka cuenta de la dueña) te mando un Excel mas.  Inventarios Registro o inscripción de niños.
+¿Qué errores son más frecuentes (ej. pagos mal registrados, asistencia incompleta)?
+El llenado de formularios registros malos o duplicados.
+•	Si tuvieran que elegir 3 módulos urgentes, ¿cuáles serían?
+R.- registro de niños inventaros y el balance y cuadre o arqueo que te hable.
+•	¿Prefieren más automatización o más control manual?
+R.- Un punto medio entre ambos
+•	¿Qué esperan de un sistema ideal para su trabajo diario?
+R.- Se espera que el sistema Sea fácil de usar automatizado pero con control manual es decir que no alivie la carga además que todo este centralizado y unificado que se vea bonito fácil de usar pensado en personas que no tienen ni idea de manejar 
+1) Inscripción, cuentas y formularios
+1.	Códigos y flujo de creación de cuentas
+o	Confirmemos el formato y duración de los códigos: 
+	Para tutores: ¿código de 5 caracteres alfanuméricos (generado al registrar al niño) o de 6 (mencionas 6 para profes y también para tutores en otra parte)? ¿Expiran? ¿Se pueden revocar/regenerar? ¿Cuántos usos permite el mismo código para múltiples tutores del mismo niño? [Historias de usuario]
+R.- Todos los códigos son 6 caracteres alfanuméricos, imagino que fue un error de taipeo. Los códigos deben expirar en caso de las profesoras al crear una sola cuenta ya que necesitan solo una cuenta, en caso de tutores deben expirar en caso de se creen 2 cuentas si esta registrado con mama y papa y 1 cuenta si solo con mama o papa o tutor solo 1 cuenta. Tambien se de tomar en cuenta que los códigos se generan por niño no para cada tutor entonces el código único debe permitir la creación del numero de cuentas como ya se menciono.
+o	El envío por WhatsApp: ¿el sistema debe construir el link wa.me/591<numero>?text=<mensaje+codigo> y registrar el intento de envío (auditoría)? ¿Validamos el número en formato internacional (591)? [Historias de usuario]
+R.- El usuario solo se debe introducir los 8 digitos del numero de celular( que haya una sola casilla por numero) el sistema debe construir el link de wa.me/591(el numero)+Mensaje+Codigo
+2.	Formulario digital de inscripción
+o	¿Quieres que dividamos el formulario en “pasos/vistas” cortas (3 preguntas por vista) con opciones predefinidas + “otros” y autoguardado? ¿Campos obligatorios/optativos exactos y validaciones? [Historias de usuario]
+R.- El formulario debe ser dividido de la mejor forma para tener una mejor UI/UX, tu que eres un experto deberías saberlo.
+o	Documentos adjuntos (certificados, carnets, etc.): ¿mantenemos el límite de 10 MB por archivo y formatos PDF/JPG/PNG? ¿Cantidad máxima de archivos por niño? (Tu doc lista varios respaldos obligatorios) [Historias de usuario]
+R.- Debemos aumentar el limite de 10MB y adecuar a los requerimientos del documento. Por niño se deben subir documentosa la inscriopcion tal cual menciona el documento y fotos y video por actividad como menciona el documento, Dejemos en 5 fotos máximas por actividad y 3 videos por actividad. De esa forma calcula bienel limite de espacio.
+o	Firmas digitales: ¿requiere firma de ambos padres si existen, o admite uno y tutor? ¿Aceptas firma en caja de dibujo (captura canvas) y guardado como imagen con marca de tiempo y IP? ¿Debemos permitir firma posterior si al inicio no asistió uno de los tutores? [Historias de usuario]
+R.-Se requieren dos firmas por separado, ya que algunos niños solo viven con su mama o papa o tutor legal, entonces solo podrá registrarse una persona. Si se acepta firma en caja de dibujo yh guardado como imagen con marca de tiempo y IP. Tambiense debe permitir la firma posterior si al inicio no asistio uno de los tutores.
+
+3.	Contrato y “file” imprimible del niño
+o	¿Usaremos plantilla única membretada con marca/agua del logo y N° de contrato (secuencial por sede)? ¿Debemos parametrizar el texto legal por sede? [Historias de usuario]
+R.- Si por Contrato te refieres al documento que se firma aceptando el llenado de formulario y demás pues si se debe sar una plantilla única membretada con marca de agua del logo y Numero de contrato secuencial por sede. Si se debe parametrizar el texto legal por sede.
+o	La edad debe mostrarse en años y meses (ej. “1 año 6 meses”). ¿La calculamos a la fecha actual o a la fecha de inscripción? [Historias de usuario]
+R.- A la fecha actual.
+________________________________________
+2) Turnos, precios, prorrateo y descuentos
+1.	Turnos y precios por sede
+o	Turnos y precios para Cochabamba: Mañana/Tarde 950 Bs, Continuo 1700 Bs, Completo 2200 Bs — ¿estos son valores iniciales y editables solo por dueños/superadmin y directora? ¿Deseas historial de cambios con vigencia (price-by-date) para no afectar inscripciones anteriores? [Historias de usuario]
+R.- Estos son precios iniciales y editables solo por superadmin y directora. Si deseo historial de cambios. Los cambios solo afectaran a los papas nuevos por apor ahora, es decir que si cambian los precios los papaas que están con ese monto especifico siguen pagando lo mismo. Esta regla también debe ser editable por la dueña que si se desea que cambie para todos o solo para los nuevos. Y obviamente debe ser por sucursal.
+2.	Prorrateo del primer pago
+o	Regla base: mensualidad / 20 días hábiles; si faltan ≤ 3 días para acabar el mes, se cobra desde el 1° del siguiente mes. ¿Qué fecha de inicio tomamos para el cálculo: fecha de primera asistencia o fecha de inscripción? ¿Redondeo a enteros (Bs) o con decimales? [Historias de usuario]
+R.- Fecha de la primera asistencia, cosa que se debe registrar en el sistema para hacer el calculo. Como en Bolivia solo hay 50 centavos solo puede hacer con 50 centavos no puede haber con 10 20 30 40 60 70 80 90 peor 23 44 78 89 92. Si el precio con decimales es menor o igual a los 49 centavos que se redondee a 50 centavos, y si es mayor o igual a 51 centavos que se redondee directo a 1 boliviano y si es 50 centavos redondo pues se queda en 50 centavos.
+3.	Descuentos por pago adelantado (Cochabamba)
+o	6% por año, 3% por medio año (del 6 de enero al último viernes antes de Navidad como definición de “año”). ¿Aplican solo a mensualidad o también a otros conceptos? ¿Se combinan con prorrateo? [Historias de usuario]
+R.- Solo se plica a mensualidades.
+________________________________________
+3) Pagos, comprobantes, arqueo y libro caja
+1.	Métodos y comprobantes
+o	Pagos por QR o efectivo; siempre adjuntar comprobante (imagen/PDF). ¿Validamos automáticamente el monto del comprobante vs. el monto del sistema? ¿Guardamos el hash del archivo para detectar duplicados? [Historias de usuario]
+R.- Si se debe validar el monto automáticamente y guardar el hash del archivo para detectar duplicados
+o	Flujo de depósitos: la directora transfiere cada viernes a la cuenta de la dueña; ¿se necesita conciliación (marcar “depositado”, “transferido”, “verificado”)? [Historias de usuario]
+R.- Si se necesita conciliación.
+2.	Vencimientos y recordatorios
+o	Vencen el 10 de cada mes con avisos a 1, 3 y 5 días después del 10. ¿Qué canales: notificación en-app, email, WhatsApp (link)? ¿A qué hora del día programamos los avisos? [Historias de usuario]
+R.-Las notificaciones deben ser antes del 1 basandose en esos días 1,3 y 5 dias antes del 10 de cada mes. Las notificaciones deben ser tipo campanita porsiacaso. Los avisos deben ser a las 11 a las 2 y a las 5 de la tarde de cada dia
+3.	Libro de caja y arqueo
+o	Arqueo mensual y por gestión; generar PDF/Excel automáticamente el día 6 (considerando pagos atrasados hasta el 5). ¿Deseas recalcular si aparecen pagos rezagados posteriores? ¿Formato de reporte: nos compartes el Excel de referencia para replicar columnas y fórmulas? [Historias de usuario]
+R.- No debería pasar que haya pagos rezagados posteriores pero debería recalcular si alguna vez pasa eso. Claro ya te estoy compartiendo el Excel.
+4.	Planes de pago (material y merienda)
+5.	Pagos desde la tabla de niños
+3.400 Bs anuales (con desagregación por categorías: uniformes, materiales, ingredientes, limpieza). ¿Cómo se modelan los planes personalizados: cuotas mensuales variables, cuota inicial del 40% o 1.000 Bs? ¿Aplican intereses por mora? ¿Adelantos parciales? ¿Necesitas tablas de amortización y estado de cuenta por niño? [Historias de usuario]
+R.- Pueden ser cuotas mensuales variables personalizadas puede ser su adelanto del 40% o cuota inicial de 1000bs, no hay intereses tampoco adelantos parciales a menos que la dueña o directora quieran hacer el cambio debe ser configurable y obviamente por sucursal, también se necesita tablas de amortización y estado y estado de cuenta por niño.
+o	¿El icono de “billete” abre un modal de cobro con selección de categoría (mensualidad, merienda, material, almuerzo, etc.), monto, adjunto, y aplicación de descuentos? Y la sección de pagos global solo lectura con filtros por fecha/sede/estado, ¿correcto? [Historias de usuario]
+R.- Si, eso hace el icono de billete y si correcto eso la sección de pagos. Pero el filtro no es por sede. Sino que la dueña como tiene vista de directora de cada sucursal puede ver por sede, pero no es el filtro por sede.
+________________________________________
+4) Inventarios, SKU, préstamos y alertas
+1.	Evidencias y aprobaciones
+o	En el documento indicas que la directora es la única que puede sacar material y que no se requiere evidencia. ¿Deseas entonces desactivar evidencias y aprobaciones para movimientos de inventario (esto contradice el requerimiento original de “movimientos con razón + evidencia y aprobación”)? Definamos la política final. [Historias de usuario]
+R.-No se necesita evidencias y desactivamos aprobación de movimiento de inventario.
+2.	Categorías y subcategorías dinámicas
+o	Uniformes (mandil/deportivo + tallas dinámicas), Materiales (incluye “carpetas de avance” por grupo: nidito, prenidito, etc.), Ingredientes (con vencimiento opcional), Limpieza (vencimiento opcional), Activos del inmueble por ambientes (cocina, dirección, rincón de construcción) con subcategorías como electrónicos/muebles. ¿Alguna otra familia? ¿Necesitas plantillas para alta masiva por sede? [Historias de usuario]
+R. Que cada sede arme sus inventarios como guste quizá en una sede no haya rincón de construcción. Asi que esto debe ser configurable por sede.
+3.	SKU y préstamos
+o	¿El SKU automático aplica a todo ítem fijo (marcando color/talla/marca según tipo)? Para uniformes de profesoras: ¿registramos préstamo, con fecha de entrega/devolución y estado (bueno/dañado/perdido) y responsable? ¿Se descuentan de stock de venta/consumo? [Historias de usuario]
+R.-
+4.	Alertas
+o	Mínimo de stock por ítem configurable. Para vencimientos: ¿usamos avisos a 5, 3 y 1 días antes (según tu documento) o mantenemos la regla previa de 7 y 3? Definamos una sola política y que sea configurable por sede. [Historias de usuario]
+R.- Usamos avisos 5,3,1 dias antes como dice el documento.
+________________________________________
+5) Académico: grupos, paralelos, horarios y asistencia
+1.	Estructura académica
+o	Grupos: sala cuna, maternal, prenidito, nidito, apoyo preescolar, apoyo escolar; con paralelos por sede. ¿Necesitamos cupos máximos por paralelo y listas de espera? ¿Una profesora puede ser titular en un paralelo y auxiliar en otro (como comentas)? Lo modelaremos como rol dentro del grupo (titular/auxiliar) en vez de roles del sistema. [Historias de usuario]
+R.- Los cupos máximos por paralelo son 10en el caso de pre nidito y nidito.  Sala cuna y sala maternal son 15. Pero debe ser configurable el número máximo antes de crear el parallo por sede. No hay listas de espera, la directora debe tomar la decisión de si son pocos los alumnos meter a un paralelo que ya esta con 10, asi de esa forma debe ser editable el numero de máximo por paralelo tabien después de crear,La profesora puede ser profesora en un paralelo y auxiliar en otro, pero necesito que como profesora tenga acceso al sistema, y si en algún momento la directora decide crear rol auxiliar le de permisos necesarios igual tenga acceso al sistema como auxiliar. Si ya es profesora puede tener usar su misma cuenta. Aveces es una auxiliar nueva entonces si la directora decide crear el rol pasra auxiliar, la cuenta debe ser creada de la misma manera que para profesoras.
+2.	Horarios
+o	Deben poder crear/editar/eliminar/ver horarios; en un mismo horario pueden coexistir varios grupos. ¿Necesitas conflicto de agenda (evitar asignar a una profesora en dos paralelos a la misma hora)? [Historias de usuario]
+R.- Si se necesita evitar asignar a una profesora en 2 paralelos a la misma hora, en un horario pueden existir varios grupos.
+3.	Asistencia
+o	Para niños mencionas que no es necesario formalizarla (los padres avisan por mensaje). ¿Deseas mantener asistencia de niños como opcional para estadísticas (presente/falta/retraso) o la omitimos? [Historias de usuario]
+Deseo mantener la asistencia de niños para estadísticas.
+o	Para profesoras: UI con botones P/F/R y, para “retraso”, selector de hora estilo reloj. ¿Necesitas reportes mensuales de asistencias del personal y exportables? [Historias de usuario]
+R.- Si se necesita que se pueda exportar en pdf y excel
+4.	Bajas médicas y permisos del personal
+o	Flujo: solicitud (título, descripción, PDF/imagen), aprobación de la directora. ¿Se requiere sustituto automático (asignar otra auxiliar) y notificación a los tutores del grupo? [Historias de usuario]
+R.- Sustituto automatico seria su auxiliar. Y notificación no a los tutores del grupo sino a la profesora encargada del curso que la auxiliar con nombre x se hará cargo. Pero ojo que la directora debe aceptar la baja medica.Y una vez acepta o rechazada debe mandar la notificación correspondiente de si la solicitud fue aprobada o rechazada. Si la directora no hizo ninguno debe estar en pendiente.
+________________________________________
+6) Portafolio, reportes diarios y multimedia
+1.	Reporte diario
+o	Envío a las 8:00 pm (hora local) a la cuenta del padre/madre/tutor. ¿Qué pasa si una profesora no envía antes de esa hora? ¿Reintentamos al día siguiente? ¿Se envía a todos los tutores vinculados y cada uno debe confirmar lectura? ¿Cómo deseas mostrar el estado abierto/no abierto/confirmado (por tutor)? [Historias de usuario]
+R.- La profesora debe enviar si o si el reporte diario no puede pasar que no lo haga es parte de su responsabilidad. En caso de que no hay llenado el reporte hasta las 8 esperar a que llene y ni bien guarde que se envie o sea visible a los tutores. Se envía a todos los tutores vinculados por niño y cada uno debe confirmar lectura y si mostrar estado abierto/no abierto/confirmado por tutor, por sí acaso para confirmar deben apretar un botón que diga confirmar.
+2.	Multimedia
+o	¿Mantenemos la política de máx. 3 fotos + 1 video por actividad (de la especificación original) o te gustaría que sea configurable? ¿Aplicamos marca de agua obligatoria y procesamiento asíncrono (estado: pendiente/procesando/listo/falló)? Límite ≤10 MB por archivo, ¿correcto? [Historias de usuario]
+R.-Son máximo 5 fotos y 3 videos por actividad como ya se menciono sin dejar de lado los documentos de inscripción asi que se debe ampliar el limite y si debe ser asíncrono con marcas de agua obligatorias con estado pendiente procesando listo fallo
+o	Consentimiento para imágenes/videos desde el formulario: ¿deseas vigencia (p. ej., por gestión) y revocación con fecha? [Historias de usuario]
+R.- Sin vigencia ni revocación un solo consentimiento.
+________________________________________
+7) Comunicaciones y notificaciones
+1.	Chat profesor–tutor (con posibilidad de que la directora intervenga)
+o	¿Adjuntos permitidos (imagen/PDF ≤10 MB)? ¿Borrado o inmutabilidad de mensajes (auditoría)? ¿Necesitas buscador por palabras y filtros? [Historias de usuario]
+R.- El chat debe permitir archivos imagen pdf Word migual o menor a 10MB Inmutabilidad de mensajes, buscador de palabras y filtros.
+2.	Notificaciones
+o	¿Todas las notificaciones deben ser persistentes y no borrables (campanita), o algunas (p. ej., recordatorios de pago) sí podrían expirar? ¿Requieres agrupación por tipo y marcar como leídas? [Historias de usuario]
+R.- Todas las notificaciones deben ser persistentes y no borrables se requiere agrupación por tipo y marcar como leidas.
+________________________________________
+8) Roles, permisos, perfiles y soporte técnico
+1.	RBAC granular
+o	Confirmo que Admin/Superadmin crean roles y asignan permisos por vista y acción (ver/crear/editar/eliminar/exportar/ver_sensible). ¿Agregamos “impersonar” como permiso para Servicio Técnico? [Historias de usuario]
+R.- No como tal, sino que como rol super admin tendrá acceso a las vistas por sucursal y creal roles y cuentas como un super admin pero con la diferencia que tendrá cosas extras como logs y demás para administrar y hacer servicio técnico del sistema. Recordemos que los super admin tienen la capacidad de crear sucursales o sedes y de cada una delas sedes tienen la misma vista que la directora con los mismos permisos. La directora tiene la vista de cada una de las profesoras de la sede. Entonces resumiendo el superadmin tiene vista de directora y profesoras de cada una de las sedes. Tiene todos los permisos también.
+2.	Perfiles y UX
+o	¿El sidebar muestra foto + “Hola, ” para todos los roles y el navbar incluye notificaciones y perfil (con cerrar sesión)? ¿Preferencias de tema por usuario (Tailwind) persistidas en BD? [Historias de usuario]
+R.- Exactamente asi en el sidebar y en el navbar. Y si se debe guardar en la base de datos. Mejor si solo trabajamos con modo oscuro y modo claro ya que será mucho mas fácil poner esos temas en flutter para la app. En ambas web y móvil se debe almacenar en cache para que en reinicios  no haya llamada al backend.
+3.	Servicio Técnico / Superadmin+
+o	Además de logs, métricas y usuarios conectados, ¿necesitas panel de errores (trazas), monitoreo de colas, estado de workers, y forzar logout de sesiones? [Historias de usuario]
+R.- Si y además de eso necesito todo lo que sea para auditar medir y hacer servicio técnico y mantenimiento como tal del sistema.
+________________________________________
+9) Cursos/eventos extra
+1.	Inscripción y precios
+o	Niños inscritos vs no inscritos (externos), con precios distintos por curso y límite de cupos. ¿Deseas lista de reserva? ¿Se requiere pago online o solo registro + cobro manual con comprobante? [Historias de usuario]
+R.-Sin lista de reserva, tampoco pagos online solo registro con cobro manual comprobante/factura. Mas adelante te explico mejor eso de la factura.
+2.	Rol del profesor del curso extra
+o	Señalas que “solo figura como registro de empleado sin acceso al sistema o solo para ver/editar información”. ¿Cuál de las dos? Si puede ver/editar, definamos exactamente qué pantallas. [Historias de usuario]
+R.- El profesor de cursos no debe tener acceso al sistema, debe ser registrado como empleado nada mas es decir para guardar sus datos y ya.
+3.	Reporte de rentabilidad
+o	Balance por curso (ingreso–inversión) y balance extra consolidado: ¿qué categorías de costo vamos a imputar (materiales, horas hombre, alquiler, publicidad, etc.)? [Historias de usuario]
+R.- Las categorías de costo deben ser definidas por curso por sucursal 
+________________________________________
+10) Reportes y exportaciones
+1.	Exportar tablas
+o	Confirmas que a veces se exporta toda la tabla y otras columnas seleccionadas a PDF/Excel. ¿Necesitas plantillas predefinidas (p. ej., “Libro caja mensual”, “Pagos por niño”)? [Historias de usuario]
+R.- Si podría ser una opción tener plantillas predefinidas.
+2.	Dashboards
+o	Indicadores clave: ingresos, egresos, ganancias, niños por grupo, inscritos por mes, nuevos inscritos por mes. ¿Deseas filtros por sede/fecha/curso y gráficos tipo barras/líneas/donut? [Historias de usuario]
+R.- A todo esto si menos al filtro por sede. La única que puede ver por sede es la dueña/superadmin que tendrá vista de directora por sede como ya te dije.
+________________________________________
+11) Privacidad, retención y legal
+1.	Datos sensibles
+o	Acceso a alergias/medicación para superadmin, admin, profes y tutores. ¿Deseas que algunos usuarios (p. ej., limpieza/cocina) vean solo alertas de alergia (sin detalle) por privacidad? [Historias de usuario]
+R.- Por el momento toda la información del formulario debe verla solo la directora y la profesora encargada del curso, si la directora da autorización a roles nuevos el permiso de vista de esos datos pues debe ser asi.
+2.	Retención de datos
+o	Indicas que los registros se conservan hasta eliminación manual. ¿Definimos políticas de retención configurables por sede (p. ej., 5 años) y procedimiento de anonimización al egresar? [Historias de usuario]
+R.- No se puede eliminar automáticamente ningún registro, solo se puede mandar notificación de que ya pasaron 5 anos y se recomienda eliminar nada mas. Procedimiento de anonimizacion al eliminar el registro perfecta idea.
+3.	Consentimientos
+o	¿Necesitas historial de cambios (quién, cuándo) y documento de aceptación descargable/firmable para cada consentimiento (imágenes/videos, tratamiento de datos)? [Historias de usuario]
+R.- Historial de cambios para todo en el sistema como mencionas, pero no documento de aceptación descargable/firmable. Amenos que sea lo del formulario de inscripción.
+________________________________________
+12) Integración con IA (consulta sobre la BD)
+•	Indicas integrar “API de ChatGPT” para consultar cualquier cosa de la BD o del uso del sistema. ¿Alcance exacto? ¿Qué roles pueden usarlo? ¿Debemos enmascarar/anonimizar datos de menores y filtrar campos sensibles antes de mandar a la IA? ¿Proveedor definitivo (OpenAI vs. el plan previo con DeepSeek) y límites de costos? ¿Registrar auditoría de prompts/respuestas? [Historias de usuario]
+R.- Aun no se sabe el modelo exacto que se usara El alcance es literalmente todo lo relacionado al sistema usabilidad funcionalidad datos estadísticas información.Solo superadmin/directora pueden usarlo por el momento, debe estar abierto a que mas roles lo puedan usar si la dueña o la directora dan el permiso correspondiente.Debemos enmascarar/anonimizar datos de menores y filtrar campos sensibles antes de mandar a la IA, esto es una buena idea, pero también quiero que me de información exacta de todos los datos que se pregumntaran asi que tu ve la mejor forma de que ambos se cumplan. Registrar auditporias de prompts y respuestas además no debe ser muy grande el prompt enviado por el usuario para no gastar tokens y obviamente la respuesta debe ser clara y corta para tampoco gastar tokens. Se recomienda el modelo mcp para conexión con ia.
+________________________________________
+13) Autenticación y cookies
+•	En el documento se indica “Se debe usar cookies”. ¿Deseas JWT en cookie httpOnly (seguro, sameSite, CSRF) en lugar de almacenar tokens en localStorage? Esto reemplazaría el esquema de “JWT por header” o convivirían ambos (web vs móvil). Aclaremos la política unificada. [Historias de usuario]
+R.- La solución más segura y recomendada
+•	Para obtener lo mejor de ambos mundos, la práctica más segura es un enfoque híbrido que utiliza dos tipos de tokens:
+•	Token de acceso (access token):
+•	Dónde almacenarlo: En la memoria del navegador (una variable JavaScript, por ejemplo).
+•	Características: De corta duración (5-15 minutos).
+•	Uso: Para realizar peticiones a la API. Al estar en memoria, si la página se recarga, se pierde, lo que mitiga el riesgo de robo por XSS.
+•	Token de refresco (refresh token):
+•	Dónde almacenarlo: En una cookie HttpOnly, Secure y con SameSite=Strict.
+•	Características: De larga duración.
+•	Uso: Cuando el token de acceso expira, se realiza una petición al servidor usando este token para obtener un nuevo token de acceso. Al ser HttpOnly, el token de refresco no puede ser accedido por JavaScript, protegiéndolo de ataques XSS. 
+Este método, aunque es más complejo de implementar, proporciona el nivel más alto de seguridad al minimizar el tiempo en que un token de acceso está expuesto y proteger el token de refresco, que es la clave para la persistencia de la sesión.
+________________________________________
+14) Migraciones de datos e importaciones
+•	¿Deseas importar históricos desde Excel (pagos, inventarios, niños) y dejar plantillas de importación/validación?
+R.- Deseo importar todos los Excel que hay hasta el momento y llenar la información del sistema con esos Excel, asi tenemos una migración fácil y rápida además de automatizada.
+•	¿Migrar datos del “cuaderno rojo” o solo reemplazar hacia adelante? [Historias de usuario]
+R.- También migrar datos de cuaderno rojo si es posible seria una perfecta funcionalidad.
+________________________________________
+15) Contradicciones detectadas (para decidir)
+1.	Inventario con evidencia vs sin evidencia (documento dice que no se necesita). ¿Cuál aplicamos? [Historias de usuario]
+R.- Como dice en el documento ya que es la ultima información hablada con la directora del centro sede cochabamaba.
+2.	Avisos de caducidad: 5/3/1 días (documento) vs 7/3 (especificación previa). ¿Cuál será la regla y si es configurable por sede? [Historias de usuario]
+Como dice en el documento ya que es la ultima información hablada con la directora del centro sede cochabamaba. Y si debe ser configurable por sede.
+3.	Asistencia de alumnos: requerida en la especificación base vs no necesaria según la directora; decidir si la dejamos opcional. [Historias de usuario]
+R.- La asistencia la dejamos para estadística. Asi se puede saber cuantos niños faltaron o llegaron en un parámetro de hora es decir entre las 8 y las 10,etc
+4.	Longitud de códigos: 5 (tutor al registrar niño) vs 6 (profes y tutores en otra sección). Definir formato único por tipo y su vida útil. [Historias de usuario]
+R.- El código debe ser de 6 caracteres alfanuméricos.
+Ya te explique como se usaran los códigos mas arriba. 
+5.	Uso de cookies vs JWT en header de la arquitectura previa; unifiquemos. [Historias de usuario]
+R.- Ya te explique que se usara ambas cosas.
+________________________________________
+16) Entradas adicionales que me ayudarían
+•	Logo oficial (para marca de agua en contratos y file). [Historias de usuario]
+R.- El logo te lo paso en el siguiente prompt
+•	Ejemplos de reportes/Excel de arqueo y libro caja (para replicar exactamente). [Historias de usuario]
+R.- Estoy adjuntando el Excel 
+•	Ejemplos de comprobantes (para probar el flujo de validación). [Historias de usuario]
+R.- El comprobante también te lo paso en el siguiente prompt
+________________________________________
+Agregar modulo de facturación aunque simple para cualquier pago efectuado. Los oagos son una especie de categoría de ingreso hay otro tipo de ingresos mas. Egresos también debe tener tipos. El modulo de facturación que este simple por el momento, ya que mas adelante debe ser en el formato que pide Impuestos nacionales de Bolivia. 
+Para la creación de cuenta el nombre de usuario debe ser único y la contraseña debe ser de al menos 8 caracteres entre números y letras minimamente. Se debe tener una buena UI/UX para lograr esto con mensajes en rojo en tiempo real arriba del input si el nombre de usuario ya esta en uso y en verde si esta correcto igual para la contraseña debe cumplir esas reglas y los mensajes igual. Para el login debe trabjarse con sweetalert2 como se quedo de forma asíncrona. Al igual que el backend.
+Tener lista de no pagado de mensualidades meriendas materiales almuerzos, también sacar estadísticas con eso.
+Para cada rol poner un modulo de ayuda que sea para el manual de usuario para poder saber como usar.
+Se necesita saber quien hizo que acción para auditar mejor el sistema. 
+Debe haber medidas diferentes para materiales y comida en inventario, es decir puede haber kilos litros unidad para comida y para materiales puede haber unidad, caja o nose, Igual como ya sabes deben tener varias categorías.
+
+
+
+

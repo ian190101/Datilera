@@ -6,7 +6,7 @@ class Consentimiento(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     alumno_id = Column(Integer, ForeignKey("alumnos.id", ondelete="CASCADE"), nullable=False, index=True)
-    tutor_id = Column(Integer, ForeignKey("tutores.id", ondelete="RESTRICT"), nullable=False, index=True)
+    tutor_id = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     tipo = Column(String(80), nullable=False, index=True)  # p.ej. "salidas", "uso_imagen", "medicacion"
     descripcion = Column(Text, nullable=True)

@@ -6,7 +6,7 @@ class Alumno(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sede_id = Column(Integer, ForeignKey("sedes.id", ondelete="RESTRICT"), nullable=False, index=True)
-    tutor_id = Column(Integer, ForeignKey("tutores.id", ondelete="RESTRICT"), nullable=False, index=True)
+    tutor_id = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     codigo = Column(String(30), unique=True, nullable=True, index=True)
     nombres = Column(String(120), nullable=False, index=True)
