@@ -9,7 +9,7 @@ from app.kernel.domain.acceso.errors import CodigoNoEncontrado
 from app.kernel.domain.acceso.ports import UnitOfWork
 
 
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo  
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort  
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion  
 
 
@@ -26,7 +26,7 @@ class EnviarCodigoWhatsappResponse(BaseModel):
     link: str | None = None
 
 class EnviarCodigoWhatsapp:
-    def __init__(self, uow: UnitOfWork, auditoria: Optional["IAuditoriaAccionRepo"] = None):
+    def __init__(self, uow: UnitOfWork, auditoria: Optional["AuditoriaAccionRepositoryPort"] = None):
         self.uow = uow
         self.auditoria = auditoria
 

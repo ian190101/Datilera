@@ -1,26 +1,25 @@
+# app/kernel/domain/comunicaciones/notificacion_vista_entidad.py
+
 from __future__ import annotations
 from datetime import datetime
-from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class NotificacionVista:
-    """Entidad **NotificacionVista** (US-COM-008).
+class NotificacionVista(BaseModel):
+    """Entidad **NotificacionVista**.
 
-    Registra la primera vista de una notificación para métricas.
+    Registra cuando un usuario ve/interactúa con una notificación.
+    Útil para analytics y tracking de engagement.
     """
 
-    def __init__(
-        self,
-        id: int,
-        notificacion_id: int,
-        usuario_id: int,
-        ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        visto_en: Optional[datetime] = None,
-    ):
-        self.id = id
-        self.notificacion_id = notificacion_id
-        self.usuario_id = usuario_id
-        self.ip = ip
-        self.user_agent = user_agent
-        self.visto_en = visto_en or datetime.utcnow()
+    id: int
+    notificacion_id: int
+    usuario_id: int
+    visto_en: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+        frozen=True,  # Inmutable una vez creada
+    )

@@ -1,61 +1,55 @@
 # app/kernel/domain/finanzas/libro_caja_entidad.py
-from __future__ import annotations
-from dataclasses import dataclass, field
 from datetime import datetime, date
 from decimal import Decimal
 from enum import Enum
-from typing import List, Optional
-
+from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict
 
 class TipoMovimiento(str, Enum):
     INGRESO = "ingreso"
     EGRESO = "egreso"
 
+class MovimientoCaja(BaseModel):
+    """
+    VO de movimiento en Libro de Caja (se registra con referencia).
+    Inmutable (frozen=True) para garantizar integridad histórica.
+    """
+    model_config = ConfigDict(frozen=True)  # Reemplaza a @dataclass(frozen=True)
 
-@dataclass(frozen=True)
-class MovimientoCaja:
-    """VO de movimiento en Libro de Caja (se registra con referencia)."""
     fecha: date
     tipo: TipoMovimiento
     categoria_id: Optional[int]
-    monto: Decimal
+    
+    # 'ge=0' (greater or equal) permite 0 pero no negativos.
+    # decimal_places=2 ayuda a validar formato en entradas JSON/Strings.
+    monto: Decimal = Field(..., ge=0, decimal_places=2)
+    
     referencia: Optional[str] = None  # p.ej. "pago:123", "egreso:789"
-    creado_en: datetime = None
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
-    def __post_init__(self):
-        if self.monto < 0:
-            raise ValueError("El monto del movimiento no puede ser negativo.")
-        object.__setattr__(self, "creado_en", self.creado_en or datetime.utcnow())
-
-
-@dataclass
-class LibroCaja:
+class LibroCaja(BaseModel):
     """
-    Libro de caja mensual y por gestión.
-
-    Historias:
-    - Se genera reporte (PDF/Excel) el día 6 del mes siguiente (servicio externo).
-    - Permite agregar ingresos/egresos y consolidar totales.
+    Registro de movimiento en Libro de Caja.
     """
     id: int
     sede_id: int
-    periodo_inicio: date
-    periodo_fin: date
-    movimientos: List[MovimientoCaja] = field(default_factory=list)
-    total_ingresos: Decimal = Decimal("0.00")
-    total_egresos: Decimal = Decimal("0.00")
-    creado_en: datetime = None
+    fecha: date
+    tipo: TipoMovimiento
 
-    def __post_init__(self):
-        if self.periodo_fin < self.periodo_inicio:
-            raise ValueError("Rango inválido del Libro de Caja.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+    # Categorías (según tipo)
+    categoria_pago_id: Optional[int] = None
+    categoria_egreso_id: Optional[int] = None
 
-    def agregar_movimiento(self, mov: MovimientoCaja) -> None:
-        if not (self.periodo_inicio <= mov.fecha <= self.periodo_fin):
-            raise ValueError("Movimiento fuera del periodo del libro.")
-        self.movimientos.append(mov)
-        if mov.tipo == TipoMovimiento.INGRESO:
-            self.total_ingresos += mov.monto
-        else:
-            self.total_egresos += mov.monto
+    # Referencias opcionales
+    pago_id: Optional[int] = None
+
+    # Valores monetarios
+    # Default 0.0 y validación para no negativos
+    monto: Decimal = Field(default=Decimal("0.0"), ge=0, decimal_places=2)
+    saldo_acumulado: Optional[Decimal] = None
+
+    # Metadatos
+    concepto: Optional[str] = None
+    referencia: Optional[str] = None
+    usuario_registro_id: int = 0
+    creado_en: Optional[datetime] = Field(default_factory=datetime.utcnow)

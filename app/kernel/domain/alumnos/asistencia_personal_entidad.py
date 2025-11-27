@@ -1,23 +1,40 @@
-from datetime import date
+# app/domain/entities/alumnos/asistencia_personal_entidad.py
+
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
+from datetime import date, time, datetime
 
-class AsistenciaPersonal:
-    def __init__(self, id: int, usuario_id: int, fecha: date, estado: str,
-                 hora_retraso: Optional[str] = None):
-        self.id = id
-        self.usuario_id = usuario_id
-        self.fecha = fecha
-        self.estado = estado
-        self.hora_retraso = hora_retraso
 
-    def marcar_presente(self):
-        self.estado = "presente"
-        self.hora_retraso = None
+class AsistenciaPersonalEntidad(BaseModel):
+    """Entidad de dominio para asistencia del personal"""
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True
+    )
 
-    def marcar_falta(self):
-        self.estado = "falta"
-        self.hora_retraso = None
+    id: Optional[int] = None
+    personal_id: int  # referencia a Usuario
+    fecha: date
+    sede_id: int
+    
+    # Registro de horarios
+    hora_entrada: Optional[time] = None
+    hora_salida: Optional[time] = None
+    
+    # Observaciones
+    observaciones: Optional[str] = None
+    
+    # Auditoría
+    creado_en: Optional[datetime] = None
 
-    def marcar_retraso(self, hora: str):
-        self.estado = "retraso"
-        self.hora_retraso = hora
+    @field_validator('fecha')
+    @classmethod
+    def validar_fecha(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("No se puede registrar asistencia de fechas futuras")
+        return v
+
+    def asistio(self) -> bool:
+        """Verifica si el personal asistió"""
+        return self.hora_entrada is not None

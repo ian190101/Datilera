@@ -1,23 +1,40 @@
 # app/kernel/domain/inscripcion/contrato_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Optional, Dict
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-@dataclass
-class Contrato:
-    """
-    Contrato emitido tras aprobación del formulario.
-    Guarda código único, URL del PDF y fecha de emisión.
-    """
+class Contrato(BaseModel):
     id: int
     formulario_id: int
+    sede_id: int
     codigo_contrato: str
-    fecha_emision: date
-    pdf_url: str | None = None
-    creado_en: datetime = None
 
-    def __post_init__(self):
-        if not (self.codigo_contrato or "").strip():
-            raise ValueError("El código de contrato es obligatorio.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+    numeracion_sede: Optional[int] = None
+    pdf_url: Optional[str] = None
+    fecha_emision: date = Field(default_factory=date.today)
+
+    plantilla_version: Optional[int] = None
+    variables_json: Optional[Dict[str, object]] = None
+
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+    )
+
+    @field_validator("codigo_contrato")
+    @classmethod
+    def _codigo_obligatorio(cls, v: str) -> str:
+        if not (v or "").strip():
+            raise ValueError("El código de contrato es obligatorio")
+        return v.strip()
+
+    def asignar_numeracion(self, numeracion_sede: int) -> None:
+        if numeracion_sede <= 0:
+            raise ValueError("La numeración por sede debe ser positiva")
+        self.numeracion_sede = numeracion_sede

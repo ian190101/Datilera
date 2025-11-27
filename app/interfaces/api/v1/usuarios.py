@@ -1,47 +1,197 @@
+# app/interfaces/api/v1/usuarios.py
+from fastapi import APIRouter, Depends, Query, Body
+from starlette import status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from app.infrastructure.db.session import get_session
+from app.infrastructure.db.repositories.seguridad.usuarios_repo import UsuariosRepository
+from app.infrastructure.db.repositories.seguridad.roles_repo import RolesRepository
+from app.infrastructure.db.repositories.seguridad.sede_repo import SedeRepository
+from app.infrastructure.db.repositories.seguridad.usuarios_roles_repo import UsuarioRolRepository
+from app.infrastructure.auth.auth_utils import PasslibHasher
 
-from app.interfaces.api.v1.deps import get_uow_dep
-from app.kernel.application.seguridad.asignar_rol_usuario import (
-    AssignRoleToUser,
-    AssignRoleToUserRequest,
+from app.kernel.application.seguridad.usuario.crear_usuario import CrearUsuario, CrearUsuarioDTO
+from app.kernel.application.seguridad.usuario.actualizar_usuario import EditarUsuario, EditarUsuarioDTO
+from app.kernel.application.seguridad.usuario.cambiar_estado_usuario import (
+    CambiarEstadoUsuario,
+    CambiarEstadoUsuarioDTO,
 )
-from app.kernel.domain.exceptions import EntityNotFoundException, DuplicatedEntityException
-from app.infrastructure.db.uow import UnitOfWork
-from app.infrastructure.db.repositories.seguridad.usuarios import UsuarioRepository
-from app.infrastructure.db.repositories.seguridad.roles import RolRepository
-from app.infrastructure.db.repositories.seguridad.usuarios_roles import UsuarioRolRepository
+from app.kernel.application.seguridad.usuario.listar_usuarios import ListarUsuarios, ListarUsuariosDTO
+from app.kernel.application.seguridad.usuario.obtener_permisos_efectivos import ObtenerPermisosEfectivos
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+# Para asignar roles a usuarios existentes (no SuperAdmin/Admin)
+from app.kernel.application.seguridad.usuario_rol.asignar_rol_usuario import (
+    AsignarRolUsuario,
+    AsignarRolUsuarioDTO,
+)
 
-from pydantic import BaseModel
+router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
 
-class AssignRoleRequest(BaseModel):
-    role_id: int
 
-@router.post("/{user_id}/roles", status_code=status.HTTP_204_NO_CONTENT)
-async def assign_role_to_user(
-    user_id: int,
-    request: AssignRoleRequest,
-    uow: UnitOfWork = Depends(get_uow_dep),
+def get_usuario_repo(session: AsyncSession = Depends(get_session)) -> UsuariosRepository:
+    return UsuariosRepository(session)
+
+
+def get_rol_repo(session: AsyncSession = Depends(get_session)) -> RolesRepository:
+    return RolesRepository(session)
+
+
+def get_sede_repo(session: AsyncSession = Depends(get_session)) -> SedeRepository:
+    return SedeRepository(session)
+
+
+def get_usuario_rol_repo(session: AsyncSession = Depends(get_session)) -> UsuarioRolRepository:
+    return UsuarioRolRepository(session)
+
+
+def get_hasher() -> PasslibHasher:
+    return PasslibHasher()
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def crear_usuario(
+    payload: CrearUsuarioDTO = Body(...),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+    rol_repo: RolesRepository = Depends(get_rol_repo),
+    sede_repo: SedeRepository = Depends(get_sede_repo),
+    usuario_rol_repo: UsuarioRolRepository = Depends(get_usuario_rol_repo),
+    hasher: PasslibHasher = Depends(get_hasher),
 ):
     """
-    Asigna un rol a un usuario.
+    Crear usuario SuperAdmin o Admin manualmente.
+    
+    Restricciones:
+    - Solo permite roles: SUPERADMIN, ADMIN
+    - SuperAdmin: sede_id opcional (puede gestionar todas las sedes)
+    - Admin: sede_id obligatorio (vinculado a una sede específica)
     """
-    try:
-        user_repo = UsuarioRepository(uow.session_required)
-        role_repo = RolRepository(uow.session_required)
-        user_role_repo = UsuarioRolRepository(uow.session_required)
+    caso = CrearUsuario(usuario_repo, rol_repo, sede_repo, usuario_rol_repo, hasher)
+    result = await caso.execute(payload)
+    return result
 
-        service = AssignRoleToUser(user_repo, role_repo, user_role_repo)
-        await service.execute(AssignRoleToUserRequest(user_id=user_id, role_id=request.role_id))
-    except EntityNotFoundException as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
-    except DuplicatedEntityException as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        )
+
+@router.get("")
+async def listar_usuarios(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    sede_id: int | None = Query(None, gt=0),
+    rol_nombre: str | None = Query(None, max_length=50),
+    activo: bool | None = Query(None),
+    q: str | None = Query(None, max_length=100),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+):
+    """
+    Listar usuarios con filtros.
+    
+    Filtros disponibles:
+    - sede_id: Filtrar por sede específica
+    - rol_nombre: Filtrar por rol (ej: ADMIN, TUTOR, PROFESORA)
+    - activo: Filtrar por estado activo/inactivo
+    - q: Búsqueda por nombre o username
+    """
+    caso = ListarUsuarios(usuario_repo)
+    dto = ListarUsuariosDTO(
+        page=page,
+        per_page=per_page,
+        sede_id=sede_id,
+        rol_nombre=rol_nombre,
+        activo=activo,
+        q=q,
+    )
+    result = await caso.execute(dto)
+    return result
+
+
+@router.put("/{usuario_id}")
+async def editar_usuario(
+    usuario_id: int,
+    payload: EditarUsuarioDTO = Body(...),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+):
+    """
+    Editar perfil de usuario.
+    
+    Permite actualizar:
+    - nombre_completo
+    - email
+    - telefono
+    - foto_perfil_url
+    
+    NO permite cambiar:
+    - username (identificador único)
+    - rol (usar endpoint de asignación de roles)
+    - contraseña (usar endpoint específico de cambio de contraseña)
+    """
+    payload_dict = payload.model_dump()
+    payload_dict["usuario_id"] = usuario_id
+    caso = EditarUsuario(usuario_repo)
+    result = await caso.execute(EditarUsuarioDTO(**payload_dict))
+    return result
+
+
+@router.put("/{usuario_id}/estado")
+async def cambiar_estado_usuario(
+    usuario_id: int,
+    payload: dict = Body(..., example={"activo": True}),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+):
+    """
+    Activar o desactivar un usuario.
+    
+    Body:
+    {
+        "activo": true  // true para activar, false para desactivar
+    }
+    """
+    dto = CambiarEstadoUsuarioDTO(usuario_id=usuario_id, activo=payload["activo"])
+    caso = CambiarEstadoUsuario(usuario_repo)
+    result = await caso.execute(dto)
+    return result
+
+
+@router.get("/{usuario_id}/permisos-efectivos")
+async def obtener_permisos_efectivos(
+    usuario_id: int,
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+):
+    """
+    Obtener todos los permisos efectivos del usuario.
+    
+    Retorna la lista completa de permisos que el usuario tiene
+    a través de todos sus roles asignados (herencia de permisos).
+    """
+    caso = ObtenerPermisosEfectivos(usuario_repo)
+    result = await caso.execute(usuario_id)
+    return result
+
+
+@router.post("/{usuario_id}/roles", status_code=status.HTTP_204_NO_CONTENT)
+async def asignar_rol_a_usuario(
+    usuario_id: int,
+    payload: dict = Body(..., example={"rol_id": 3}),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+    rol_repo: RolesRepository = Depends(get_rol_repo),
+    usuario_rol_repo: UsuarioRolRepository = Depends(get_usuario_rol_repo),
+):
+    """
+    Asigna un rol a un usuario existente.
+    
+    RESTRICCIONES IMPORTANTES:
+    - NO permite asignar roles SuperAdmin o Admin (usar POST /usuarios para crearlos)
+    - El usuario debe existir previamente
+    - El rol no debe estar ya asignado al usuario
+    
+    Body:
+    {
+        "rol_id": 3  // ID del rol a asignar (ej: TUTOR, PROFESORA, AUXILIAR)
+    }
+    
+    Nota: Para cambiar de un rol a otro, usar PUT /usuario-roles/cambiar
+    """
+    dto = AsignarRolUsuarioDTO(usuario_id=usuario_id, rol_id=payload["rol_id"])
+    caso = AsignarRolUsuario(usuario_repo, rol_repo, usuario_rol_repo)
+    
+    # permitir_restringidos=False → NO permite asignar SuperAdmin/Admin
+    await caso.execute(dto, permitir_restringidos=False)
+    
+    return

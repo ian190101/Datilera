@@ -1,8 +1,10 @@
+# app/kernel/domain/comunicaciones/conversacion_entidad.py
+
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class EstadoConversacion(str, Enum):
@@ -11,31 +13,27 @@ class EstadoConversacion(str, Enum):
     CERRADA = "cerrada"
 
 
-@dataclass(frozen=True)
-class Participante:
-    """VO local para participantes de una conversación.
+class TipoConversacion(str, Enum):
+    """Tipos de conversación."""
+    DIRECTO = "directo"  # 1 a 1
+    GRUPO = "grupo"  # Múltiples participantes
+    SISTEMA = "sistema"  # Mensajes automáticos
 
-    Mantiene SRP y evita dependencias externas. El rol modela la relación con el hilo
-    (p. ej. 'profesora', 'tutor', 'directora').
-    """
+
+class Participante(BaseModel):
+    """VO para participantes de una conversación."""
     usuario_id: int
-    rol: str
+    rol: str  # 'profesora', 'tutor', 'directora'
     sede_id: Optional[int] = None
+    
+    model_config = ConfigDict(frozen=True)
 
     def puede_enviar(self) -> bool:
-        # Reglas avanzadas se orquestan fuera (servicios/policies).
-        return True
+        """Determina si el participante puede enviar mensajes."""
+        return True  # Reglas avanzadas se orquestan en servicios
 
 
-class ConversacionCerradaError(Exception):
-    """Se intenta operar una conversación cerrada."""
-
-
-class ParticipanteNoAutorizado(Exception):
-    """Un usuario externo intenta operar sobre la conversación."""
-
-
-class Conversacion:
+class Conversacion(BaseModel):
     """Entidad **Conversación**.
 
     Historias:
@@ -45,51 +43,86 @@ class Conversacion:
     - Chat profesora–tutor con intervención de la directora cuando corresponda.
     """
 
-    def __init__(
-        self,
-        id: int,
-        sede_id: int,
-        asunto: str,
-        participantes: List[Participante],
-        estado: EstadoConversacion = EstadoConversacion.ABIERTA,
-        creado_en: Optional[datetime] = None,
-        actualizado_en: Optional[datetime] = None,
-        ultima_actividad_en: Optional[datetime] = None,
-    ):
-        asunto_limpio = (asunto or "").strip()
+    id: int
+    sede_id: int
+    asunto: str
+    participantes: List[Participante]
+    tipo: TipoConversacion = TipoConversacion.DIRECTO
+    estado: EstadoConversacion = EstadoConversacion.ABIERTA
+    creado_por_id: int
+    titulo: Optional[str] = None
+    descripcion: Optional[str] = None
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    actualizado_en: datetime = Field(default_factory=datetime.utcnow)
+    ultima_actividad_en: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+    )
+
+    @field_validator("asunto")
+    @classmethod
+    def _asunto_valido(cls, v: str) -> str:
+        """Valida asunto obligatorio (US-COM-001)."""
+        asunto_limpio = (v or "").strip()
         if not asunto_limpio:
             raise ValueError("El asunto no puede estar vacío (US-COM-001).")
         if len(asunto_limpio) > 120:
             raise ValueError("El asunto no puede superar 120 caracteres (US-COM-001).")
-        if not participantes or len(participantes) < 2:
-            raise ValueError("Una conversación requiere al menos 2 participantes (US-COM-001).")
+        return asunto_limpio
 
-        self.id = id
-        self.sede_id = sede_id
-        self.asunto = asunto_limpio
-        self.participantes = participantes
-        self.estado = estado
-        self.creado_en = creado_en or datetime.utcnow()
-        self.actualizado_en = actualizado_en or self.creado_en
-        self.ultima_actividad_en = ultima_actividad_en or self.creado_en
+    @field_validator("participantes")
+    @classmethod
+    def _min_participantes(cls, v: List[Participante]) -> List[Participante]:
+        """Valida mínimo 2 participantes (US-COM-001)."""
+        if not v or len(v) < 2:
+            raise ValueError(
+                "Una conversación requiere al menos 2 participantes (US-COM-001)."
+            )
+        return v
 
     # --- Reglas/acceso ---
     def es_participante(self, usuario_id: int) -> bool:
+        """Verifica si un usuario es participante."""
         return any(p.usuario_id == usuario_id for p in self.participantes)
+
+    def esta_cerrada(self) -> bool:
+        """Verifica si la conversación está cerrada."""
+        return self.estado == EstadoConversacion.CERRADA
 
     # --- Comportamiento ---
     def agregar_participante(self, nuevo: Participante) -> None:
+        """Agrega un participante si no existe."""
         if any(p.usuario_id == nuevo.usuario_id for p in self.participantes):
             return
         self.participantes.append(nuevo)
         self.touch()
 
+    def remover_participante(self, usuario_id: int) -> None:
+        """Remueve un participante."""
+        self.participantes = [p for p in self.participantes if p.usuario_id != usuario_id]
+        self.touch()
+
     def cerrar(self, usuario_id: int) -> None:
+        """Cierra la conversación (US-COM-006)."""
         if not self.es_participante(usuario_id):
-            raise ParticipanteNoAutorizado("Solo un participante puede cerrar la conversación (US-COM-006).")
+            raise ValueError(
+                "Solo un participante puede cerrar la conversación (US-COM-006)."
+            )
         if self.estado == EstadoConversacion.CERRADA:
             return
         self.estado = EstadoConversacion.CERRADA
+        self.actualizado_en = datetime.utcnow()
+
+    def reabrir(self, usuario_id: int) -> None:
+        """Reabre la conversación."""
+        if not self.es_participante(usuario_id):
+            raise ValueError("Solo un participante puede reabrir la conversación.")
+        if self.estado == EstadoConversacion.ABIERTA:
+            return
+        self.estado = EstadoConversacion.ABIERTA
         self.actualizado_en = datetime.utcnow()
 
     def touch(self) -> None:

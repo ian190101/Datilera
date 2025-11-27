@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func, Enum as SQLEnum, UniqueConstraint
 from app.infrastructure.db.base import Base
 import enum
+
 
 class EstadoFormulario(enum.Enum):
     borrador = "borrador"
@@ -19,3 +20,10 @@ class FormularioInscripcion(Base):
     observaciones = Column(Text, nullable=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    # Selección de turno y ciclo de revisión/aprobación
+    turno_id = Column(Integer, ForeignKey("turnos.id", ondelete="RESTRICT"), nullable=True, index=True)  # <-- esto es nuevo
+    revisado_por = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=True, index=True)  # <-- esto es nuevo
+    revisado_en = Column(DateTime, nullable=True)  # <-- esto es nuevo
+    aprobado_por = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=True, index=True)  # <-- esto es nuevo
+    aprobado_en = Column(DateTime, nullable=True)  # <-- esto es nuevo
+    

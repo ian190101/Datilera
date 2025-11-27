@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel, ConfigDict, Field
 from app.kernel.domain.seguridad.errors import UsuarioNoEncontrado, RolNoEncontrado
 from app.kernel.domain.seguridad.ports import AbstractUserRepository, AbstractRolRepository
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion
 from typing import Protocol
 
@@ -17,7 +17,7 @@ class AsignarRolUsuarioRequest(BaseModel):
     rol_id: int = Field(gt=0)
 
 class AsignarRolUsuario:
-    def __init__(self, usuarios: AbstractUserRepository, roles: AbstractRolRepository, usuarios_roles: IUsuarioRolRepository, auditoria: IAuditoriaAccionRepo | None = None):
+    def __init__(self, usuarios: AbstractUserRepository, roles: AbstractRolRepository, usuarios_roles: IUsuarioRolRepository, auditoria: AuditoriaAccionRepositoryPort | None = None):
         self.usuarios = usuarios
         self.roles = roles
         self.usuarios_roles = usuarios_roles

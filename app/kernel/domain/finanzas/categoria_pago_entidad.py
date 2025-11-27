@@ -1,13 +1,10 @@
 # app/kernel/domain/finanzas/categoria_pago_entidad.py
-from __future__ import annotations
-from dataclasses import dataclass
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
+from pydantic import BaseModel, Field, field_validator
 
-
-@dataclass
-class CategoriaPago:
+class CategoriaPago(BaseModel):
     """
     Categoría de pago por sede (dinámica): mensualidad, merienda, material, almuerzo, etc.
 
@@ -19,13 +16,18 @@ class CategoriaPago:
     sede_id: int
     nombre: str
     descripcion: Optional[str] = None
-    monto_base: Optional[Decimal] = None
+    
+    # 'ge=0' asegura que si hay monto, no sea negativo.
+    # 'default=None' permite que sea opcional.
+    monto_base: Optional[Decimal] = Field(default=None, ge=0, decimal_places=2)
+    
     activa: bool = True
-    creado_en: datetime = None
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
-    def __post_init__(self):
-        if not (self.nombre or "").strip():
+    @field_validator('nombre')
+    @classmethod
+    def validar_nombre(cls, v: str) -> str:
+        """Valida que el nombre no esté vacío y elimina espacios extra"""
+        if not (v or "").strip():
             raise ValueError("El nombre de la categoría es obligatorio.")
-        if self.monto_base is not None and Decimal(self.monto_base) < 0:
-            raise ValueError("El monto base no puede ser negativo.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+        return v.strip()

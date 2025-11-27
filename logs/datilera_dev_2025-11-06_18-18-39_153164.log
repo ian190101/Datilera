@@ -2,3 +2,4 @@
 2025-11-06 18:21:19.436 | ERROR    | app.middleware.exception_handler:global_exception_handler:30 - Error 500 No Controlado: TypeError: 'AsyncSession' object is not callable
 2025-11-06 18:26:17.519 | ERROR    | app.middleware.exception_handler:global_exception_handler:30 - Error 500 No Controlado: TypeError: 'AsyncSession' object is not callable
 2025-11-10 10:07:16.442 | ERROR    | app.middleware.exception_handler:global_exception_handler:30 - Error 500 No Controlado: TypeError: 'AsyncSession' object is not callable
+2025-11-10 15:23:27.036 | INFO     | app.main:lifespan:39 - Cerrando motor de base de datos...

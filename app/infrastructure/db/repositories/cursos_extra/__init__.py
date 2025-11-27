@@ -1,10 +1,22 @@
-# app/infrastructure/db/repositories/cursos_extra/__init__.py
-from .cursos_extra_repo import CursosExtraRepository
-from .inscripciones_curso_extra_repo import InscripcionesCursoExtraRepository
-from .costos_curso_extra_repo import CostosCursoExtraRepository
+"""
+Repositorios para el módulo de Cursos Extra.
+"""
+from .curso_extra_repo import CursoExtraRepository
+from .inscripciones_curso_extra_repo import InscripcionCursoExtraRepository
+from .alumno_externo_repo import AlumnoExternoRepository
 from .balance_curso_extra_repo import BalanceCursoExtraRepository
+from .pago_curso_extra_repo import PagoCursoExtraRepository
+from .costo_curso_extra_repo import CostoCursoExtraRepository
+from .categoria_costo_repo import CategoriaCostoCursoExtraRepository
+from .ingreso_curso_extra_repo import IngresoCursoExtraRepository
 
 __all__ = [
-    "CursosExtraRepository", "InscripcionesCursoExtraRepository",
-    "CostosCursoExtraRepository", "BalanceCursoExtraRepository",
+    "CursoExtraRepository",
+    "InscripcionCursoExtraRepository",
+    "AlumnoExternoRepository",
+    "BalanceCursoExtraRepository",
+    "PagoCursoExtraRepository",
+    "CostoCursoExtraRepository",
+    "CategoriaCostoCursoExtraRepository",
+    "IngresoCursoExtraRepository",
 ]

@@ -1,5 +1,4 @@
 # app/kernel/domain/common/excepciones.py
-# Lo ubicamos en common ya que es transversal al dominio
 class BaseDominioError(Exception):
     """Base para todos los errores de Dominio/Negocio."""
     status_code: int = 500
@@ -38,4 +37,7 @@ class NotFoundError(BaseDominioError):
     code = "NOT_FOUND"
     message = "El recurso solicitado no fue encontrado."
 
-# Se debe importar esto en app/main.py
+class AlreadyExistsError(BaseDominioError):
+    status_code = 409
+    code = "ALREADY_EXISTS"
+    message = "El recurso ya existe."

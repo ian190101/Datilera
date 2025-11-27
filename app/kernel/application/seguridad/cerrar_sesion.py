@@ -4,7 +4,7 @@ from typing import Protocol
 from pydantic import BaseModel, ConfigDict, Field
 from app.kernel.domain.seguridad.errors import TokenInvalido
 from app.kernel.domain.seguridad.ports import AbstractTokenService
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion
 
 class ISesionRepository(Protocol):
@@ -18,7 +18,7 @@ class CerrarSesionRequest(BaseModel):
     refresh_token: str = Field(min_length=20)
 
 class CerrarSesion:
-    def __init__(self, sesiones: ISesionRepository, tokens: AbstractTokenService, revocados: IRevocadosRepository, auditoria: IAuditoriaAccionRepo | None = None):
+    def __init__(self, sesiones: ISesionRepository, tokens: AbstractTokenService, revocados: IRevocadosRepository, auditoria: AuditoriaAccionRepositoryPort | None = None):
         self.sesiones = sesiones
         self.tokens = tokens
         self.revocados = revocados

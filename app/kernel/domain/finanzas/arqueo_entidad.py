@@ -1,13 +1,10 @@
 # app/kernel/domain/finanzas/arqueo_entidad.py
-from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Optional
+from pydantic import BaseModel, Field, computed_field
 
-
-@dataclass
-class ArqueoCaja:
+class ArqueoCaja(BaseModel):
     """
     Arqueo mensual / por gestión (consolidación de Libro de Caja).
 
@@ -19,17 +16,18 @@ class ArqueoCaja:
     sede_id: int
     periodo_inicio: date
     periodo_fin: date
-    total_ingresos: Decimal
-    total_egresos: Decimal
-    generado_en: datetime = None
+    
+    # 'ge=0' (greater or equal) reemplaza el if < 0 del __post_init__
+    # decimal_places=2 asegura precisión monetaria si se valida desde JSON
+    total_ingresos: Decimal = Field(..., ge=0, decimal_places=2) 
+    total_egresos: Decimal = Field(..., ge=0, decimal_places=2)
+    
+    # default_factory asigna la fecha UTC al momento de crear la instancia
+    generado_en: datetime = Field(default_factory=datetime.utcnow)
     recalculado_en: Optional[datetime] = None
     observaciones: Optional[str] = None
 
-    def __post_init__(self):
-        if self.total_ingresos < 0 or self.total_egresos < 0:
-            raise ValueError("Totales del arqueo no pueden ser negativos.")
-        self.generado_en = self.generado_en or datetime.utcnow()
-
-    @property
+    @computed_field
     def saldo(self) -> Decimal:
+        """Calcula el saldo (ingresos - egresos) y lo incluye al serializar"""
         return self.total_ingresos - self.total_egresos

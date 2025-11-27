@@ -1,376 +1,396 @@
-# app/kernel/domain/alumnos/ports.py
-from __future__ import annotations
+# app/domain/ports/alumnos/ports.py
 
-from typing import Protocol, Optional, Sequence, AsyncContextManager, runtime_checkable
-from datetime import date, datetime, time
+from abc import ABC, abstractmethod
+from typing import Optional, List
+from datetime import date
 
-from .alumno_entidad import Alumno
-from .alumno_paralelo_entidad import AlumnoParalelo
-from .asistencia_alumno_entidad import AsistenciaAlumno  # estados: PRESENTE, FALTA, RETRASO
-from .consentimiento_entidad import Consentimiento       # consentimiento imágenes/datos (único, con historial)
-from .asistencia_personal_entidad import AsistenciaPersonal  # P/F/R para personal
-from .permiso_personal_entidad import PermisoPersonal        # solicitud con estados: PENDIENTE/APROBADO/RECHAZADO
-
-
-# =========================
-# Alumnos
-# =========================
-@runtime_checkable
-class AlumnoRepo(Protocol):
-    """
-    Puerto de acceso a Alumnos.
-
-    Convenciones:
-    - `guardar` aplica upsert (inserta/actualiza) y NO confirma cambios (lo hace el UoW).
-    - Evitar propagar errores de DB; traducir a errores de dominio (ver errors.py).
-    - Soporte de soft-delete opcional vía `desactivar/activar` si tu entidad lo contempla.
-    """
-
-    # --- Lectura ---
-    async def obtener(self, alumno_id: int) -> Optional[Alumno]:
-        """Retorna el alumno por id o None si no existe."""
-        ...
-
-    async def listar_por_sede(
-        self,
-        sede_id: int,
-        *,
-        texto: Optional[str] = None,  # búsqueda por nombre/CI/etc.
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[Alumno]:
-        """Lista alumnos de una sede con filtros y paginación."""
-        ...
-
-    async def listar_por_paralelo(
-        self,
-        paralelo_id: int,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[Alumno]:
-        """Lista alumnos asignados actualmente a un paralelo."""
-        ...
-
-    # --- Escritura ---
-    async def guardar(self, alumno: Alumno) -> None:
-        """Inserta o actualiza el alumno. No hace commit."""
-        ...
-
-    async def desactivar(self, alumno_id: int, *, motivo: Optional[str] = None) -> None:
-        """Soft-delete/desactivación (si aplica)."""
-        ...
-
-    async def activar(self, alumno_id: int) -> None:
-        """Reactivación (si aplica)."""
-        ...
-
-    async def next_id(self) -> int:
-        """
-        (Opcional) Próximo id disponible si el adaptador lo soporta.
-        Si usas autoincrement/UUID en DB, puedes no implementarlo (stub/NotImplementedError).
-        """
-        ...
+from app.kernel.domain.alumnos.alumno_entidad import AlumnoEntidad
+from app.kernel.domain.alumnos.tutor_entidad import TutorEntidad
+from app.kernel.domain.alumnos.alumno_tutor_entidad import AlumnoTutorEntidad
+from app.kernel.domain.alumnos.alumno_hermano_entidad import AlumnoHermanoEntidad
+from app.kernel.domain.alumnos.autorizacion_retiro_entidad import AutorizacionRetiroEntidad
+from app.kernel.domain.alumnos.asistencia_alumno_entidad import AsistenciaAlumnoEntidad
+from app.kernel.domain.alumnos.asistencia_personal_entidad import AsistenciaPersonalEntidad
+from app.kernel.domain.alumnos.permiso_personal_entidad import PermisoPersonalEntidad
+from app.kernel.domain.alumnos.consentimiento_entidad import ConsentimientoEntidad
+from app.kernel.domain.alumnos.alumno_paralelo_entidad import AlumnoParaleloEntidad
 
 
-# =========================
-# Asignación Alumno-Paralelo (histórico)
-# =========================
-@runtime_checkable
-class AlumnoParaleloRepo(Protocol):
-    """
-    Puerto para gestionar la relación Alumno-Paralelo (actual e histórico).
-    Debe respetar cupos máximos por paralelo (regla de negocio).
-    """
+# ============================================================================
+# ALUMNOS
+# ============================================================================
 
-    async def obtener_actual_por_alumno(self, alumno_id: int) -> Optional[AlumnoParalelo]:
-        """Devuelve la asignación vigente del alumno si existe."""
-        ...
+class AlumnoRepositoryPort(ABC):
+    """Puerto para el repositorio de alumnos"""
 
-    async def historico_por_alumno(
-        self,
-        alumno_id: int,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AlumnoParalelo]:
-        """Histórico completo de paralelos por alumno."""
-        ...
+    @abstractmethod
+    async def crear(self, alumno: AlumnoEntidad) -> AlumnoEntidad:
+        """Crear un nuevo alumno"""
+        pass
 
-    async def listar_por_paralelo(
-        self,
-        paralelo_id: int,
-        *,
-        en_fecha: Optional[date] = None,  # si quieres ver quiénes estaban asignados en una fecha
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AlumnoParalelo]:
-        """Listado (actual o en una fecha) de asignaciones de un paralelo."""
-        ...
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AlumnoEntidad]:
+        """Obtener alumno por ID"""
+        pass
 
-    async def asignar(self, asignacion: AlumnoParalelo) -> None:
-        """
-        Asigna el alumno a un paralelo (inicio de vigencia).
-        Debe validar cupo y reglas del dominio. No hace commit.
-        """
-        ...
+    @abstractmethod
+    async def obtener_por_codigo(self, codigo: str) -> Optional[AlumnoEntidad]:
+        """Obtener alumno por código único"""
+        pass
 
-    async def finalizar_asignacion(
-        self,
-        alumno_id: int,
-        *,
-        fecha_fin: date,
-        motivo: Optional[str] = None,
-    ) -> None:
-        """Cierra la asignación vigente del alumno (si existe)."""
-        ...
+    @abstractmethod
+    async def obtener_por_documento(self, numero_documento: str) -> Optional[AlumnoEntidad]:
+        """Obtener alumno por número de documento"""
+        pass
 
-    async def transferir(
-        self,
-        alumno_id: int,
-        nuevo_paralelo_id: int,
-        *,
-        fecha_desde: date,
-        motivo: Optional[str] = None,
-    ) -> None:
-        """
-        Transferencia atómica: cierra asignación vigente y crea una nueva en `nuevo_paralelo_id`.
-        Debe validar cupo y no solapar vigencias.
-        """
-        ...
+    @abstractmethod
+    async def listar_por_sede(self, sede_id: int, solo_activos: bool = True) -> List[AlumnoEntidad]:
+        """Listar alumnos de una sede"""
+        pass
 
-    # Ayudas opcionales para reglas de cupo
-    async def contar_asignados(self, paralelo_id: int, *, en_fecha: Optional[date] = None) -> int:
-        """Cantidad de alumnos asignados (ahora o en una fecha)."""
-        ...
+    @abstractmethod
+    async def listar_por_turno(self, turno_id: int, solo_activos: bool = True) -> List[AlumnoEntidad]:
+        """Listar alumnos de un turno"""
+        pass
+
+    @abstractmethod
+    async def buscar(self, termino: str, sede_id: Optional[int] = None) -> List[AlumnoEntidad]:
+        """Buscar alumnos por nombre o documento"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, alumno: AlumnoEntidad) -> AlumnoEntidad:
+        """Actualizar alumno"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar alumno (soft delete)"""
+        pass
 
 
-# =========================
-# Asistencia de Alumnos
-# =========================
-@runtime_checkable
-class AsistenciaAlumnoRepo(Protocol):
-    """
-    Puerto para registrar/consultar asistencia de alumnos.
-    Estados típicos: PRESENTE, FALTA, RETRASO. Para RETRASO se registra `hora_retraso`.
-    """
+# ============================================================================
+# TUTORES
+# ============================================================================
 
-    async def registrar(self, asistencia: AsistenciaAlumno) -> None:
-        """
-        Crea el registro de asistencia para un alumno en una fecha (y paralelo si aplica).
-        No hace commit. Debe aplicar reglas anti-duplicado por (alumno, fecha).
-        """
-        ...
+class TutorRepositoryPort(ABC):
+    """Puerto para el repositorio de tutores"""
 
-    async def actualizar_estado(
-        self,
-        asistencia_id: int,
-        *,
-        estado: str,                     # 'PRESENTE' | 'FALTA' | 'RETRASO'
-        hora_retraso: Optional[time] = None,
-    ) -> None:
-        """Actualiza el estado (y hora de retraso si corresponde)."""
-        ...
+    @abstractmethod
+    async def crear(self, tutor: TutorEntidad) -> TutorEntidad:
+        """Crear un nuevo tutor"""
+        pass
 
-    async def obtener(self, asistencia_id: int) -> Optional[AsistenciaAlumno]:
-        """Obtiene un registro de asistencia por id."""
-        ...
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[TutorEntidad]:
+        """Obtener tutor por ID"""
+        pass
 
+    @abstractmethod
+    async def obtener_por_documento(self, numero_documento: str) -> Optional[TutorEntidad]:
+        """Obtener tutor por número de documento"""
+        pass
+
+    @abstractmethod
+    async def buscar(self, termino: str) -> List[TutorEntidad]:
+        """Buscar tutores por nombre o documento"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, tutor: TutorEntidad) -> TutorEntidad:
+        """Actualizar tutor"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar tutor"""
+        pass
+
+
+# ============================================================================
+# RELACIÓN ALUMNO-TUTOR
+# ============================================================================
+
+class AlumnoTutorRepositoryPort(ABC):
+    """Puerto para el repositorio de relación alumno-tutor"""
+
+    @abstractmethod
+    async def crear(self, relacion: AlumnoTutorEntidad) -> AlumnoTutorEntidad:
+        """Crear relación alumno-tutor"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AlumnoTutorEntidad]:
+        """Obtener relación por ID"""
+        pass
+
+    @abstractmethod
+    async def listar_por_alumno(self, alumno_id: int) -> List[AlumnoTutorEntidad]:
+        """Listar tutores de un alumno"""
+        pass
+
+    @abstractmethod
+    async def listar_por_tutor(self, tutor_id: int) -> List[AlumnoTutorEntidad]:
+        """Listar alumnos de un tutor"""
+        pass
+
+    @abstractmethod
+    async def obtener_tutor_principal(self, alumno_id: int) -> Optional[AlumnoTutorEntidad]:
+        """Obtener el tutor principal de un alumno"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, relacion: AlumnoTutorEntidad) -> AlumnoTutorEntidad:
+        """Actualizar relación"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar relación"""
+        pass
+
+
+# ============================================================================
+# HERMANOS
+# ============================================================================
+
+class AlumnosHermanosRepositoryPort(ABC):
+    """Puerto para el repositorio de hermanos"""
+
+    @abstractmethod
+    async def crear(self, hermano: AlumnoHermanoEntidad) -> AlumnoHermanoEntidad:
+        """Crear registro de hermano"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AlumnoHermanoEntidad]:
+        """Obtener hermano por ID"""
+        pass
+
+    @abstractmethod
+    async def listar_por_alumno(self, alumno_id: int) -> List[AlumnoHermanoEntidad]:
+        """Listar hermanos de un alumno"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, hermano: AlumnoHermanoEntidad) -> AlumnoHermanoEntidad:
+        """Actualizar datos de hermano"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar registro de hermano"""
+        pass
+
+
+# ============================================================================
+# AUTORIZACIONES DE RETIRO
+# ============================================================================
+
+class AutorizacionesRetiroRepositoryPort(ABC):
+    """Puerto para el repositorio de autorizaciones de retiro"""
+
+    @abstractmethod
+    async def crear(self, autorizacion: AutorizacionRetiroEntidad) -> AutorizacionRetiroEntidad:
+        """Crear autorización de retiro"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AutorizacionRetiroEntidad]:
+        """Obtener autorización por ID"""
+        pass
+
+    @abstractmethod
+    async def listar_por_alumno(self, alumno_id: int, solo_activas: bool = True) -> List[AutorizacionRetiroEntidad]:
+        """Listar autorizaciones de un alumno"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_ci(self, alumno_id: int, ci_numero: str) -> Optional[AutorizacionRetiroEntidad]:
+        """Buscar autorización activa por CI"""
+        pass
+
+    @abstractmethod
+    async def desactivar(self, id: int) -> AutorizacionRetiroEntidad:
+        """Desactivar una autorización"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar autorización"""
+        pass
+
+
+# ============================================================================
+# ASISTENCIA DE ALUMNOS
+# ============================================================================
+
+class AsistenciaAlumnosRepositoryPort(ABC):
+    """Puerto para el repositorio de asistencia de alumnos"""
+
+    @abstractmethod
+    async def crear(self, asistencia: AsistenciaAlumnoEntidad) -> AsistenciaAlumnoEntidad:
+        """Registrar asistencia de alumno"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AsistenciaAlumnoEntidad]:
+        """Obtener registro de asistencia por ID"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_alumno_fecha(self, alumno_id: int, fecha: date) -> Optional[AsistenciaAlumnoEntidad]:
+        """Obtener asistencia de un alumno en fecha específica"""
+        pass
+
+    @abstractmethod
     async def listar_por_alumno(
-        self,
-        alumno_id: int,
-        *,
-        desde: Optional[date] = None,
-        hasta: Optional[date] = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AsistenciaAlumno]:
-        """Listado por alumno en un rango de fechas."""
-        ...
+        self, 
+        alumno_id: int, 
+        fecha_desde: Optional[date] = None, 
+        fecha_hasta: Optional[date] = None
+    ) -> List[AsistenciaAlumnoEntidad]:
+        """Listar asistencias de un alumno en rango de fechas"""
+        pass
 
-    async def listar_por_paralelo_en_fecha(
-        self,
-        paralelo_id: int,
-        fecha: date,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AsistenciaAlumno]:
-        """Listado de asistencias de un paralelo en una fecha específica."""
-        ...
+    @abstractmethod
+    async def listar_por_sede_fecha(self, sede_id: int, fecha: date) -> List[AsistenciaAlumnoEntidad]:
+        """Listar todas las asistencias de una sede en una fecha"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, asistencia: AsistenciaAlumnoEntidad) -> AsistenciaAlumnoEntidad:
+        """Actualizar registro de asistencia"""
+        pass
 
 
-# =========================
-# Consentimientos (imágenes/datos)
-# =========================
-@runtime_checkable
-class ConsentimientoRepo(Protocol):
-    """
-    Puerto para gestionar consentimientos del alumno.
-    Según tus historias: un consentimiento global (sin vigencia ni revocación),
-    pero con auditoría/histórico de cambios.
-    """
+# ============================================================================
+# ASISTENCIA DE PERSONAL
+# ============================================================================
 
-    async def obtener_actual(self, alumno_id: int) -> Optional[Consentimiento]:
-        """Retorna el consentimiento vigente (último) del alumno, si existe."""
-        ...
+class AsistenciaPersonalRepositoryPort(ABC):
+    """Puerto para el repositorio de asistencia del personal"""
 
-    async def guardar(self, consentimiento: Consentimiento) -> None:
-        """Inserta un nuevo consentimiento (o actualización) y mantiene historial. No hace commit."""
-        ...
+    @abstractmethod
+    async def crear(self, asistencia: AsistenciaPersonalEntidad) -> AsistenciaPersonalEntidad:
+        """Registrar entrada/salida de personal"""
+        pass
 
-    async def historico_por_alumno(
-        self,
-        alumno_id: int,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[Consentimiento]:
-        """Devuelve el historial de consentimientos del alumno."""
-        ...
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AsistenciaPersonalEntidad]:
+        """Obtener registro por ID"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_personal_fecha(self, personal_id: int, fecha: date) -> Optional[AsistenciaPersonalEntidad]:
+        """Obtener asistencia de personal en fecha específica"""
+        pass
+
+    @abstractmethod
+    async def listar_por_sede_fecha(self, sede_id: int, fecha: date) -> List[AsistenciaPersonalEntidad]:
+        """Listar asistencias de personal de una sede en una fecha"""
+        pass
+
+    @abstractmethod
+    async def actualizar(self, id: int, asistencia: AsistenciaPersonalEntidad) -> AsistenciaPersonalEntidad:
+        """Actualizar registro (ej: hora de salida)"""
+        pass
 
 
-# =========================
-# Asistencia del Personal (profesoras/auxiliares)
-# =========================
-@runtime_checkable
-class AsistenciaPersonalRepo(Protocol):
-    """
-    Puerto para asistencia del personal (profesoras/auxiliares) con P/F/R.
-    """
+# ============================================================================
+# PERMISOS DE PERSONAL
+# ============================================================================
 
-    async def registrar(self, asistencia: AsistenciaPersonal) -> None:
-        """Crea el registro de asistencia del personal (no hace commit)."""
-        ...
+class PermisosPersonalRepositoryPort(ABC):
+    """Puerto para el repositorio de permisos del personal"""
 
+    @abstractmethod
+    async def crear(self, permiso: PermisoPersonalEntidad) -> PermisoPersonalEntidad:
+        """Crear solicitud de permiso"""
+        pass
+
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[PermisoPersonalEntidad]:
+        """Obtener permiso por ID"""
+        pass
+
+    @abstractmethod
+    async def listar_por_sede(self, sede_id: int, estado: Optional[str] = None) -> List[PermisoPersonalEntidad]:
+        """Listar permisos de una sede, opcionalmente filtrados por estado"""
+        pass
+
+    @abstractmethod
+    async def listar_por_personal(self, personal_id: int) -> List[PermisoPersonalEntidad]:
+        """Listar permisos de un personal"""
+        pass
+
+    @abstractmethod
     async def actualizar_estado(
-        self,
-        asistencia_id: int,
-        *,
-        estado: str,                  # 'PRESENTE' | 'FALTA' | 'RETRASO'
-        hora_retraso: Optional[time] = None,
-    ) -> None:
-        """Actualiza el estado de asistencia del personal."""
-        ...
-
-    async def listar_por_personal(
-        self,
-        personal_id: int,
-        *,
-        desde: Optional[date] = None,
-        hasta: Optional[date] = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AsistenciaPersonal]:
-        """Listado por persona en rango de fechas."""
-        ...
-
-    async def listar_por_sede_en_fecha(
-        self,
-        sede_id: int,
-        fecha: date,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[AsistenciaPersonal]:
-        """Listado de asistencias de personal de una sede en una fecha."""
-        ...
+        self, 
+        id: int, 
+        estado: str, 
+        aprobado_por_id: int
+    ) -> PermisoPersonalEntidad:
+        """Aprobar o rechazar permiso"""
+        pass
 
 
-# =========================
-# Permisos del Personal (bajas médicas/permiso)
-# =========================
-@runtime_checkable
-class PermisoPersonalRepo(Protocol):
-    """
-    Puerto para solicitudes de permiso del personal.
-    Flujo: creación (PENDIENTE) -> aprobación (APROBADO) o rechazo (RECHAZADO).
-    Debe soportar adjunto (pdf/imagen) a nivel de entidad.
-    """
+# ============================================================================
+# CONSENTIMIENTOS
+# ============================================================================
 
-    async def obtener(self, permiso_id: int) -> Optional[PermisoPersonal]:
-        """Obtiene una solicitud por id."""
-        ...
+class ConsentimientosRepositoryPort(ABC):
+    """Puerto para el repositorio de consentimientos"""
 
-    async def guardar(self, permiso: PermisoPersonal) -> None:
-        """Crea/actualiza una solicitud (queda PENDIENTE). No hace commit."""
-        ...
+    @abstractmethod
+    async def crear(self, consentimiento: ConsentimientoEntidad) -> ConsentimientoEntidad:
+        """Crear consentimiento para alumno"""
+        pass
 
-    async def aprobar(
-        self,
-        permiso_id: int,
-        *,
-        aprobado_por: int,
-        observacion: Optional[str] = None,
-        fecha_decision: Optional[datetime] = None,
-    ) -> None:
-        """Aprueba la solicitud (cambia estado y registra auditoría)."""
-        ...
+    @abstractmethod
+    async def obtener_por_alumno(self, alumno_id: int) -> Optional[ConsentimientoEntidad]:
+        """Obtener consentimiento de un alumno"""
+        pass
 
-    async def rechazar(
-        self,
-        permiso_id: int,
-        *,
-        rechazado_por: int,
-        observacion: Optional[str] = None,
-        fecha_decision: Optional[datetime] = None,
-    ) -> None:
-        """Rechaza la solicitud (cambia estado y registra auditoría)."""
-        ...
-
-    async def listar_por_personal(
-        self,
-        personal_id: int,
-        *,
-        estados: Optional[Sequence[str]] = None,  # ['PENDIENTE', 'APROBADO', 'RECHAZADO']
-        desde: Optional[date] = None,
-        hasta: Optional[date] = None,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[PermisoPersonal]:
-        """Lista permisos por persona, con filtros y paginación."""
-        ...
-
-    async def listar_pendientes_por_sede(
-        self,
-        sede_id: int,
-        *,
-        limit: int = 100,
-        offset: int = 0,
-    ) -> Sequence[PermisoPersonal]:
-        """Lista permisos en estado PENDIENTE para revisión por sede."""
-        ...
+    @abstractmethod
+    async def actualizar(self, alumno_id: int, consentimiento: ConsentimientoEntidad) -> ConsentimientoEntidad:
+        """Actualizar consentimientos"""
+        pass
 
 
-# =========================
-# Unit of Work
-# =========================
-@runtime_checkable
-class UnitOfWork(Protocol, AsyncContextManager["UnitOfWork"]):
-    """
-    Unidad de Trabajo asíncrona para el subdominio Alumnos.
+# ============================================================================
+# ALUMNOS-PARALELOS
+# ============================================================================
 
-    Política: COMMIT EXPLÍCITO (Patrón B)
-    - `__aexit__` hace rollback si hubo excepción; si no hubo, NO hace commit automático.
-    - Los servicios de aplicación deben invocar `await uow.commit()` en el caso feliz.
-    """
+class AlumnosParalelosRepositoryPort(ABC):
+    """Puerto para el repositorio de asignación alumno-paralelo"""
 
-    alumnos: AlumnoRepo
-    alumno_paralelos: AlumnoParaleloRepo
-    asistencias_alumnos: AsistenciaAlumnoRepo
-    consentimientos: ConsentimientoRepo
+    @abstractmethod
+    async def crear(self, asignacion: AlumnoParaleloEntidad) -> AlumnoParaleloEntidad:
+        """Asignar alumno a paralelo"""
+        pass
 
-    # Incluidos porque ya tienes las entidades en este paquete y están en las historias:
-    asistencias_personal: AsistenciaPersonalRepo
-    permisos_personal: PermisoPersonalRepo
+    @abstractmethod
+    async def obtener_por_id(self, id: int) -> Optional[AlumnoParaleloEntidad]:
+        """Obtener asignación por ID"""
+        pass
 
-    async def __aenter__(self) -> UnitOfWork: ...
-    async def __aexit__(self, exc_type, exc, tb) -> None: ...
+    @abstractmethod
+    async def listar_por_alumno(self, alumno_id: int) -> List[AlumnoParaleloEntidad]:
+        """Listar paralelos de un alumno"""
+        pass
 
-    async def commit(self) -> None:
-        """Confirma la transacción actual."""
-        ...
+    @abstractmethod
+    async def listar_por_paralelo(self, paralelo_id: int) -> List[AlumnoParaleloEntidad]:
+        """Listar alumnos de un paralelo"""
+        pass
 
-    async def rollback(self) -> None:
-        """Revierte la transacción actual."""
-        ...
+    @abstractmethod
+    async def actualizar(self, id: int, asignacion: AlumnoParaleloEntidad) -> AlumnoParaleloEntidad:
+        """Actualizar asignación"""
+        pass
+
+    @abstractmethod
+    async def eliminar(self, id: int) -> bool:
+        """Eliminar asignación"""
+        pass

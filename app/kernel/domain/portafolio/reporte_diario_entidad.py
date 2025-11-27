@@ -1,43 +1,33 @@
 # app/kernel/domain/portafolio/reporte_diario_entidad.py
 from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, computed_field
 
-class ReporteDiario:
-    """
-    Entidad **ReporteDiario** (portafolio).
-    - `contenido` obligatorio (texto del reporte).
-    - Se envía a tutores (lógica de notificación fuera del dominio de entidades).
-    """
-    def __init__(
-        self,
-        id: int,
-        paralelo_id: int,
-        profesora_id: int,
-        fecha: date,
-        contenido: str,
-        creado_en: Optional[datetime] = None,
-        actualizado_en: Optional[datetime] = None,
-    ):
-        c = (contenido or "").strip()
-        if not c:
-            raise ValueError("El contenido del reporte diario es obligatorio.")
-        self.id = id
-        self.paralelo_id = paralelo_id
-        self.profesora_id = profesora_id
-        self.fecha = fecha
-        self.contenido = c
-        self.creado_en = creado_en or datetime.utcnow()
-        self.actualizado_en = actualizado_en or self.creado_en
 
-    def actualizar_contenido(self, nuevo_contenido: str) -> None:
-        c = (nuevo_contenido or "").strip()
-        if not c:
-            raise ValueError("El contenido no puede quedar vacío.")
-        self.contenido = c
-        self.actualizado_en = datetime.utcnow()
+class ReporteDiario(BaseModel):
+    # Configuración Nueva (Pydantic V2)
+    model_config = ConfigDict(from_attributes=True)
 
-    def resumen(self, max_chars: int = 160) -> str:
-        txt = self.contenido.replace("\n", " ").strip()
-        return txt if len(txt) <= max_chars else txt[: max_chars - 1] + "…"
+    id: int
+    alumno_id: int
+    profesora_id: int
+    fecha: date
+    
+    # CORREGIDO: Debe coincidir con la base de datos
+    contenido: Optional[str] = None 
+    
+    enviado: bool
+    enviado_en: Optional[datetime] = None
+    confirmado: bool
+    confirmado_en: Optional[datetime] = None
+
+    @computed_field
+    def esta_pendiente(self) -> bool:
+        return not self.enviado
+
+    @computed_field
+    def esta_completo(self) -> bool:
+        return self.enviado and self.confirmado

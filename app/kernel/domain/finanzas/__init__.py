@@ -9,6 +9,7 @@ from .libro_caja_entidad import LibroCaja, TipoMovimiento, MovimientoCaja
 from .arqueo_entidad import ArqueoCaja
 from .estado_cuenta_nino_entidad import EstadoCuentaNino, MovimientoCuenta, TipoMovimientoCuenta
 from .plan_pago_entidad import PlanPago, ReglaInicial, PlanCuota
+from .categoria_egreso_entidad import CategoriaEgreso 
 
 __all__ = [
     "Turno",
@@ -20,5 +21,5 @@ __all__ = [
     "LibroCaja", "TipoMovimiento", "MovimientoCaja",
     "ArqueoCaja",
     "EstadoCuentaNino", "MovimientoCuenta", "TipoMovimientoCuenta",
-    "PlanPago", "ReglaInicial", "PlanCuota",
+    "PlanPago", "ReglaInicial", "PlanCuota", "CategoriaEgreso",
 ]

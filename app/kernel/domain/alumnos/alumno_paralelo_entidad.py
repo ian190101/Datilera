@@ -1,13 +1,22 @@
-class AlumnoParalelo:
-    def __init__(self, id: int, alumno_id: int, paralelo_id: int):
-        self.id = id
-        self.alumno_id = alumno_id
-        self.paralelo_id = paralelo_id
+# app/domain/entities/alumnos/alumno_paralelo_entidad.py
 
-    def asociar(self, nuevo_paralelo_id: int):
-        """Asocia el alumno a un nuevo paralelo."""
-        self.paralelo_id = nuevo_paralelo_id
+from pydantic import BaseModel, ConfigDict, field_validator
+from typing import Optional
+from datetime import datetime
 
-    def desasociar(self):
-        """Elimina la asociación del alumno con el paralelo."""
-        self.paralelo_id = None
+
+class AlumnoParaleloEntidad(BaseModel):
+    """Entidad de dominio para asignación de alumno a paralelo"""
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True
+    )
+
+    id: Optional[int] = None
+    alumno_id: int
+    paralelo_id: int
+    
+    # Auditoría
+    creado_en: Optional[datetime] = None
+    asignado_por_id: Optional[int] = None

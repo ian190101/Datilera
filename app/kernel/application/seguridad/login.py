@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.kernel.domain.seguridad.errors import CredencialesInvalidas, UsuarioInactivo
 from app.kernel.domain.seguridad.ports import AbstractUserRepository, AbstractHasher, AbstractTokenService
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion
 
 class IRateLimiter(Protocol):
@@ -30,7 +30,7 @@ class LoginResponse(BaseModel):
 
 class Login:
     def __init__(self, usuarios: AbstractUserRepository, hasher: AbstractHasher, tokens: AbstractTokenService,
-                 sesiones: ISesionRepository, limiter: IRateLimiter, refresh_ttl_min: int = 60*24*30,  auditoria: Optional[IAuditoriaAccionRepo] = None):
+                 sesiones: ISesionRepository, limiter: IRateLimiter, refresh_ttl_min: int = 60*24*30,  auditoria: Optional[AuditoriaAccionRepositoryPort] = None):
         self.usuarios = usuarios
         self.hasher = hasher
         self.tokens = tokens

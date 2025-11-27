@@ -11,3 +11,4 @@ class Sede(Base):
     activo = Column(Boolean, nullable=False, default=True, server_default="1")
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    config_alerta_vencimiento_dias = Column(String(15), nullable=True, server_default="5,3,1")

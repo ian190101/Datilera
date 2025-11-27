@@ -4,7 +4,7 @@ from typing import Protocol, Optional, List
 from pydantic import BaseModel, ConfigDict, Field
 from app.kernel.domain.seguridad.errors import TokenInvalido, TokenExpirado, UsuarioNoEncontrado, UsuarioInactivo
 from app.kernel.domain.seguridad.ports import AbstractUserRepository, AbstractTokenService
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion
 
 class IRevocadosRepository(Protocol):
@@ -22,7 +22,7 @@ class RefreshResponse(BaseModel):
     token_type: str = "bearer"
 
 class Refresh:
-    def __init__(self, usuarios: AbstractUserRepository, tokens: AbstractTokenService, revocados: IRevocadosRepository,  auditoria: IAuditoriaAccionRepo | None = None):
+    def __init__(self, usuarios: AbstractUserRepository, tokens: AbstractTokenService, revocados: IRevocadosRepository,  auditoria: AuditoriaAccionRepositoryPort | None = None):
         self.usuarios = usuarios
         self.tokens = tokens
         self.revocados = revocados

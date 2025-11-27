@@ -1,19 +1,19 @@
+# app/kernel/domain/comunicaciones/mensaje_entidad.py
+
 from __future__ import annotations
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, Dict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TipoMensaje(str, Enum):
+    """Tipos de mensaje."""
     TEXTO = "texto"
     SISTEMA = "sistema"
 
 
-class MensajeInmutableError(Exception):
-    """Operación prohibida por política de inmutabilidad del chat."""
-
-
-class Mensaje:
+class Mensaje(BaseModel):
     """Entidad **Mensaje**.
 
     - **US-COM-002**: Envío de mensajes con contenido obligatorio (≤4000).
@@ -23,33 +23,39 @@ class Mensaje:
       (tabla de vistas por usuario), no dentro de esta entidad.
     """
 
-    def __init__(
-        self,
-        id: int,
-        conversacion_id: int,
-        remitente_id: int,
-        contenido: str,
-        tipo: TipoMensaje = TipoMensaje.TEXTO,
-        metadatos: Optional[dict] = None,
-        creado_en: Optional[datetime] = None,
-    ):
-        cont = (contenido or "").strip()
+    id: int
+    conversacion_id: int
+    remitente_id: int
+    contenido: str
+    tipo: TipoMensaje = TipoMensaje.TEXTO
+    reply_a_id: Optional[int] = None
+    metadatos: Optional[Dict] = None
+    enviado_en: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+    )
+
+    @field_validator("contenido")
+    @classmethod
+    def _contenido_valido(cls, v: str) -> str:
+        """Valida contenido obligatorio (US-COM-002)."""
+        cont = (v or "").strip()
         if not cont:
             raise ValueError("El contenido no puede estar vacío (US-COM-002).")
-        if len(cont) > 4000:
-            raise ValueError("El contenido no puede exceder 4000 caracteres (US-COM-002).")
-
-        self.id = id
-        self.conversacion_id = conversacion_id
-        self.remitente_id = remitente_id
-        self.contenido = cont
-        self.tipo = tipo
-        self.metadatos = metadatos or {}
-        self.creado_en = creado_en or datetime.utcnow()
+        if len(cont) > 40000:
+            raise ValueError(
+                "El contenido no puede exceder 40000 caracteres (US-COM-002)."
+            )
+        return cont
 
     # --- Políticas de inmutabilidad del chat ---
     def editar(self, *_args, **_kwargs) -> None:  # pragma: no cover
-        raise MensajeInmutableError("Los mensajes son inmutables (chat).")
+        """Los mensajes son inmutables."""
+        raise ValueError("Los mensajes son inmutables (chat).")
 
     def eliminar(self, *_args, **_kwargs) -> None:  # pragma: no cover
-        raise MensajeInmutableError("Los mensajes son inmutables (chat).")
+        """Los mensajes son inmutables."""
+        raise ValueError("Los mensajes son inmutables (chat).")

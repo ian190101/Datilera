@@ -1,15 +1,77 @@
-from .alumno_entidad import Alumno
-from .alumno_paralelo_entidad import AlumnoParalelo
-from .asistencia_alumno_entidad import AsistenciaAlumno
-from .asistencia_personal_entidad import AsistenciaPersonal
-from .consentimiento_entidad import Consentimiento
-from .permiso_personal_entidad import PermisoPersonal
+# app/domain/errors/alumnos/__init__.py
+
+from .errors import (
+    # Alumnos
+    AlumnoNoEncontradoError,
+    AlumnoDuplicadoError,
+    AlumnoInactivoError,
+    AlumnoMenorEdadError,
+    # Tutores
+    TutorNoEncontradoError,
+    TutorDuplicadoError,
+    TutorSinAlumnosError,
+    # Relaciones
+    RelacionAlumnoTutorNoEncontradaError,
+    RelacionAlumnoTutorDuplicadaError,
+    TutorPrincipalDuplicadoError,
+    # Hermanos
+    HermanoNoEncontradoError,
+    # Autorizaciones
+    AutorizacionRetiroNoEncontradaError,
+    AutorizacionRetiroDuplicadaError,
+    AutorizacionRetiroInactivaError,
+    # Asistencia
+    AsistenciaNoEncontradaError,
+    AsistenciaDuplicadaError,
+    AsistenciaFechaFuturaError,
+    # Permisos
+    PermisoNoEncontradoError,
+    PermisoYaAprobadoError,
+    PermisoFechasInvalidasError,
+    # Consentimientos
+    ConsentimientoNoEncontradoError,
+    # Paralelos
+    AsignacionParaleloNoEncontradaError,
+    AsignacionParaleloDuplicadaError,
+    # Generales
+    DatosInvalidosError,
+    CampoRequeridoError,
+)
 
 __all__ = [
-    "Alumno",
-    "AlumnoParalelo",
-    "AsistenciaAlumno",
-    "AsistenciaPersonal",
-    "Consentimiento",
-    "PermisoPersonal"
+    # Alumnos
+    "AlumnoNoEncontradoError",
+    "AlumnoDuplicadoError",
+    "AlumnoInactivoError",
+    "AlumnoMenorEdadError",
+    # Tutores
+    "TutorNoEncontradoError",
+    "TutorDuplicadoError",
+    "TutorSinAlumnosError",
+    # Relaciones
+    "RelacionAlumnoTutorNoEncontradaError",
+    "RelacionAlumnoTutorDuplicadaError",
+    "TutorPrincipalDuplicadoError",
+    # Hermanos
+    "HermanoNoEncontradoError",
+    # Autorizaciones
+    "AutorizacionRetiroNoEncontradaError",
+    "AutorizacionRetiroDuplicadaError",
+    "AutorizacionRetiroInactivaError",
+    # Asistencia
+    "AsistenciaNoEncontradaError",
+    "AsistenciaDuplicadaError",
+    "AsistenciaFechaFuturaError",
+    # Permisos
+    "PermisoNoEncontradoError",
+    "PermisoYaAprobadoError",
+    "PermisoFechasInvalidasError",
+    # Consentimientos
+    "ConsentimientoNoEncontradoError",
+    # Paralelos
+    "AsignacionParaleloNoEncontradaError",
+    "AsignacionParaleloDuplicadaError",
+    # Generales
+    "DatosInvalidosError",
+    "CampoRequeridoError",
 ]

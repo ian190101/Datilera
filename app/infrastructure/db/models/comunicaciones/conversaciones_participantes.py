@@ -1,0 +1,15 @@
+# conversaciones_participantes.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, func
+from app.infrastructure.db.base import Base
+
+class ConversacionParticipante(Base):
+    __tablename__ = "conversaciones_participantes"
+    __table_args__ = (
+        UniqueConstraint("conversacion_id", "usuario_id", name="uq_conversacion_usuario"),
+    )
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversacion_id = Column(Integer, ForeignKey("conversaciones.id", ondelete="CASCADE"), nullable=False, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    rol = Column(String(30), nullable=False, index=True)  # 'profesora', 'tutor', 'directora'
+    unido_en = Column(DateTime, nullable=False, server_default=func.now())

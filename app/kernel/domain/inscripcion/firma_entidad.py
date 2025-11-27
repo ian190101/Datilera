@@ -1,26 +1,37 @@
 # app/kernel/domain/inscripcion/firma_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
-@dataclass
-class Firma:
-    """
-    Firma digital asociada al formulario (padre/madre/tutor).
-    Se guarda la URL de la imagen generada desde el canvas con marca temporal.
-    """
+class TipoFirmante(str, Enum):
+    MADRE = "madre"
+    PADRE = "padre"
+    TUTOR = "tutor"
+
+
+class Firma(BaseModel):
     id: int
     formulario_id: int
-    firmante: str          # ej.: "madre", "padre", "tutor"
+    tipo_firmante: TipoFirmante
+    firmante: str
     firma_url: str
-    firmado_en: datetime = None
-    ip_origen: str | None = None
-    user_agent: str | None = None
+    firmado_en: datetime = Field(default_factory=datetime.utcnow)
+    ip: Optional[str] = Field(default=None, max_length=50)
+    user_agent: Optional[str] = None
 
-    def __post_init__(self):
-        if not (self.firmante or "").strip():
-            raise ValueError("El firmante es obligatorio.")
-        if not (self.firma_url or "").strip():
-            raise ValueError("La URL de la firma es obligatoria.")
-        self.firmado_en = self.firmado_en or datetime.utcnow()
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+    )
+
+    @field_validator("firmante", "firma_url")
+    @classmethod
+    def _not_blank(cls, v: str) -> str:
+        if not (v or "").strip():
+            raise ValueError("Campo obligatorio vacío")
+        return v.strip()

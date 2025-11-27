@@ -1,12 +1,10 @@
 # app/kernel/domain/inventario/alerta_vencimiento_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Optional
+from pydantic import BaseModel, Field
 
-
-@dataclass
-class AlertaVencimiento:
+class AlertaVencimiento(BaseModel):
     """
     Alerta por vencimiento de lote/ítem. La lógica de avisos 5/3/1 días
     se programa en la capa de aplicación (scheduler); esta entidad
@@ -18,10 +16,10 @@ class AlertaVencimiento:
     fecha_vencimiento: date
     lote: Optional[str] = None
     notificada: bool = False
-    creado_en: datetime = None
-
-    def __post_init__(self):
-        self.creado_en = self.creado_en or datetime.utcnow()
+    
+    # default_factory maneja la creación de la fecha automáticamente
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
     def marcar_notificada(self) -> None:
+        """Actualiza el estado de notificación a True."""
         self.notificada = True

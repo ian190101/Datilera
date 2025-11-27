@@ -1,9 +1,7 @@
-
-from pydantic import BaseModel, Field
-
-from app.infrastructure.db.repositories.inventario.categorias import CategoriaRepository
+from pydantic import BaseModel, Field, ConfigDict
+from app.infrastructure.db.repositories.inventario.categorias_repo import CategoriasRepository
 from app.infrastructure.db.models.inventario import Categoria
-from app.kernel.domain.exceptions import DuplicatedEntityException
+from app.kernel.domain.common.excepciones import AlreadyExistsError
 
 class CreateCategoriaRequest(BaseModel):
     familia_id: int
@@ -16,24 +14,19 @@ class CategoriaResponse(BaseModel):
     nombre: str
     descripcion: str | None
     activo: bool
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CreateCategoria:
-    def __init__(self, repository: CategoriaRepository):
+    def __init__(self, repository: CategoriasRepository):
         self.repository = repository
 
     async def execute(self, request: CreateCategoriaRequest) -> CategoriaResponse:
         if await self.repository.one(where=(Categoria.nombre == request.nombre, Categoria.familia_id == request.familia_id)):
-            raise DuplicatedEntityException(f"La categoría '{request.nombre}' ya existe en esta familia.")
-
+            raise AlreadyExistsError(f"La categoría '{request.nombre}' ya existe en esta familia.")
         new_categoria = Categoria(
             familia_id=request.familia_id,
             nombre=request.nombre,
             descripcion=request.descripcion
         )
-
-        created_categoria = await self.repository.create(new_categoria)
-
-        return CategoriaResponse.from_orm(created_categoria)
+        created = await self.repository.create(new_categoria)
+        return CategoriaResponse.model_validate(created, from_attributes=True)

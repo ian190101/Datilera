@@ -17,7 +17,7 @@ from app.infrastructure.auth.auth_utils import PasslibHasher, PyJWTTokenService
 # Repositorios de infraestructura
 from app.infrastructure.db.repositories.seguridad.usuarios_repo import UsuariosRepository
 from app.infrastructure.db.repositories.seguridad.roles_repo import RolesRepository
-from app.infrastructure.db.repositories.seguridad.usuarios_roles import UsuarioRolRepository
+from app.infrastructure.db.repositories.seguridad.usuarios_roles_repo import UsuarioRolRepository
 from app.infrastructure.db.repositories.seguridad.sesiones_repo import SesionesRepository
 from app.infrastructure.db.repositories.seguridad.tokens_revocados_repo import TokensRevocadosRepository
 from app.infrastructure.db.repositories.auditoria.auditoria_acciones_repo import AuditoriaAccionesRepository

@@ -1,4 +1,5 @@
 # app/infrastructure/db/models/__init__.py
+
 """
 Punto de importación único de todos los modelos de la capa de persistencia.
 Permite:
@@ -38,17 +39,18 @@ from .academico import (
     HorarioParalelo,
 )
 
-# Alumnos
+# Alumnos - CORREGIDO: quitar los enums que no existen
 from .alumnos import (
     Alumno,
+    Tutor,
+    AlumnoTutor,
+    AlumnoHermano,
+    AutorizacionRetiro,
     AlumnoParalelo,
     AsistenciaAlumno,
-    EstadoAsistenciaAlumno,
     AsistenciaPersonal,
-    EstadoAsistenciaPersonal,
     Consentimiento,
     PermisoPersonal,
-    EstadoPermiso,
 )
 
 # Portafolio
@@ -68,26 +70,25 @@ from .inventario import (
     ItemAtributo,
     StockSede,
     MovimientoStock,
-    TipoMovimiento as InvTipoMovimiento,  # evitar colisión de nombre
+    TipoMovimiento as InvTipoMovimiento,
     PrestamoUniforme,
     AlertaStock,
     AlertaVencimiento,
 )
 
-# Finanzas (conjunto según estructura con categorías, turnos y planes)
+# Finanzas
 from .finanzas import (
     CategoriaPago,
-    Turno,
+    CategoriaEgreso,
+    Turno as  
     PrecioTurno,
     Pago,
     Comprobante,
     Conciliacion,
     PlanPago,
     PlanCuota,
-    EstadoCuota,
     EstadoCuentaNino,
     LibroCaja,
-    TipoMovimiento as TipoMovCaja,  # alias de TipoMovimiento de libro_caja
     Arqueo,
 )
 
@@ -115,11 +116,6 @@ from .comunicaciones import (
     NotificacionVista,
 )
 
-# Importaciones
-from .importaciones import (
-    ImportJob,
-    EstadoImportacion,
-)
 
 # IA
 from .ia import IAConsulta
@@ -137,7 +133,6 @@ from .cursos_extra import (
 # Auditoría
 from .auditoria import AuditoriaAccion
 
-
 __all__ = [
     # Base
     "Base",
@@ -148,11 +143,11 @@ __all__ = [
     "CodigoAcceso", "CodigoAccesoUso", "EstadoCodigo",
     # Académico
     "Grupo", "Paralelo", "ParaleloProfesora", "Horario", "HorarioParalelo",
-    # Alumnos
-    "Alumno", "AlumnoParalelo",
-    "AsistenciaAlumno", "EstadoAsistenciaAlumno",
-    "AsistenciaPersonal", "EstadoAsistenciaPersonal",
-    "Consentimiento", "PermisoPersonal", "EstadoPermiso",
+    # Alumnos - CORREGIDO
+    "Alumno", "Tutor", "AlumnoTutor", "AlumnoHermano", "AutorizacionRetiro",
+    "AlumnoParalelo",
+    "AsistenciaAlumno", "AsistenciaPersonal",
+    "Consentimiento", "PermisoPersonal",
     # Portafolio
     "Actividad", "ActividadMedia", "TipoMedia",
     "ReporteDiario", "ReporteLecturaTutor",
@@ -163,8 +158,8 @@ __all__ = [
     # Finanzas
     "CategoriaPago", "Turno", "PrecioTurno",
     "Pago", "Comprobante", "Conciliacion",
-    "PlanPago", "PlanCuota", "EstadoCuota",
-    "EstadoCuentaNino", "LibroCaja", "TipoMovCaja",
+    "PlanPago", "PlanCuota",
+    "EstadoCuentaNino", "LibroCaja",
     "Arqueo",
     # Inscripción
     "FormularioInscripcion", "EstadoFormulario",

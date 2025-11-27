@@ -1,57 +1,37 @@
-# app/kernel/domain/portafolio/actividad_entidad.py
+# app/kernel/domain/portafolio/actividad_portafolio_entidad.py
 from __future__ import annotations
+
 from datetime import date, datetime
 from typing import Optional
 
+from pydantic import BaseModel, Field, ConfigDict
 
-class Actividad:
+
+class ActividadPortafolio(BaseModel):
     """
-    Entidad **Actividad** (portafolio).
-    - Relacionada a un paralelo y a la profesora que la registra.
-    - `titulo` obligatorio (≤150).
-    - `fecha_actividad` obligatoria.
+    Entidad de dominio para una actividad del portafolio.
+    Mapea a app.infrastructure.db.models.portafolio.Actividad.
     """
+    
+    # Configuración moderna Pydantic V2
+    model_config = ConfigDict(from_attributes=True)
 
-    def __init__(
-        self,
-        id: int,
-        paralelo_id: int,
-        profesora_id: int,
-        titulo: str,
-        fecha_actividad: date,
-        descripcion: Optional[str] = None,
-        creado_en: Optional[datetime] = None,
-        actualizado_en: Optional[datetime] = None,
-    ):
-        t = (titulo or "").strip()
-        if not t:
-            raise ValueError("El título de la actividad es obligatorio.")
-        if len(t) > 150:
-            raise ValueError("El título no puede exceder 150 caracteres.")
-        self.id = id
-        self.paralelo_id = paralelo_id
-        self.profesora_id = profesora_id
-        self.titulo = t
-        self.descripcion = (descripcion or "").strip() or None
-        self.fecha_actividad = fecha_actividad
-        self.creado_en = creado_en or datetime.utcnow()
-        self.actualizado_en = actualizado_en or self.creado_en
-
-    def actualizar_detalle(
-        self,
-        titulo: Optional[str] = None,
-        descripcion: Optional[str] = None,
-        fecha_actividad: Optional[date] = None,
-    ) -> None:
-        if titulo is not None:
-            t = (titulo or "").strip()
-            if not t:
-                raise ValueError("El título no puede quedar vacío.")
-            if len(t) > 150:
-                raise ValueError("El título no puede exceder 150 caracteres.")
-            self.titulo = t
-        if descripcion is not None:
-            self.descripcion = (descripcion or "").strip() or None
-        if fecha_actividad is not None:
-            self.fecha_actividad = fecha_actividad
-        self.actualizado_en = datetime.utcnow()
+    id: int
+    alumno_id: Optional[int] = None
+    grupo_id: Optional[int] = None
+    
+    # FALTABA: Es obligatorio en tu modelo DB
+    profesora_id: int
+    
+    # CORRECCIÓN: En tu DB se llama 'fecha_actividad', no 'fecha'
+    fecha_actividad: date
+    
+    # Ajusté el max_length a 150 para coincidir con tu String(150) de la BD
+    titulo: str = Field(max_length=150)
+    
+    descripcion: Optional[str] = None
+    
+    # ELIMINADO: 'tipo' no existe en tu tabla de actividades.
+    
+    # SUGERENCIA: Campos de auditoría útiles para el frontend
+    creado_en: Optional[datetime] = None

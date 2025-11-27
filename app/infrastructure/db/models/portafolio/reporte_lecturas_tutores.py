@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, UniqueConstraint
+#app/infraestructura/db/modelos/portafolio/reporte_lecturas_tutores.py
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, func, UniqueConstraint, Boolean
 from app.infrastructure.db.base import Base
 
 class ReporteLecturaTutor(Base):
@@ -11,3 +12,4 @@ class ReporteLecturaTutor(Base):
     reporte_diario_id = Column(Integer, ForeignKey("reportes_diarios.id", ondelete="CASCADE"), nullable=False, index=True)
     tutor_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
     leido_en = Column(DateTime, nullable=False, server_default=func.now())
+    leido = Column(Boolean, nullable=False, server_default="1",)  

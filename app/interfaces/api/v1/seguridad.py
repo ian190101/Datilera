@@ -29,7 +29,7 @@ from app.kernel.domain.seguridad.ports import (
     AbstractHasher,
     AbstractTokenService,
 )
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
 
 
 router = APIRouter(prefix="/auth", tags=["Seguridad"])
@@ -61,7 +61,7 @@ async def login(
     hasher: AbstractHasher = Depends(get_hasher),
     tokens: AbstractTokenService = Depends(get_tokens),
     sesiones = Depends(get_sesiones_repo),
-    auditoria: IAuditoriaAccionRepo = Depends(get_auditoria_repo),
+    auditoria: AuditoriaAccionRepositoryPort = Depends(get_auditoria_repo),
 ):
     limiter = type("NoopLimiter", (), {"check": staticmethod(lambda *_: None), "hit": staticmethod(lambda *_: None), "reset": staticmethod(lambda *_: None)})()
     cu = Login(usuarios=usuarios, hasher=hasher, tokens=tokens, sesiones=sesiones, limiter=limiter, auditoria=auditoria)
@@ -79,7 +79,7 @@ async def refresh(
     usuarios: AbstractUserRepository = Depends(get_usuarios_repo),
     tokens: AbstractTokenService = Depends(get_tokens),
     revocados = Depends(get_revocados_repo),
-    auditoria: IAuditoriaAccionRepo = Depends(get_auditoria_repo),
+    auditoria: AuditoriaAccionRepositoryPort = Depends(get_auditoria_repo),
     settings = Depends(get_settings_dep),
 ):
     rt = request.cookies.get(REFRESH_COOKIE)
@@ -99,7 +99,7 @@ async def logout(
     sesiones = Depends(get_sesiones_repo),
     tokens: AbstractTokenService = Depends(get_tokens),
     revocados = Depends(get_revocados_repo),
-    auditoria: IAuditoriaAccionRepo = Depends(get_auditoria_repo),
+    auditoria: AuditoriaAccionRepositoryPort = Depends(get_auditoria_repo),
 ):
     rt = request.cookies.get(REFRESH_COOKIE)
     clear_refresh_cookie(response)

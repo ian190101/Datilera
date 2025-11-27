@@ -23,6 +23,24 @@ from starlette.requests import Request
 
 from app.interfaces.api.v1 import seguridad as seguridad_router
 from app.interfaces.api.v1 import acceso as acceso_router
+from app.interfaces.api.v1 import inventario as inventario_router
+from app.interfaces.api.v1 import academico as academico_router
+from app.interfaces.api.v1 import sedes as sede_router
+from app.interfaces.api.v1 import roles as rol_router
+from app.interfaces.api.v1 import usuario_roles as usuario_rol_router
+from app.interfaces.api.v1 import rol_permisos as rol_permiso_router
+from app.interfaces.api.v1 import permisos as permiso_router
+from app.interfaces.api.v1 import usuarios as usuario_router
+from app.interfaces.api.v1 import finanzas as finanza_router
+from app.interfaces.api.v1 import inscripcion as inscripcion_router
+from app.interfaces.api.v1 import portafolio as portafolio_router
+from app.interfaces.api.v1 import conversaciones as conversacion_router
+from app.interfaces.api.v1 import mensajes as mensaje_router
+from app.interfaces.api.v1 import estadisticas_comunicaciones as estcom_router
+from app.interfaces.api.v1 import alumnos as alumno_router
+from app.interfaces.api.v1 import cursos_extra as cursoextra_router
+from app.interfaces.api.v1 import auditoria as auditoria_router
+from app.interfaces.api.v1 import ia as ia_router
 from app.config.settings import get_settings
 
 settings = get_settings()
@@ -86,7 +104,25 @@ def create_app() -> FastAPI:
     # Routers
     app.include_router(seguridad_router.router, prefix="/api/v1")  # /api/v1/auth/* [file:598]
     app.include_router(acceso_router.router, prefix="/api/v1") 
-
+    app.include_router(inventario_router.router, prefix="/api/v1")
+    app.include_router(academico_router.router, prefix="/api/v1")
+    app.include_router(sede_router.router, prefix="/api/v1")
+    app.include_router(rol_router.router, prefix="/api/v1")
+    app.include_router(usuario_rol_router.router, prefix="/api/v1")
+    app.include_router(rol_permiso_router.router, prefix="/api/v1")
+    app.include_router(permiso_router.router, prefix="/api/v1")
+    app.include_router(usuario_router.router, prefix="/api/v1")
+    app.include_router(finanza_router.router, prefix="/api/v1")
+    app.include_router(inscripcion_router.router, prefix="/api/v1")
+    app.include_router(portafolio_router.router, prefix="/api/v1")
+    app.include_router(conversacion_router.router, prefix="/api/v1")
+    app.include_router(mensaje_router.router, prefix="/api/v1")
+    app.include_router(estcom_router.router, prefix="/api/v1")
+    app.include_router(alumno_router.router, prefix="/api/v1")
+    app.include_router(cursoextra_router.router, prefix="/api/v1")
+    app.include_router(auditoria_router.router, prefix="/api/v1")
+    app.include_router(ia_router.router, prefix="/api/v1")
+    
     # Registrar mapeos de errores de dominio (401/403)
     register_handlers(app)  # [file:598]
 

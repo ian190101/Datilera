@@ -1,12 +1,10 @@
 # app/kernel/domain/inventario/familia_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel, Field, field_validator
 
-
-@dataclass
-class Familia:
+class Familia(BaseModel):
     """
     Entidad Familia (agrupa categorías: uniformes, materiales, ingredientes, limpieza, activos, etc.).
     """
@@ -14,12 +12,19 @@ class Familia:
     nombre: str
     descripcion: Optional[str] = None
     activo: bool = True
-    creado_en: datetime = None
+    
+    # Se genera automáticamente al instanciar usando la fecha actual UTC
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
-    def __post_init__(self):
-        if not (self.nombre or "").strip():
+    @field_validator('nombre')
+    @classmethod
+    def validar_nombre(cls, v: str) -> str:
+        """Valida que el nombre no esté vacío y elimina espacios al inicio/final."""
+        if not (v or "").strip():
             raise ValueError("El nombre de la familia es obligatorio.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+        return v.strip()
+
+    # --- Comportamiento de dominio ---
 
     def activar(self) -> None:
         self.activo = True

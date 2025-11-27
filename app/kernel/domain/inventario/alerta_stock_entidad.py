@@ -1,11 +1,9 @@
-# app/kernel/domain/inventario/alerta_stock_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field, field_validator
 
-
-@dataclass
-class AlertaStock:
+class AlertaStock(BaseModel):
     """
     Alerta por stock bajo (generada cuando `StockSede.debajo_minimo()` es True).
     """
@@ -14,15 +12,21 @@ class AlertaStock:
     sede_id: int
     mensaje: str
     resuelta: bool = False
-    creado_en: datetime = None
-    resuelta_en: datetime | None = None
+    
+    # Se genera automáticamente al instanciar si no se provee
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    resuelta_en: Optional[datetime] = None
 
-    def __post_init__(self):
-        if not (self.mensaje or "").strip():
+    @field_validator('mensaje')
+    @classmethod
+    def validar_mensaje(cls, v: str) -> str:
+        """Valida que el mensaje no esté vacío y limpia espacios"""
+        if not (v or "").strip():
             raise ValueError("El mensaje de la alerta es obligatorio.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+        return v.strip()
 
     def resolver(self) -> None:
+        """Marca la alerta como resuelta y registra la fecha/hora."""
         if self.resuelta:
             return
         self.resuelta = True

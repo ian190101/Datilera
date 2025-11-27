@@ -1,25 +1,35 @@
 # app/kernel/domain/inventario/item_atributo_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 
-
-@dataclass
-class ItemAtributo:
+class ItemAtributo(BaseModel):
     """
     Atributo adicional del ítem (p.ej. talla, color, marca, etc.).
     """
     id: int
-    item_id: int
+    
+    # Validación: item_id debe ser mayor a 0
+    item_id: int = Field(..., gt=0)
+    
     nombre_atributo: str
     valor_atributo: str
-    creado_en: datetime = None
+    
+    # Se genera automáticamente al instanciar
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
-    def __post_init__(self):
-        if self.item_id <= 0:
-            raise ValueError("item_id inválido.")
-        if not (self.nombre_atributo or "").strip():
+    @field_validator('nombre_atributo')
+    @classmethod
+    def validar_nombre(cls, v: str) -> str:
+        """Valida que el nombre no esté vacío."""
+        if not (v or "").strip():
             raise ValueError("El nombre del atributo es obligatorio.")
-        if not (self.valor_atributo or "").strip():
+        return v.strip()
+
+    @field_validator('valor_atributo')
+    @classmethod
+    def validar_valor(cls, v: str) -> str:
+        """Valida que el valor no esté vacío."""
+        if not (v or "").strip():
             raise ValueError("El valor del atributo es obligatorio.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+        return v.strip()

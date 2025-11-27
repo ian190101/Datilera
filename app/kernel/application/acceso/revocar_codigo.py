@@ -8,7 +8,7 @@ from app.kernel.domain.acceso.errors import CodigoNoEncontrado
 from app.kernel.domain.acceso.estado_codigo_entidad import EstadoCodigo
 from app.kernel.domain.acceso.ports import UnitOfWork
 
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo  # type: ignore
+from app.kernel.domain.auditoria.ports import  AuditoriaAccionRepositoryPort # type: ignore
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion  # type: ignore
 
 
@@ -20,7 +20,7 @@ class RevocarCodigoRequest(BaseModel):
     sede_id: Optional[int] = None
 
 class RevocarCodigo:
-    def __init__(self, uow: UnitOfWork, auditoria: Optional["IAuditoriaAccionRepo"] = None):
+    def __init__(self, uow: UnitOfWork, auditoria: Optional["AuditoriaAccionRepositoryPort"] = None):
         self.uow = uow
         self.auditoria = auditoria
 

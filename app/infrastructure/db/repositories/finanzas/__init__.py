@@ -10,10 +10,12 @@ from .planes_cuotas_repo import PlanesCuotasRepository
 from .estado_cuenta_nino_repo import EstadoCuentaNinoRepository
 from .libro_caja_repo import LibroCajaRepository
 from .arqueos_repo import ArqueosRepository
+from .categorias_egreso_repo import CategoriaEgresoRepository
 
 __all__ = [
     "CategoriasPagoRepository", "TurnosRepository", "PreciosTurnosRepository",
     "PagosRepository", "ComprobantesRepository", "ConciliacionesRepository",
     "PlanesPagoRepository", "PlanesCuotasRepository",
     "EstadoCuentaNinoRepository", "LibroCajaRepository", "ArqueosRepository",
+    "CategoriaEgresoRepository"
 ]

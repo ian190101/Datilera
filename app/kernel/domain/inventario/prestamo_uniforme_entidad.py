@@ -1,31 +1,41 @@
 # app/kernel/domain/inventario/prestamo_uniforme_entidad.py
 from __future__ import annotations
-from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Optional
+from pydantic import BaseModel, Field, model_validator
 
-
-@dataclass
-class PrestamoUniforme:
+class PrestamoUniforme(BaseModel):
     """
     Préstamo de uniformes a personal (no venta). Se espera devolución.
     """
     id: int
-    alumno_id: int
-    item_id: int
+    
+    # Validaciones: IDs deben ser positivos
+    alumno_id: int = Field(..., gt=0)
+    item_id: int = Field(..., gt=0)
+    
     fecha_prestamo: date
     devuelto: bool = False
     fecha_devolucion: Optional[date] = None
-    creado_en: datetime = None
+    
+    # Se genera automáticamente al instanciar
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
     actualizado_en: Optional[datetime] = None
 
-    def __post_init__(self):
-        if self.alumno_id <= 0 or self.item_id <= 0:
-            raise ValueError("alumno_id/item_id inválidos.")
-        self.creado_en = self.creado_en or datetime.utcnow()
-        self.actualizado_en = self.actualizado_en or self.creado_en
+    @model_validator(mode='after')
+    def inicializar_actualizado_en(self) -> PrestamoUniforme:
+        """
+        Si no se especifica una fecha de actualización al crear, 
+        asume la misma que la de creación.
+        """
+        if self.actualizado_en is None:
+            self.actualizado_en = self.creado_en
+        return self
+
+    # --- Comportamiento de dominio ---
 
     def registrar_devolucion(self, fecha: Optional[date] = None) -> None:
+        """Registra la devolución, fija la fecha y actualiza auditoría."""
         if self.devuelto:
             return
         self.devuelto = True

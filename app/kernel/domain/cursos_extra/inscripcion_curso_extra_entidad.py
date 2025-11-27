@@ -1,61 +1,99 @@
-# app/kernel/domain/cursos_extra/inscripcion_curso_extra_entidad.py
+# app/kernel/domain/cursosextra/inscripcion_curso_extra_entidad.py
+
+"""
+Entidad de dominio: InscripcionCursoExtra
+"""
 from __future__ import annotations
-from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date
 from enum import Enum
 from typing import Optional
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class TipoParticipanteCurso(str, Enum):
-    INSCRITO_CENTRO = 'inscrito_centro'
-    EXTERNO = 'externo'
+class TipoAlumnoCursoExtra(str, Enum):
+    """Tipo de alumno inscrito."""
+    INTERNO = "interno"  # Alumno regular del jardín
+    EXTERNO = "externo"  # Alumno externo (no inscrito al centro)
 
 
-class InscripcionDuplicadaError(Exception):
-    """Intento de inscribir dos veces al mismo niño para el mismo curso."""
+class EstadoInscripcionCursoExtra(str, Enum):
+    """Estado de la inscripción."""
+    ACTIVO = "activo"
+    COMPLETADO = "completado"
+    RETIRADO = "retirado"
 
 
-@dataclass(frozen=True)
-class DatosExterno:
-    nombre_nino: str
-    tutor_nombre: str
-    tutor_celular: str  # validación de formato en la capa de aplicación
-    edad_meses: int     # edad en meses (ej: 1 año 6 meses -> 18)
-
-    def __post_init__(self):
-        if not (self.nombre_nino and self.tutor_nombre and self.tutor_celular):
-            raise ValueError('Datos de externo incompletos.')
-        if self.edad_meses < 0:
-            raise ValueError('La edad en meses no puede ser negativa.')
-
-
-class InscripcionCursoExtra:
-    """Entidad InscripcionCursoExtra.
-
-    - Puede ser de un niño INSCRITO (nino_id) o un EXTERNO (DatosExterno).
-    - Registra la fecha de ingreso al curso.
-    - La validación de cupo se hace en CursoExtra.registrar_inscripcion().
+class InscripcionCursoExtra(BaseModel):
     """
-
-    def __init__(
-        self,
-        id: int,
-        curso_id: int,
-        tipo_participante: TipoParticipanteCurso,
-        fecha_ingreso: date,
-        nino_id: Optional[int] = None,
-        datos_externo: Optional[DatosExterno] = None,
-        creado_en: Optional[datetime] = None,
-    ):
-        if tipo_participante == TipoParticipanteCurso.INSCRITO_CENTRO and not nino_id:
-            raise ValueError('Se requiere nino_id para INSCRITO_CENTRO.')
-        if tipo_participante == TipoParticipanteCurso.EXTERNO and not datos_externo:
-            raise ValueError('Se requieren datos_externo para EXTERNO.')
-
-        self.id = id
-        self.curso_id = curso_id
-        self.tipo_participante = tipo_participante
-        self.fecha_ingreso = fecha_ingreso
-        self.nino_id = nino_id
-        self.datos_externo = datos_externo
-        self.creado_en = creado_en or datetime.utcnow()
+    Entidad **InscripcionCursoExtra**.
+    
+    Gestiona la inscripción de alumnos (internos y externos) a cursos extra.
+    
+    Reglas:
+    - Un alumno (interno o externo) puede inscribirse en múltiples cursos
+    - Solo un tipo de alumno debe estar presente (interno XOR externo)
+    - El estado controla el ciclo de vida de la inscripción
+    """
+    id: int
+    curso_extra_id: int
+    tipo_alumno: TipoAlumnoCursoExtra
+    
+    # Referencias (uno debe ser NULL, el otro NOT NULL)
+    alumno_id: Optional[int] = None  # Alumno interno
+    alumno_externo_id: Optional[int] = None  # Alumno externo
+    
+    # Datos de tutor (solo para externos, internos lo tienen en su tabla)
+    tutor_nombre: Optional[str] = None
+    tutor_celular: Optional[str] = None
+    
+    # Fechas y estado
+    fecha_inscripcion: date = Field(default_factory=date.today)
+    estado: EstadoInscripcionCursoExtra = EstadoInscripcionCursoExtra.ACTIVO
+    
+    model_config = ConfigDict(
+        validate_assignment=True,
+        extra="forbid",
+        from_attributes=True,
+    )
+    
+    def model_post_init(self, __context) -> None:
+        """Valida integridad: exactamente un tipo de alumno."""
+        tiene_interno = self.alumno_id is not None
+        tiene_externo = self.alumno_externo_id is not None
+        
+        if tiene_interno == tiene_externo:  # Ambos o ninguno
+            raise ValueError(
+                "Debe especificarse exactamente un tipo de alumno (interno XOR externo)."
+            )
+    
+    # --- Comportamiento ---
+    
+    def es_alumno_interno(self) -> bool:
+        """Verifica si es un alumno interno."""
+        return self.tipo_alumno == TipoAlumnoCursoExtra.INTERNO
+    
+    def es_alumno_externo(self) -> bool:
+        """Verifica si es un alumno externo."""
+        return self.tipo_alumno == TipoAlumnoCursoExtra.EXTERNO
+    
+    def esta_activo(self) -> bool:
+        """Verifica si la inscripción está activa."""
+        return self.estado == EstadoInscripcionCursoExtra.ACTIVO
+    
+    def completar(self) -> None:
+        """Marca la inscripción como completada."""
+        if self.estado != EstadoInscripcionCursoExtra.ACTIVO:
+            raise ValueError("Solo se puede completar una inscripción activa.")
+        self.estado = EstadoInscripcionCursoExtra.COMPLETADO
+    
+    def retirar(self) -> None:
+        """Marca al alumno como retirado."""
+        if self.estado == EstadoInscripcionCursoExtra.RETIRADO:
+            return
+        self.estado = EstadoInscripcionCursoExtra.RETIRADO
+    
+    def reactivar(self) -> None:
+        """Reactiva una inscripción retirada."""
+        if self.estado == EstadoInscripcionCursoExtra.ACTIVO:
+            return
+        self.estado = EstadoInscripcionCursoExtra.ACTIVO

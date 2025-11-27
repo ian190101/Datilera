@@ -1,22 +1,28 @@
-from sqlalchemy import Column, Integer, Date, DateTime, ForeignKey, Enum as SQLEnum, Text, func
-from app.infrastructure.db.base import Base
-import enum
+# app/infrastructure/db/models/alumnos/asistencia_alumnos.py
 
-class EstadoAsistenciaAlumno(enum.Enum):
-    presente = "presente"
-    ausente = "ausente"
-    tardanza = "tardanza"
-    permiso = "permiso"
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, DateTime, Time  # NUEVO: Time
+from sqlalchemy.orm import relationship
+from app.infrastructure.db.base import Base
+from datetime import datetime
+
 
 class AsistenciaAlumno(Base):
     __tablename__ = "asistencia_alumnos"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    alumno_id = Column(Integer, ForeignKey("alumnos.id", ondelete="CASCADE"), nullable=False, index=True)
-    paralelo_id = Column(Integer, ForeignKey("paralelos.id", ondelete="RESTRICT"), nullable=False, index=True)
-    fecha = Column(Date, nullable=False, index=True)
-    estado = Column(SQLEnum(EstadoAsistenciaAlumno), nullable=False, default=EstadoAsistenciaAlumno.presente, server_default="presente", index=True)
-    observaciones = Column(Text, nullable=True)
-    registrado_por = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
-
-    registrado_en = Column(DateTime, nullable=False, server_default=func.now())
+    # ==================== CAMPOS EXISTENTES ====================
+    id = Column(Integer, primary_key=True, index=True)
+    alumno_id = Column(Integer, ForeignKey("alumnos.id"), nullable=False)
+    fecha = Column(Date, nullable=False)
+    estado = Column(String(20), nullable=False)  # presente, falta, retraso
+    sede_id = Column(Integer, ForeignKey("sedes.id"), nullable=False)
+    registrado_por_id = Column(Integer, ForeignKey("usuarios.id"))
+    creado_en = Column(DateTime, default=datetime.utcnow)
+    
+    # ==================== CAMPOS NUEVOS ====================
+    hora_retraso = Column(Time)  # NUEVO: hora a la que llegó si estado=retraso (HU: especificar hora de retraso con reloj estilo iPhone)
+    observaciones = Column(String(500))  # NUEVO: comentarios adicionales opcionales
+    
+    # ==================== RELACIONES ====================
+    alumno = relationship("Alumno", back_populates="asistencias")  # EXISTENTE
+    sede = relationship("Sede")  # EXISTENTE
+    registrado_por = relationship("Usuario")  # EXISTENTE (mantener)

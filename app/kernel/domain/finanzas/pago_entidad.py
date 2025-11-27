@@ -1,19 +1,16 @@
 # app/kernel/domain/finanzas/pago_entidad.py
-from __future__ import annotations
-from dataclasses import dataclass
+from __future__ import annotations  # <--- Esto soluciona el error "Pago is not defined"
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
-
+from pydantic import BaseModel, Field, model_validator
 
 class MetodoPago(str, Enum):
     EFECTIVO = "efectivo"
     QR = "qr"
 
-
-@dataclass
-class Pago:
+class Pago(BaseModel):
     """
     Registro de pago (siempre con comprobante y hash validado).
 
@@ -25,19 +22,31 @@ class Pago:
     id: int
     sede_id: int
     categoria_id: int
-    monto: Decimal
+    
+    # 'gt=0' valida que sea mayor a 0. decimal_places=2 maneja la precisión.
+    monto: Decimal = Field(..., gt=0, decimal_places=2)
+    
     metodo: MetodoPago
     comprobante_id: int
     creado_por_usuario_id: int
-    nino_id: Optional[int] = None           # si aplica a niño
-    curso_extra_id: Optional[int] = None    # si aplica a curso extra
-    plan_cuota_id: Optional[int] = None     # si liquida una cuota del plan
+    
+    # Campos opcionales (default=None)
+    nino_id: Optional[int] = None
+    curso_extra_id: Optional[int] = None
+    plan_cuota_id: Optional[int] = None
+    
     monto_esperado: Optional[Decimal] = None
-    creado_en: datetime = None
+    
+    # default_factory asigna la fecha actual si no se envía
+    creado_en: datetime = Field(default_factory=datetime.utcnow)
 
-    def __post_init__(self):
-        if Decimal(self.monto) <= 0:
-            raise ValueError("El monto del pago debe ser > 0.")
-        if self.monto_esperado is not None and Decimal(self.monto) != Decimal(self.monto_esperado):
-            raise ValueError("El monto del pago no coincide con el monto esperado.")
-        self.creado_en = self.creado_en or datetime.utcnow()
+    @model_validator(mode='after')
+    def validar_monto_contra_esperado(self) -> Pago:
+        """
+        Si se define un monto esperado, valida que el pago coincida exactamente.
+        """
+        if self.monto_esperado is not None and self.monto != self.monto_esperado:
+            raise ValueError(
+                f"El monto del pago ({self.monto}) no coincide con el monto esperado ({self.monto_esperado})."
+            )
+        return self

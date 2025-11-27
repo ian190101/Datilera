@@ -18,7 +18,7 @@ from app.kernel.domain.acceso.errors import (
 from app.kernel.domain.acceso.ports import UnitOfWork
 
 
-from app.kernel.domain.auditoria.ports import IAuditoriaAccionRepo  # type: ignore
+from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort  # type: ignore
 from app.kernel.domain.auditoria.auditoria_accion_entidad import AuditoriaAccion  # type: ignore
 
 class ConsumirCodigoRequest(BaseModel):
@@ -28,7 +28,7 @@ class ConsumirCodigoRequest(BaseModel):
     rol_id: int
 
 class ConsumirCodigo:
-    def __init__(self, uow: UnitOfWork, auditoria: Optional["IAuditoriaAccionRepo"] = None):
+    def __init__(self, uow: UnitOfWork, auditoria: Optional["AuditoriaAccionRepositoryPort"] = None):
         self.uow = uow
         self.auditoria = auditoria
 

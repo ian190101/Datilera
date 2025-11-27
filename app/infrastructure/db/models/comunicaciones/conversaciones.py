@@ -14,8 +14,11 @@ class Conversacion(Base):
     sede_id = Column(Integer, ForeignKey("sedes.id", ondelete="RESTRICT"), nullable=False, index=True)
     creado_por_id = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
     titulo = Column(String(150), nullable=True, index=True)
+    asunto = Column(String(120), nullable=False, index=True) 
     descripcion = Column(Text, nullable=True)
     tipo = Column(SQLEnum(TipoConversacion), nullable=False, default=TipoConversacion.directo, server_default="directo", index=True)
     cerrado = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+    ultima_actividad_en = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+

@@ -10,6 +10,13 @@ from app.kernel.domain.seguridad.errors import (
     CredencialesInvalidas, UsuarioInactivo, UsuarioNoEncontrado,
     TokenInvalido, TokenExpirado, RolNoEncontrado, PermisoDenegado
 )
+from app.kernel.domain.inventario.errors import (
+    FamiliaNoEncontrada, CategoriaNoEncontrada, ItemNoEncontrado,
+    CodigoItemDuplicado, CategoriaDuplicada,
+    StockInsuficiente, MovimientoNoSoportado,
+    PrestamoNoEncontrado, PrestamoYaDevuelto,
+)
+
 
 async def global_exception_handler(request: Request, exc: Exception):
     """
@@ -77,3 +84,32 @@ def register_handlers(app):
     @app.exception_handler(StarletteHTTPException)
     async def starlette_http_exception_handler(request: Request, exc: StarletteHTTPException):
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+    # Inventario: mantener MISMO formato {"status","code","message","details"}
+    inventario_map = {
+        FamiliaNoEncontrada: (404, "FAMILIA_NOT_FOUND"),
+        CategoriaNoEncontrada: (404, "CATEGORIA_NOT_FOUND"),
+        ItemNoEncontrado: (404, "ITEM_NOT_FOUND"),
+        CodigoItemDuplicado: (409, "ITEM_CODE_DUPLICATED"),
+        CategoriaDuplicada: (409, "CATEGORY_DUPLICATED"),
+        StockInsuficiente: (409, "INSUFFICIENT_STOCK"),
+        MovimientoNoSoportado: (422, "UNSUPPORTED_MOVEMENT"),
+        PrestamoNoEncontrado: (404, "PRESTAMO_NOT_FOUND"),
+        PrestamoYaDevuelto: (409, "PRESTAMO_ALREADY_RETURNED"),
+    }
+
+    def _make_inv_handler(default_status: int, default_code: str):
+        async def _handler(request: Request, exc: Exception):
+            return JSONResponse(
+                status_code=getattr(exc, "status_code", default_status) or default_status,
+                content={
+                    "status": "error",
+                    "code": getattr(exc, "code", default_code) or default_code,
+                    "message": getattr(exc, "message", str(exc)) or exc.__class__.__name__,
+                    "details": getattr(exc, "details", None),
+                },
+            )
+        return _handler
+
+    for cls, (st, cd) in inventario_map.items():
+        app.add_exception_handler(cls, _make_inv_handler(st, cd))

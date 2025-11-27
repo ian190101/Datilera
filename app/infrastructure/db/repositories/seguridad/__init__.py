@@ -5,6 +5,7 @@ from .permisos_repo import PermisosRepository
 from .sesiones_repo import SesionesRepository
 from .preferencias_usuario_repo import PreferenciasUsuarioRepository
 from .tokens_revocados_repo import TokensRevocadosRepository
+from .usuarios_roles_repo import UsuarioRolRepository
 
 __all__ = [
     "UsuariosRepository", "RolesRepository", "PermisosRepository",

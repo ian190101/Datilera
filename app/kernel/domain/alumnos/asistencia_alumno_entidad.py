@@ -1,23 +1,46 @@
-from datetime import date
+# app/domain/entities/alumnos/asistencia_alumno_entidad.py
+
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
+from datetime import date, time, datetime
 
-class AsistenciaAlumno:
-    def __init__(self, id: int, alumno_id: int, fecha: date, estado: str,
-                 hora_retraso: Optional[str] = None):
-        self.id = id
-        self.alumno_id = alumno_id
-        self.fecha = fecha
-        self.estado = estado
-        self.hora_retraso = hora_retraso
 
-    def marcar_presente(self):
-        self.estado = "presente"
-        self.hora_retraso = None
+class AsistenciaAlumnoEntidad(BaseModel):
+    """Entidad de dominio para asistencia de alumnos"""
+    
+    model_config = ConfigDict(
+        from_attributes=True,
+        validate_assignment=True
+    )
 
-    def marcar_falta(self):
-        self.estado = "falta"
-        self.hora_retraso = None
+    id: Optional[int] = None
+    alumno_id: int
+    fecha: date
+    sede_id: int
+    
+    # Registro de horarios
+    hora_entrada: Optional[time] = None
+    hora_salida: Optional[time] = None
+    hora_retraso: Optional[time] = None
+    
+    # Observaciones
+    observaciones: Optional[str] = None
+    
+    # Auditoría
+    creado_en: Optional[datetime] = None
+    registrado_por_id: Optional[int] = None
 
-    def marcar_retraso(self, hora: str):
-        self.estado = "retraso"
-        self.hora_retraso = hora
+    @field_validator('fecha')
+    @classmethod
+    def validar_fecha(cls, v: date) -> date:
+        if v > date.today():
+            raise ValueError("No se puede registrar asistencia de fechas futuras")
+        return v
+
+    def tiene_retraso(self) -> bool:
+        """Verifica si el alumno llegó con retraso"""
+        return self.hora_retraso is not None
+
+    def asistio(self) -> bool:
+        """Verifica si el alumno asistió"""
+        return self.hora_entrada is not None

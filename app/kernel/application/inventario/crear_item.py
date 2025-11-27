@@ -1,10 +1,8 @@
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
-
-from app.infrastructure.db.repositories.inventario.items import ItemRepository
+from app.infrastructure.db.repositories.inventario.items_repo import ItemsRepository
 from app.infrastructure.db.models.inventario import Item
-from app.kernel.domain.exceptions import DuplicatedEntityException
+from app.kernel.domain.common.excepciones import AlreadyExistsError
 
 class CreateItemRequest(BaseModel):
     categoria_id: int
@@ -23,27 +21,22 @@ class ItemResponse(BaseModel):
     precio_unitario: Decimal
     unidad_medida: str
     activo: bool
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CreateItem:
-    def __init__(self, repository: ItemRepository):
+    def __init__(self, repository: ItemsRepository):
         self.repository = repository
 
     async def execute(self, request: CreateItemRequest) -> ItemResponse:
         if await self.repository.one(where=Item.codigo == request.codigo):
-            raise DuplicatedEntityException(f"El item con código '{request.codigo}' ya existe.")
-
+            raise AlreadyExistsError(f"El código '{request.codigo}' ya existe.")
         new_item = Item(
             categoria_id=request.categoria_id,
             codigo=request.codigo,
             nombre=request.nombre,
             descripcion=request.descripcion,
             precio_unitario=request.precio_unitario,
-            unidad_medida=request.unidad_medida
+            unidad_medida=request.unidad_medida,
         )
-
-        created_item = await self.repository.create(new_item)
-
-        return ItemResponse.from_orm(created_item)
+        created = await self.repository.create(new_item)
+        return ItemResponse.model_validate(created, from_attributes=True)
