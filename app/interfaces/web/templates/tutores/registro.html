@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Tutores - Datilera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { 'primary': { 50: '#FEF8E8', 100: '#FEEFC7', 500: '#DD8E0A', 600: '#C67306', 700: '#A45909' } } } }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .step-container { display: none; }
+        .step-container.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; margin-top: 0.25rem; }
+        .form-input:focus { outline: none; border-color: #DD8E0A; box-shadow: 0 0 0 2px #fde68a; }
+        .section-title { font-size: 1.1rem; font-weight: 600; color: #4b5563; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen pb-20 font-sans">
+
+    <div class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="/static/img/logo.png" alt="Datilera" class="h-10 w-auto mr-3">
+                <h1 class="text-xl font-bold text-gray-800">Ficha de Inscripción</h1>
+            </div>
+            <div class="text-sm font-medium text-gray-500 hidden md:block">Año Escolar 2025</div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        
+        <div class="mb-8 bg-white p-4 rounded-xl shadow-sm">
+            <div class="flex justify-between text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                <span id="step-indicator">Paso 1 de 10</span>
+                <span id="step-title">Validación</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-primary-500 rounded-full transition-all duration-500" style="width: 10%"></div>
+            </div>
+        </div>
+
+        <form id="form-registro" class="bg-white rounded-xl shadow-lg p-6 md:p-10">
+            
+            <div id="step-1" class="step-container active">
+                <div class="text-center py-10">
+                    <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-key text-3xl text-primary-600"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Bienvenido</h2>
+                    <p class="text-gray-600 mb-8 max-w-md mx-auto">Por favor ingresa el código de acceso de 6 dígitos que te enviamos por WhatsApp para comenzar.</p>
+                    
+                    <div class="max-w-xs mx-auto">
+                        <input type="text" id="codigo-registro" name="codigo" maxlength="6"
+                               class="text-center text-4xl font-mono uppercase tracking-[0.3em] py-4 border-2 border-gray-300 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 w-full mb-4 transition-all"
+                               placeholder="ABC123" autocomplete="off">
+                        <button type="button" id="btn-validar-codigo" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-lg shadow transition-colors">
+                            Validar Código
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-2" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-child text-primary-500 mr-3"></i>Datos Generales del Niño/a
+                </h2>
+                
+                <div class="bg-blue-50 p-4 rounded-lg mb-6 border border-blue-100 flex items-center">
+                    <i class="fas fa-user-circle text-blue-500 text-3xl mr-4"></i>
+                    <div>
+                        <p class="text-xs font-bold text-blue-700 uppercase">Estudiante Pre-inscrito</p>
+                        <p id="preview-nombre-completo" class="text-lg text-gray-900 font-bold">--</p>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Lugar de Nacimiento *</label>
+                        <input type="text" name="lugar_nacimiento" class="form-input" required placeholder="Ej: Cochabamba, Cercado">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Dirección Domiciliaria *</label>
+                        <input type="text" name="direccion_familiar" class="form-input" required placeholder="Av. Heroínas #123">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Género *</label>
+                        <select name="genero" class="form-input" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Seguro Médico (Caja)</label>
+                        <input type="text" name="aseguradora" class="form-input" placeholder="Ej: CNS, Cordon de Vida...">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-3" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-baby-carriage text-primary-500 mr-3"></i>Historia de Nacimiento
+                </h2>
+                
+                <h3 class="section-title">Embarazo y Parto</h3>
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">El embarazo transcurrió con:</label>
+                        <select name="tipo_embarazo" class="form-input">
+                            <option value="NORMAL">Normalidad</option>
+                            <option value="COMPLICADO">Complicaciones</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Qué complicaciones? (Si hubo)</label>
+                        <input type="text" name="embarazo_complicaciones" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">El parto fue:</label>
+                        <select name="tipo_parto" class="form-input">
+                            <option value="NORMAL">Normal</option>
+                            <option value="COMPLICADO">Con complicaciones</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Qué complicaciones?</label>
+                        <input type="text" name="parto_complicaciones" class="form-input">
+                    </div>
+                </div>
+
+                <h3 class="section-title">Datos del Recién Nacido</h3>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Peso al nacer (kg)</label>
+                        <input type="number" step="0.01" name="peso_nacer" class="form-input" placeholder="Ej: 3.5">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Talla al nacer (cm)</label>
+                        <input type="number" step="0.1" name="talla_nacer" class="form-input" placeholder="Ej: 50">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-4" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-heartbeat text-primary-500 mr-3"></i>Salud y Antecedentes
+                </h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Enfermedades importantes previas (Enfermedad - Edad)</label>
+                        <textarea name="enfermedades_previas" class="form-input" rows="2" placeholder="Ej: Varicela (2 años), Bronquitis (1 año)..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">¿Tiene algún problema en estas áreas?</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="AUDITIVO" class="mr-2 text-primary-600"> Auditivo
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="VISUAL" class="mr-2 text-primary-600"> Visual
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="RESPIRATORIO" class="mr-2 text-primary-600"> Respiratorio
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="DIGESTIVO" class="mr-2 text-primary-600"> Digestivo
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="MOTRIZ" class="mr-2 text-primary-600"> Motriz
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="LENGUAJE" class="mr-2 text-primary-600"> Lenguaje
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="CEREBRAL" class="mr-2 text-primary-600"> Cerebral
+                            </label>
+                            <label class="flex items-center p-2 border rounded hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox" name="problemas_salud" value="ALERGICO" class="mr-2 text-primary-600"> Alérgico
+                            </label>
+                        </div>
+                        <input type="text" name="problemas_salud_otros" class="form-input mt-2" placeholder="Otros (Especifique)...">
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="p-4 bg-gray-50 rounded border">
+                            <label class="flex items-center mb-2 font-medium">
+                                <input type="checkbox" name="tiene_alergias" value="SI" class="w-5 h-5 text-primary-600 rounded mr-2" onchange="toggleField('box-alergias', this.checked)">
+                                ¿Tiene Alergias?
+                            </label>
+                            <textarea id="box-alergias" name="alergias" class="form-input hidden" rows="2" placeholder="Detalle a qué..."></textarea>
+                        </div>
+
+                        <div class="p-4 bg-gray-50 rounded border">
+                            <label class="flex items-center mb-2 font-medium">
+                                <input type="checkbox" name="tiene_medicacion" value="SI" class="w-5 h-5 text-primary-600 rounded mr-2" onchange="toggleField('box-medicacion', this.checked)">
+                                ¿Tratamiento/Medicación Actual?
+                            </label>
+                            <textarea id="box-medicacion" name="medicacion" class="form-input hidden" rows="2" placeholder="¿Cuál y dosis?"></textarea>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Ha sufrido caídas o traumatismos graves?</label>
+                        <input type="text" name="traumatismos" class="form-input" placeholder="Si sí, explicite las consecuencias...">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-5" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-moon text-primary-500 mr-3"></i>Hábitos de Sueño
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Horario Nocturno</label>
+                        <input type="text" name="sueno_nocturno" class="form-input" placeholder="Ej: 20:00 - 07:00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Horario Diurno (Siestas)</label>
+                        <input type="text" name="sueno_diurno" class="form-input" placeholder="Ej: 13:00 - 15:00">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Plantea problemas (Antes/Durante/Después)</label>
+                        <textarea name="problemas_sueno" class="form-input" rows="2"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">¿Cómo responde usted cuando surgen problemas?</label>
+                        <textarea name="respuesta_sueno" class="form-input" rows="2"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Dónde duerme? (Lugar)</label>
+                        <input type="text" name="donde_duerme" class="form-input" placeholder="Cuna, cama propia, cuarto papás...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Con quién duerme?</label>
+                        <input type="text" name="con_quien_duerme" class="form-input" placeholder="Solo, hermanos, papás...">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">De bebé ¿Con quién dormía y hasta qué edad?</label>
+                        <input type="text" name="co_sleeping" class="form-input">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Se despierta con pesadillas?</label>
+                        <input type="text" name="pesadillas" class="form-input" placeholder="Frecuencia...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Postura durante el sueño</label>
+                        <input type="text" name="postura_sueno" class="form-input">
+                    </div>
+                    
+                    <div class="flex items-center pt-6">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="usa_chupete" value="SI" class="w-5 h-5 text-primary-600 rounded mr-2">
+                            <span class="font-medium text-gray-700">Usa Chupete</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Cómo se duerme? (Brazos, canciones...)</label>
+                        <input type="text" name="como_duerme" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-6" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-utensils text-primary-500 mr-3"></i>Alimentación
+                </h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Problemas de succión, al tragar o masticar?</label>
+                        <input type="text" name="problemas_comer" class="form-input">
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Lactancia Materna (tiempo)</label>
+                            <input type="text" name="lactancia_meses" class="form-input" placeholder="Ej: 6 meses">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Uso de biberón (desde cuándo)</label>
+                            <input type="text" name="biberon_desde" class="form-input" placeholder="Ej: 3 meses">
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-gray-50 rounded border">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Actualmente su dieta contiene:</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <label><input type="checkbox" name="dieta_actual" value="LECHE"> Leche</label>
+                            <label><input type="checkbox" name="dieta_actual" value="ZUMOS"> Zumos</label>
+                            <label><input type="checkbox" name="dieta_actual" value="FRUTA"> Fruta</label>
+                            <label><input type="checkbox" name="dieta_actual" value="VERDURAS"> Verduras</label>
+                            <label><input type="checkbox" name="dieta_actual" value="CEREALES"> Cereales</label>
+                            <label><input type="checkbox" name="dieta_actual" value="CARNES"> Carnes</label>
+                        </div>
+                        <input type="text" name="dieta_otros" class="form-input mt-2" placeholder="Otros...">
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tipo de alimentos</label>
+                            <select name="tipo_comida" class="form-input">
+                                <option value="ENTEROS">Enteros</option>
+                                <option value="PURE">En puré</option>
+                                <option value="AMBOS">Ambos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Alergia o intolerancia a alimentos</label>
+                            <input type="text" name="intolerancias" class="form-input" placeholder="¿A cuál?">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Qué alimentos rechaza?</label>
+                            <input type="text" name="alimentos_rechaza" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Qué alimentos prefiere?</label>
+                            <input type="text" name="alimentos_prefiere" class="form-input">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Le costó pasar de líquido a sólido? ¿Cuándo?</label>
+                        <input type="text" name="costo_solidos" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-7" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-shapes text-primary-500 mr-3"></i>Desarrollo Evolutivo
+                </h2>
+                <p class="text-sm text-gray-500 mb-4 bg-yellow-50 p-2 rounded">Indique la edad aproximada en <strong>MESES</strong>:</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <div><label class="text-xs font-bold text-gray-600">Controló la cabeza</label><input type="number" name="edad_cabeza" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Se sentó sin ayuda</label><input type="number" name="edad_sentarse" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Gateó</label><input type="number" name="edad_gatear" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Se levantó/sostuvo</label><input type="number" name="edad_pararse" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Caminó</label><input type="number" name="edad_caminar" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Primeras palabras</label><input type="number" name="edad_palabras" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Balbuceó</label><input type="number" name="edad_balbuceo" class="form-input"></div>
+                    <div><label class="text-xs font-bold text-gray-600">Primeros dientes</label><input type="number" name="edad_dientes" class="form-input"></div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">¿Problemas para la marcha?</label>
+                        <input type="text" name="problemas_marcha" class="form-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Síntomas al salir dientes</label>
+                        <input type="text" name="sintomas_dientes" class="form-input">
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-8" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-users text-primary-500 mr-3"></i>Área Social y Familia
+                </h2>
+                
+                <div class="space-y-4 mb-8">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Quién le atiende habitualmente?</label>
+                            <input type="text" name="quien_atiende" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Quiénes viven en casa?</label>
+                            <input type="text" name="quien_vive_casa" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Familiar con más apego</label>
+                            <input type="text" name="familiar_apego" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Objeto afectivo (mantita...)</label>
+                            <input type="text" name="objeto_apego" class="form-input">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Actividades con los papás</label>
+                        <textarea name="actividades_padres" class="form-input" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Sentimientos que más expresa</label>
+                        <input type="text" name="emociones" class="form-input">
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Llora habitualmente?</label>
+                            <select name="llora_mucho" class="form-input"><option value="NO">No</option><option value="SI">Sí</option></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿En qué circunstancias?</label>
+                            <input type="text" name="motivo_llanto" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">¿Con quién juega?</label>
+                            <input type="text" name="con_quien_juega" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Relación con desconocidos</label>
+                            <input type="text" name="relacion_extraños" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-red-50 p-6 rounded-lg border border-red-200">
+                    <h3 class="text-lg font-bold text-red-700 mb-4 flex items-center"><i class="fas fa-exclamation-circle mr-2"></i>En caso de Emergencia</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Avisar a (Nombre y Teléfono) *</label>
+                            <input type="text" name="emergencia_nombre" class="form-input border-red-200" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Familiares autorizados a recoger *</label>
+                            <textarea name="autorizados_recoger" class="form-input border-red-200" rows="2" required placeholder="Nombres y parentesco..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-9" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-user-friends text-primary-500 mr-3"></i>Datos de los Padres</h2>
+                
+                <div class="mb-8">
+                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">Madre / Tutora (Principal)</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2"><label class="text-sm font-medium">Nombre Completo *</label><input type="text" name="tutor1_nombres" class="form-input" required></div>
+                        <div><label class="text-sm font-medium">CI *</label><input type="text" name="tutor1_ci" class="form-input" required></div>
+                        <div><label class="text-sm font-medium">Expedido</label><input type="text" name="tutor1_expedido" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Profesión</label><input type="text" name="tutor1_profesion" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Lugar Trabajo</label><input type="text" name="tutor1_lugar_trabajo" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Dirección Trabajo</label><input type="text" name="tutor1_direccion" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Celular (WhatsApp) *</label><input type="tel" name="tutor1_celular" class="form-input" required></div>
+                        <div><label class="text-sm font-medium">Email</label><input type="email" name="tutor1_email" class="form-input"></div>
+                    </div>
+                </div>
+
+                <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center">
+                        Padre / Tutor 2 (Opcional)
+                    </h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2"><label class="text-sm font-medium">Nombre Completo</label><input type="text" name="tutor2_nombres" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Profesión</label><input type="text" name="tutor2_profesion" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Lugar Trabajo</label><input type="text" name="tutor2_lugar_trabajo" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Celular</label><input type="tel" name="tutor2_celular" class="form-input"></div>
+                        <div><label class="text-sm font-medium">Email</label><input type="email" name="tutor2_email" class="form-input"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-10" class="step-container">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-check-circle text-primary-500 mr-3"></i>Finalizar Registro</h2>
+                
+                <div class="grid md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-4">Documentos Digitales</h3>
+                        <div class="space-y-4">
+                            <div class="p-3 border-2 border-dashed rounded bg-gray-50">
+                                <label class="block text-sm font-medium mb-1">Certificado Nacimiento Niño/a *</label>
+                                <input type="file" name="doc_certificado_nacimiento" class="w-full text-sm" required>
+                            </div>
+                            <div class="p-3 border-2 border-dashed rounded bg-gray-50">
+                                <label class="block text-sm font-medium mb-1">Carnet de Vacunas *</label>
+                                <input type="file" name="doc_carnet_vacunas" class="w-full text-sm" required>
+                            </div>
+                            <div class="p-3 border-2 border-dashed rounded bg-gray-50">
+                                <label class="block text-sm font-medium mb-1">CI Tutor Principal *</label>
+                                <input type="file" name="doc_ci_tutor1" class="w-full text-sm" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-4">Crear Tu Cuenta de Acceso</h3>
+                        <div class="space-y-4 bg-yellow-50 p-4 rounded border border-yellow-200">
+                            <p class="text-xs text-yellow-800 mb-2">Con esta cuenta podrás ver la agenda y reportes de tu hijo/a.</p>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Nombre de Usuario *</label>
+                                <input type="text" name="nombre_usuario" class="form-input" required placeholder="Ej: maria.perez">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Email de Recuperación *</label>
+                                <input type="email" name="email_cuenta" class="form-input" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Contraseña *</label>
+                                <input type="password" name="password" class="form-input" required placeholder="Mínimo 6 caracteres">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8 pt-6 border-t border-gray-100">
+                <button type="button" id="btn-anterior" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition hidden">Anterior</button>
+                <button type="button" id="btn-siguiente" class="ml-auto px-8 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium shadow transition">Siguiente</button>
+                <button type="submit" id="btn-finalizar" class="ml-auto px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-lg transition hidden">
+                    <i class="fas fa-save mr-2"></i> Finalizar Inscripción
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <script type="module" src="/static/js/registro-tutores.js"></script>
+</body>
+</html>

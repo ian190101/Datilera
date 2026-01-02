@@ -7,7 +7,7 @@ Puertos (interfaces) para el módulo de Comunicaciones.
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 
 from .conversacion_entidad import Conversacion, Participante, EstadoConversacion
 from .mensaje_entidad import Mensaje, TipoMensaje
@@ -458,3 +458,31 @@ class AnalyticsServicePort(ABC):
     ) -> None:
         """Registra interacción con notificación (vista, click, dismiss)."""
         raise NotImplementedError
+
+class WebPushServicePort(ABC):
+    """Puerto para enviar notificaciones Web Push a navegadores."""
+
+    @abstractmethod
+    async def registrar_suscripcion(
+        self,
+        usuario_id: int,
+        sede_id: int,
+        endpoint: str,
+        claves: Dict[str, Any],
+        user_agent: str | None = None,
+    ) -> None:
+        """Registra o actualiza una suscripción Web Push para un usuario."""
+
+    @abstractmethod
+    async def eliminar_suscripcion(self, usuario_id: int, endpoint: str) -> None:
+        """Elimina una suscripción específica para un usuario."""
+
+    @abstractmethod
+    async def enviar_webpush_a_usuarios(
+        self,
+        usuario_ids: List[int],
+        titulo: str,
+        cuerpo: str,
+        data: Dict[str, Any] | None = None,
+    ) -> int:
+        """Envía una notificación Web Push a todas las suscripciones de los usuarios."""

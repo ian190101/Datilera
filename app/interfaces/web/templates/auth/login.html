@@ -1,0 +1,195 @@
+<!-- app/interfaces/web/templates/auth/login.html -->
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    
+    <link rel="icon" type="image/png" href="/static/img/logo.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    
+    <div class="min-h-full flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            
+            <div class="text-center">
+                <img src="/static/img/logo.png" 
+                     alt="{{ APP_NAME }}" 
+                     class="mx-auto h-24 w-auto">
+                <h2 class="mt-6 text-3xl font-extrabold text-white">
+                    {{ APP_NAME }}
+                </h2>
+                <p class="mt-2 text-sm text-gray-400">
+                    Sistema de Gestión 
+                </p>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8">
+                <form id="login-form" class="space-y-6">
+                    
+                    <div>
+                        <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-user mr-2 text-primary-500"></i>
+                            Usuario
+                        </label>
+                        <input id="username" 
+                               name="username" 
+                               type="text" 
+                               autocomplete="username" 
+                               required 
+                               class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                               placeholder="Ej: juanito123">
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-lock mr-2 text-primary-500"></i>
+                            Contraseña
+                        </label>
+                        <div class="relative">
+                            <input id="password" 
+                                   name="password" 
+                                   type="password" 
+                                   autocomplete="current-password" 
+                                   required 
+                                   class="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all pr-12"
+                                   placeholder="••••••••">
+                            <button type="button" 
+                                    id="toggle-password"
+                                    class="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div>
+                        <button type="submit" 
+                                class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all shadow-lg hover:shadow-xl">
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <i class="fas fa-sign-in-alt text-primary-500 group-hover:text-primary-400"></i>
+                            </span>
+                            Iniciar Sesión
+                        </button>
+                    </div>
+                    
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        ¿Eres padre/madre? 
+                        <a href="/registro" class="font-medium text-primary-600 hover:text-primary-500">
+                            Regístrate con tu código
+                        </a>
+                    </p>
+                </div>
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        ¿Eres profesora? 
+                        <a href="/registro-profesoras" class="font-medium text-primary-600 hover:text-primary-500">
+                            Regístrate con tu código
+                        </a>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="text-center text-xs text-gray-500">
+                © 2025 {{ APP_NAME }}. Todos los derechos reservados.
+                <br>
+                <span class="text-gray-600">Ambiente: {{ ENV }}</span>
+            </div>
+            
+        </div>
+    </div>
+    
+    <script type="module">
+  document.getElementById('toggle-password').addEventListener('click', function () {
+    const passwordInput = document.getElementById('password');
+    const icon = this.querySelector('i');
+
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+        const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+        const nombreMostrar =
+            (data.usuario && (data.usuario.nombrecompleto || data.usuario.nombre_completo)) ? (data.usuario.nombrecompleto || data.usuario.nombre_completo) : username;
+
+        await Swal.fire({
+            icon: 'success',
+            title: '¡Bienvenido!',
+            text: `Hola ${nombreMostrar}`,
+            timer: 1200,
+            showConfirmButton: false
+        });
+
+        // Importante: backend decide ruta por rol
+        window.location.href = '/login';
+        } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de autenticación',
+            text: data.detail || data.message || 'Credenciales inválidas',
+        });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo conectar con el servidor',
+        });
+    }
+    });
+</script>
+
+</body>
+</html>

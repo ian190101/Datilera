@@ -1,0 +1,3 @@
+2025-12-22 14:40:41.553 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-22 14:40:42.466 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: UndefinedError: 'current_user' is undefined
+2025-12-22 14:44:04.959 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

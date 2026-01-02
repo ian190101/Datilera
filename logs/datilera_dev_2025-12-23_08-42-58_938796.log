@@ -1,0 +1,6 @@
+2025-12-23 08:42:58.942 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-23 11:26:58.474 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-23 11:26:58.553 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-23 11:26:59.614 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-23 11:27:01.682 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-23 11:37:41.016 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

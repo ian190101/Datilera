@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, func, UniqueConstraint
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class UsuarioRol(Base):
     __tablename__ = "usuarios_roles"
@@ -11,3 +12,6 @@ class UsuarioRol(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
     rol_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False, index=True)
     asignado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+    usuario = relationship("Usuario", back_populates="roles_asociados")
+    rol = relationship("Rol", back_populates="usuarios_asociados")

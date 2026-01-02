@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Text, Date, DateTime, ForeignKey, func, Boolean
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class ReporteDiario(Base):
     __tablename__ = "reportes_diarios"
@@ -15,3 +16,7 @@ class ReporteDiario(Base):
     enviado_en = Column(DateTime, nullable=True)
     confirmado = Column(Boolean, nullable=False, server_default="0", index=True)
     confirmado_en = Column(DateTime, nullable=True)
+
+    profesora = relationship("Usuario", back_populates="reportes_diarios")
+    alumno = relationship("Alumno", back_populates="reportes_diarios")
+    lecturas_tutores = relationship("ReporteLecturaTutor", back_populates="reporte_diario", cascade="all, delete-orphan")

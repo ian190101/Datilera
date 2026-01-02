@@ -3,6 +3,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.infrastructure.db.models.alumnos.tutores import Tutor
+from app.infrastructure.db.models.seguridad.usuarios import Usuario 
+
 
 class TutoresRepository:
     def __init__(self, session: AsyncSession):
@@ -26,5 +28,13 @@ class TutoresRepository:
             select(Tutor)
             .join(Tutor.alumnos)
             .where(Tutor.alumnos.any(id=alumno_id))
+        )
+        return result.scalars().all()
+    
+    async def listar_por_sede(self, sede_id: int):
+        result = await self.session.execute(
+            select(Tutor)
+            .join(Tutor.usuario)  # 1. Unimos la tabla Tutores con Usuarios
+            .where(Usuario.sede_id == sede_id) # 2. Filtramos usando la columna sede_id del Usuario
         )
         return result.scalars().all()

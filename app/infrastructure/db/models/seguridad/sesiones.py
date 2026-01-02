@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func, Text
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Sesion(Base):
     __tablename__ = "sesiones"
@@ -11,3 +12,6 @@ class Sesion(Base):
     user_agent = Column(Text, nullable=True)
     expira_en = Column(DateTime, nullable=False, index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+    #auditoria_sesion = relationship("AuditoriaSesion", back_populates="sesion", uselist=False)
+    usuario = relationship("Usuario", back_populates="sesiones")

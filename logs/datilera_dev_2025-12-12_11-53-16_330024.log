@@ -1,0 +1,7 @@
+2025-12-12 11:53:16.335 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-12 11:53:33.232 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: academico/grupos/index.html
+2025-12-12 11:54:22.515 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: academico/grupos/index.html
+2025-12-12 11:54:30.441 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: academico/grupos/index.html
+2025-12-12 12:03:10.204 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: academico/grupos/index.html
+2025-12-12 12:04:19.017 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: finanzas/turnos/index.html
+2025-12-12 12:43:41.602 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

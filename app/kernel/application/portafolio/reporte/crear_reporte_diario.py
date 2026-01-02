@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/reporte/crear_reporte_diario.py
 from __future__ import annotations
 
 from datetime import date
@@ -21,12 +22,15 @@ class CrearReporteDiarioIn(BaseModel):
 class CrearReporteDiarioOut(BaseModel):
     reporte: ReporteDiario
 
+    model_config = {"from_attributes": True}  # ← ¡¡IMPORTANTE!!
+
 
 class CrearReporteDiarioCU:
     def __init__(self, reportes_repo: AbstractReportesDiariosRepository) -> None:
         self._reportes_repo = reportes_repo
 
-    async def __call__(self, data: CrearReporteDiarioIn) -> CrearReporteDiarioOut:
+    # ← CAMBIA __call__ POR execute()
+    async def execute(self, data: CrearReporteDiarioIn) -> CrearReporteDiarioOut:
         reporte = await self._reportes_repo.crear_o_actualizar(
             alumno_id=data.alumno_id,
             profesora_id=data.profesora_id,

@@ -1,0 +1,45 @@
+<!-- app/interfaces/web/templates/components/notifications.html -->
+<div id="notifications-panel" 
+     class="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-800 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Notificaciones</h3>
+        <button id="close-notifications" 
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <!-- Filters -->
+    <div class="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex space-x-2">
+            <button class="filter-btn active px-3 py-1 text-sm rounded-full bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300" data-filter="all">
+                Todas
+            </button>
+            <button class="filter-btn px-3 py-1 text-sm rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" data-filter="unread">
+                No leídas
+            </button>
+        </div>
+    </div>
+    
+    <!-- Notifications List -->
+    <div id="notifications-list" class="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+        <!-- Notificaciones se cargan dinámicamente con JS -->
+        <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+            <i class="fas fa-bell-slash text-4xl mb-2"></i>
+            <p>No hay notificaciones</p>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <button class="w-full text-center text-sm text-primary-600 dark:text-primary-400 hover:underline">
+            Ver todas las notificaciones
+        </button>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div id="notifications-overlay" 
+    class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>

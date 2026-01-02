@@ -5,8 +5,8 @@ HU: Si aparecen movimientos rezagados, recalcular totales del arqueo.
 """
 from dataclasses import dataclass
 from app.kernel.domain.finanzas import ArqueoCaja
-from app.kernel.domain.finanzas.ports import ArqueoRepositoryPort, LibroCajaRepositoryPort
-from app.kernel.domain.finanzas.errors import ArqueoNoEncontrado
+from app.kernel.domain.finanzas.ports import IArqueoRepository, ILibroCajaRepository
+from app.kernel.domain.finanzas.errors import ArqueoError
 
 
 @dataclass
@@ -15,14 +15,14 @@ class RecalcularArqueoCommand:
 
 
 class RecalcularArqueoUseCase:
-    def __init__(self, arqueo_repo: ArqueoRepositoryPort, libro_repo: LibroCajaRepositoryPort):
+    def __init__(self, arqueo_repo: IArqueoRepository, libro_repo: ILibroCajaRepository):
         self.arqueo_repo = arqueo_repo
         self.libro_repo = libro_repo
 
     async def execute(self, cmd: RecalcularArqueoCommand) -> ArqueoCaja:
         arqueo = await self.arqueo_repo.obtener_por_id(cmd.arqueo_id)
         if not arqueo:
-            raise ArqueoNoEncontrado(cmd.arqueo_id)  # validar existencia [attached_file:33]
+            raise ArqueoError(cmd.arqueo_id)  # validar existencia [attached_file:33]
 
         total_ing, total_egr, _ = await self.libro_repo.calcular_totales_periodo(
             arqueo.sede_id, arqueo.periodo_inicio, arqueo.periodo_fin

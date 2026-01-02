@@ -1,0 +1,3 @@
+2025-12-08 20:13:38.824 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-08 20:14:15.973 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: When initializing mapper Mapper[Sede(sedes)], expression 'Arqueos' failed to locate a name ('Arqueos'). If this is a class name, consider adding this relationship() to the <class 'app.infrastructure.db.models.seguridad.sedes.Sede'> class after both dependent classes have been defined.
+2025-12-08 20:14:29.481 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

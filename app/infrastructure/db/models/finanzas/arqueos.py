@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, Numeric, Date, DateTime, ForeignKey, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Arqueo(Base):
     __tablename__ = "arqueos"
@@ -16,3 +17,7 @@ class Arqueo(Base):
     pdf_url = Column(String(255), nullable=True)
     elaborado_por = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+
+    #sede = relationship("Sede", back_populates="arqueos")
+    elaborador = relationship("Usuario", foreign_keys=[elaborado_por], back_populates="arqueos_elaborados")

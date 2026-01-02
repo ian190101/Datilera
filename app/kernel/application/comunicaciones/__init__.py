@@ -47,6 +47,8 @@ from .notificaciones import (
     CancelarNotificacionProgramadaUseCase,
     ProcesarNotificacionesProgramadasUseCase,
     ListarTiposNotificacionesUseCase,
+    AgruparNotificacionesPorTipoUseCase,
+    EnviarNotificacionMasivaUseCase
 )
 
 # Estadísticas
@@ -86,6 +88,8 @@ __all__ = [
     "CancelarNotificacionProgramadaUseCase",
     "ProcesarNotificacionesProgramadasUseCase",
     "ListarTiposNotificacionesUseCase",
+    "AgruparNotificacionesPorTipoUseCase",
+    "EnviarNotificacionMasivaUseCase",
     # Estadísticas (2)
     "ObtenerEstadisticasUsuarioUseCase",
     "ObtenerEstadisticasSedeUseCase",

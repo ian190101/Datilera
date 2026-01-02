@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Boolean, func, Index
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 
 class AuditoriaAccion(Base):
@@ -97,3 +98,10 @@ class AuditoriaAccion(Base):
         # Búsqueda por acción + entidad
         Index('idx_auditoria_accion_entidad', 'accion', 'entidad'),
     )
+
+    usuario = relationship("Usuario", back_populates="auditoria_acciones")
+    #sede = relationship("Sede", back_populates="logs_auditoria_acciones")
+    #sesion = relationship("AuditoriaSesion", back_populates="acciones", foreign_keys="[AuditoriaAccion.sesion_id]")
+    cambios = relationship("AuditoriaCambio", back_populates="accion", cascade="all, delete-orphan", lazy="select")
+
+

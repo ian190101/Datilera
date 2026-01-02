@@ -1,0 +1,5 @@
+2025-12-11 15:24:06.241 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-11 15:28:58.123 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: profesoras/registro.html
+2025-12-11 15:29:25.427 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: profesoras/registro.html
+2025-12-11 15:34:25.794 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: profesoras/registro.html
+2025-12-11 16:19:50.522 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, Numeric, Boolean, DateTime, ForeignKey, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Item(Base):
     __tablename__ = "items"
@@ -14,3 +15,12 @@ class Item(Base):
     activo = Column(Boolean, nullable=False, default=True, server_default="1")
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+    categoria = relationship("Categoria", back_populates="items")
+    atributos = relationship("ItemAtributo", back_populates="item", cascade="all, delete-orphan")
+    stock_sedes = relationship("StockSede", back_populates="item", cascade="all, delete-orphan")
+    movimientos = relationship("MovimientoStock", back_populates="item", cascade="all, delete-orphan")
+    alertas_stock = relationship("AlertaStock", back_populates="item", cascade="all, delete-orphan")
+    alertas_vencimiento = relationship("AlertaVencimiento", back_populates="item", cascade="all, delete-orphan")
+    prestamos_uniformes = relationship("PrestamoUniforme", back_populates="item", cascade="all, delete-orphan")

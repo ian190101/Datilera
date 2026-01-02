@@ -1,0 +1,18 @@
+2025-12-12 16:11:03.257 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-12 16:22:27.747 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:22:27.797 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:22:28.877 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:22:31.195 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:23:27.024 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:23:27.093 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:23:28.149 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:23:30.326 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:12.119 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:12.176 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:13.262 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:15.319 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:27.958 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:28.027 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:29.089 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:24:31.133 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-12 16:29:13.892 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

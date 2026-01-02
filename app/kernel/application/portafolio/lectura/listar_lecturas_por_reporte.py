@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/lectura/listar_lecturas_por_reporte.py
 from __future__ import annotations
 
 from typing import List
@@ -17,6 +18,9 @@ class ListarLecturasPorReporteIn(BaseModel):
 class ListarLecturasPorReporteOut(BaseModel):
     lecturas: List[LecturaTutor]
 
+    # ¡¡ESTO ES OBLIGATORIO para que FastAPI serialice correctamente los objetos ORM!!
+    model_config = {"from_attributes": True}
+
 
 class ListarLecturasPorReporteCU:
     def __init__(
@@ -25,7 +29,8 @@ class ListarLecturasPorReporteCU:
     ) -> None:
         self._lecturas_repo = lecturas_repo
 
-    async def __call__(
+    # CAMBIADO: de __call__ → execute
+    async def execute(
         self,
         data: ListarLecturasPorReporteIn,
     ) -> ListarLecturasPorReporteOut:

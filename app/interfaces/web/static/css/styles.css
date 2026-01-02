@@ -1,0 +1,192 @@
+/* app/interfaces/web/static/css/styles.css */
+
+/* ============================================================
+   VARIABLES CSS (Dark/Light Mode)
+   ============================================================ */
+:root {
+    --color-primary: #f59e0b;
+    --color-primary-dark: #d97706;
+    --color-secondary: #10b981;
+    --color-secondary-dark: #059669;
+    --sidebar-width: 16rem;
+}
+
+.dark {
+    --color-primary: #fbbf24;
+    --color-primary-dark: #f59e0b;
+    --color-secondary: #34d399;
+    --color-secondary-dark: #10b981;
+}
+
+/* ============================================================
+   SCROLLBAR PERSONALIZADO
+   ============================================================ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(55, 65, 81, 0.7);
+}
+
+/* ============================================================
+   SIDEBAR ACTIVE MENU ITEM
+   ============================================================ */
+.nav-item.active {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.nav-item.active span {
+    color: white;
+}
+
+.nav-item.active i {
+    color: white !important;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+}
+
+/* ============================================================
+   NOTIFICATION BADGE PULSE
+   ============================================================ */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+#notification-badge {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================================
+   CUSTOM SWAL STYLING
+   ============================================================ */
+.swal2-popup {
+    border-radius: 1rem !important;
+}
+
+.swal2-confirm {
+    background-color: var(--color-primary) !important;
+    border-radius: 0.5rem !important;
+}
+
+.swal2-cancel {
+    border-radius: 0.5rem !important;
+}
+
+/* ============================================================
+   CHART CONTAINERS
+   ============================================================ */
+canvas {
+    max-height: 300px;
+}
+
+/* ============================================================
+   TABLE RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    table {
+        font-size: 0.875rem;
+    }
+    
+    th, td {
+        padding: 0.75rem 0.5rem !important;
+    }
+}
+
+/* ============================================================
+   LOADING SPINNER
+   ============================================================ */
+.spinner {
+    border: 3px solid rgba(245, 158, 11, 0.3);
+    border-top: 3px solid var(--color-primary);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   NOTIFICATION ITEM
+   ============================================================ */
+.notification-item {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+.notification-item.unread {
+    background-color: rgba(245, 158, 11, 0.05);
+    border-left: 3px solid var(--color-primary);
+}
+
+/* ============================================================
+   SMOOTH TRANSITIONS
+   ============================================================ */
+* {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}

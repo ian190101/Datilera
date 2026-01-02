@@ -1,0 +1,3 @@
+2025-12-17 18:52:42.071 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-17 19:02:56.462 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: ValueError: Proveedor IA 'gemini' no disponible.
+2025-12-17 19:08:23.290 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

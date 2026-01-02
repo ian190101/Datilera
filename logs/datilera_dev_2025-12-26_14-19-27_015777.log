@@ -1,0 +1,6 @@
+2025-12-26 14:19:27.017 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-26 14:19:48.978 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: ListarCursosExtraDTO.__init__() missing 1 required positional argument: 'sede_id'
+2025-12-26 14:19:49.109 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: ListarCursosExtraDTO.__init__() missing 1 required positional argument: 'sede_id'
+2025-12-26 14:19:50.176 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: ListarCursosExtraDTO.__init__() missing 1 required positional argument: 'sede_id'
+2025-12-26 14:19:52.204 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: ListarCursosExtraDTO.__init__() missing 1 required positional argument: 'sede_id'
+2025-12-26 14:25:48.689 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

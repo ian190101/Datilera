@@ -30,3 +30,4 @@ class Turno(Base):
     alumnos = relationship("Alumno", back_populates="turno")
     precios = relationship("PrecioTurno", back_populates="turno")  # Relación con historial de precios
     creado_por = relationship("Usuario")
+    formularios_inscripcion = relationship("FormularioInscripcion", back_populates="turno", lazy="select")

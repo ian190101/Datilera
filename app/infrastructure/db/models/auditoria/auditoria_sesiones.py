@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, func, Index
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 
 class AuditoriaSesion(Base):
@@ -39,3 +40,9 @@ class AuditoriaSesion(Base):
         Index('idx_sesion_usuario_activa', 'usuario_id', 'activa'),
         Index('idx_sesion_sede_activa', 'sede_id', 'activa'),
     )
+
+
+    usuario = relationship("Usuario", back_populates="auditoria_sesiones")
+    sede = relationship("Sede", back_populates="auditoria_sesiones")
+    #sesion = relationship("Sesion", back_populates="auditoria_sesion", uselist=False)
+    #acciones = relationship("AuditoriaAccion", back_populates="sesion", lazy="select")

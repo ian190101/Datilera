@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from .reporte_diario_entidad import ReporteDiario
 from .reporte_lectura_tutor_entidad import LecturaTutor
 from .actividad_entidad import ActividadPortafolio
-from .actividad_media_entidad import ArchivoMediaPortafolio
+from .actividad_media_entidad import ArchivoMediaPortafolio, EstadoProcesamientoWatermark
 
 
 class AbstractReportesDiariosRepository(ABC):
@@ -111,6 +111,47 @@ class AbstractActividadMediaRepository(ABC):
     async def registrar_descarga(self, media_id: int, fecha_descarga: datetime, fecha_eliminacion_programada: datetime) -> None: ...
     @abstractmethod
     async def listar_para_borrado(self, ahora: datetime) -> List[ArchivoMediaPortafolio]: ...
+
+    # === NUEVOS MÉTODOS PARA PROCESAMIENTO MARCA DE AGUA ===
+    
+    @abstractmethod
+    async def obtener_por_id(self, media_id: int) -> Optional[ArchivoMediaPortafolio]:
+        """Obtiene un archivo multimedia por su ID."""
+        ...
+    
+    @abstractmethod
+    async def actualizar_procesamiento(
+        self,
+        media_id: int,
+        estado_procesamiento: EstadoProcesamientoWatermark,
+        cola_id: Optional[str] = None,
+        error: Optional[str] = None,
+        url_marcada: Optional[str] = None,
+    ) -> None:
+        """Actualiza el estado de procesamiento de marca de agua."""
+        ...
+    
+    @abstractmethod
+    async def incrementar_intentos(self, media_id: int) -> None:
+        """Incrementa el contador de intentos de procesamiento."""
+        ...
+    
+    @abstractmethod
+    async def listar_por_estado_procesamiento(
+        self,
+        estados: List[EstadoProcesamientoWatermark],
+        limite: int = 50,
+    ) -> List[ArchivoMediaPortafolio]:
+        """Lista archivos por estado(s) de procesamiento."""
+        ...
+    
+    @abstractmethod
+    async def listar_errores_reintentables(
+        self, 
+        max_intentos: int = 3
+    ) -> List[ArchivoMediaPortafolio]:
+        """Lista archivos con error que pueden reintentarse."""
+        ...
 
 class AbstractStorageService(ABC):
     @abstractmethod

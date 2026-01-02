@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Numeric, DateTime, ForeignKey, func, UniqueConstraint
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class PrecioTurno(Base):
     __tablename__ = "precios_turnos"
@@ -14,3 +15,8 @@ class PrecioTurno(Base):
     monto = Column(Numeric(10, 2), nullable=False)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+    turno = relationship("Turno", back_populates="precios")
+    categoria_pago = relationship("CategoriaPago", back_populates="precios_turno")
+

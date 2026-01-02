@@ -337,3 +337,8 @@ class AbstractPermisoRepository(ABC):
     async def delete_soft(self, permiso_id: int) -> bool:
         """Desactiva (soft delete) un permiso por ID, retorna True si aplicó."""
         raise NotImplementedError
+    # En AbstractUserRepository
+    @abstractmethod
+    async def listar_todos_activos_por_sedes(
+        self, sede_ids: Optional[List[int]] = None, rol_nombre: Optional[str] = None
+    ) -> List[Usuario]: ...

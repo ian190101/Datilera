@@ -6,20 +6,26 @@ from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class Accion(str, Enum):
-    VER = "VER"
-    CREAR = "CREAR"
-    EDITAR = "EDITAR"
-    ELIMINAR = "ELIMINAR"
-    EXPORTAR = "EXPORTAR"
-    VER_SENSIBLE = "VER_SENSIBLE"
+    VER = "Ver"
+    CREAR = "Crear"
+    EDITAR = "Editar"
+    ELIMINAR = "Eliminar"
+    EXPORTAR = "Exportar"
+    VER_SENSIBLE = "Ver_Sensible"
 
 
 class Permiso(BaseModel):
-    model_config = ConfigDict(use_enum_values=True, frozen=True)
+    model_config = ConfigDict(
+        use_enum_values=True, 
+        frozen=True, 
+        from_attributes=True  # Vital para leer desde SQLAlchemy
+    )
 
-    recurso: str
+    id: int
+    vista: str   # <--- CAMBIO IMPORTANTE: Coincide con tu columna de BD
     accion: Accion
+    descripcion: str | None = None
 
     @computed_field  # type: ignore[misc]
     def nombre_completo(self) -> str:
-        return f"{self.recurso}:{self.accion}"
+        return f"{self.vista}:{self.accion}"

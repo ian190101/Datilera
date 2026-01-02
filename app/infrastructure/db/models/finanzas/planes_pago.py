@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class PlanPago(Base):
     __tablename__ = "planes_pago"
@@ -11,3 +12,7 @@ class PlanPago(Base):
     descripcion = Column(String(200), nullable=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+    alumno = relationship("Alumno", back_populates="planes_pago")
+    #cuotas = relationship("CuotaPlanPago", back_populates="plan_simple", cascade="all, delete-orphan")

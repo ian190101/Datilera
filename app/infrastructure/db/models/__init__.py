@@ -35,8 +35,6 @@ from .academico import (
     Grupo,
     Paralelo,
     ParaleloProfesora,
-    Horario,
-    HorarioParalelo,
 )
 
 # Alumnos - CORREGIDO: quitar los enums que no existen
@@ -60,6 +58,7 @@ from .portafolio import (
     TipoMedia,
     ReporteDiario,
     ReporteLecturaTutor,
+    PlanificacionProfesora,
 )
 
 # Inventario
@@ -76,11 +75,13 @@ from .inventario import (
     AlertaVencimiento,
 )
 
+from .exportacion import Exportacion
+
 # Finanzas
 from .finanzas import (
     CategoriaPago,
     CategoriaEgreso,
-    Turno as  
+    Turno,  
     PrecioTurno,
     Pago,
     Comprobante,
@@ -90,6 +91,11 @@ from .finanzas import (
     EstadoCuentaNino,
     LibroCaja,
     Arqueo,
+    Descuento,
+    CuotaPlanPago,
+    PlanPagoPersonalizado,
+    Prorrateo
+
 )
 
 # Inscripción
@@ -132,6 +138,7 @@ from .cursos_extra import (
 
 # Auditoría
 from .auditoria import AuditoriaAccion
+from .calendario import TipoEvento, EventoCalendario, PlanificacionActividad
 
 __all__ = [
     # Base
@@ -142,7 +149,7 @@ __all__ = [
     # Acceso
     "CodigoAcceso", "CodigoAccesoUso", "EstadoCodigo",
     # Académico
-    "Grupo", "Paralelo", "ParaleloProfesora", "Horario", "HorarioParalelo",
+    "Grupo", "Paralelo", "ParaleloProfesora",
     # Alumnos - CORREGIDO
     "Alumno", "Tutor", "AlumnoTutor", "AlumnoHermano", "AutorizacionRetiro",
     "AlumnoParalelo",
@@ -150,17 +157,23 @@ __all__ = [
     "Consentimiento", "PermisoPersonal",
     # Portafolio
     "Actividad", "ActividadMedia", "TipoMedia",
-    "ReporteDiario", "ReporteLecturaTutor",
+    "ReporteDiario", "ReporteLecturaTutor", "PlanificacionProfesora",
     # Inventario
     "Familia", "Categoria", "Item", "ItemAtributo",
     "StockSede", "MovimientoStock", "InvTipoMovimiento",
     "PrestamoUniforme", "AlertaStock", "AlertaVencimiento",
+    #Exportacion
+    "Exportacion",
     # Finanzas
     "CategoriaPago", "Turno", "PrecioTurno",
     "Pago", "Comprobante", "Conciliacion",
     "PlanPago", "PlanCuota",
     "EstadoCuentaNino", "LibroCaja",
-    "Arqueo",
+    "Arqueo", "CategoriaEgreso",
+    "Descuento",
+    "PlanPagoPersonalizado",
+    "CuotaPlanPago",
+    "Prorrateo",
     # Inscripción
     "FormularioInscripcion", "EstadoFormulario",
     "FormularioRespuesta", "DocumentoInscripcion",
@@ -175,6 +188,10 @@ __all__ = [
     "ImportJob", "EstadoImportacion",
     # IA
     "IAConsulta",
+    #Calendario
+    "TipoEvento",
+    "EventoCalendario",
+    "PlanificacionActividad",
     # Cursos extra
     "CursoExtra", "InscripcionCursoExtra", "EstadoInscripcionCursoExtra",
     "CostoCursoExtra", "BalanceCursoExtra", "EstadoBalance",

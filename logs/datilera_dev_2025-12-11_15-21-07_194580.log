@@ -1,0 +1,6 @@
+2025-12-11 15:21:07.196 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-11 15:21:08.306 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Rol' object has no attribute 'codigo'
+2025-12-11 15:21:08.361 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Rol' object has no attribute 'codigo'
+2025-12-11 15:21:09.426 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Rol' object has no attribute 'codigo'
+2025-12-11 15:21:12.428 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Rol' object has no attribute 'codigo'
+2025-12-11 15:24:00.682 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, UniqueConstraint
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Grupo(Base):
     __tablename__ = "grupos"
@@ -13,3 +14,17 @@ class Grupo(Base):
     gestion = Column(Integer, nullable=False, index=True)
     activo = Column(Boolean, nullable=False, default=True, server_default="1", index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+    # Relaciones
+    sede = relationship("Sede", back_populates="grupos")  # o "grupos" si prefieres ese nombre en Sede
+    paralelos = relationship(
+        "Paralelo",
+        back_populates="grupo",
+        lazy="noload",
+        cascade="all, delete-orphan",
+    )
+    actividades = relationship("Actividad", back_populates="grupo", lazy="select")
+
+
+
+    

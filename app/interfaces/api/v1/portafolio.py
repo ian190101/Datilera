@@ -16,6 +16,7 @@ from app.infrastructure.db.repositories.portafolio.actividades_repo import Activ
 from app.infrastructure.db.repositories.portafolio.actividad_media_repo import ActividadMediaRepository
 from app.infrastructure.notificaciones.service import NotificacionesService
 
+from app.infrastructure.services.jobqueue_service import JobQueueService
 # 3. Casos de Uso (Application Layer)
 from app.kernel.application.portafolio.reporte import (
     CrearReporteDiarioCU, CrearReporteDiarioIn, CrearReporteDiarioOut,
@@ -143,19 +144,30 @@ async def obtener_actividad_con_media(
     return await caso.execute(req)
 
 
-@router.post("/actividades/{actividad_id}/media", response_model=SubirMediaActividadOut, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/actividades/{actividad_id}/media",
+    response_model=SubirMediaActividadOut,
+    status_code=status.HTTP_201_CREATED,
+)
 async def subir_media_actividad(
     actividad_id: int = Path(..., gt=0),
-    # Corrección de sintaxis: Body(...) hace que sea un keyword-arg válido después de Path
-    payload: SubirMediaActividadIn = Body(...), 
+    payload: SubirMediaActividadIn = Body(...),
     actividades_repo: ActividadesRepository = Depends(get_actividades_repo),
     media_repo: ActividadMediaRepository = Depends(get_media_repo),
 ):
-    # Actualizamos el ID de la actividad en el modelo de entrada
-    # Usamos model_copy (Pydantic V2)
+    # 1) Normalizar datos de entrada (la URL/ruta del archivo YA debe venir resuelta aquí)
     req = payload.model_copy(update={"actividad_id": actividad_id})
+
+    # 2) Ejecutar caso de uso (solo persiste metadatos y ruta en BD)
     caso = SubirMediaActividadCU(actividades_repo, media_repo)
-    return await caso.execute(req)
+    out = await caso(req)
+
+    # 3) Encolar procesamiento de marca de agua
+    jobs = JobQueueService()
+    jobs.enqueue_watermark_media(out.media.id)
+
+    return out
 
 
 @router.post("/media/{media_id}/descarga", response_model=RegistrarDescargaMediaOut)

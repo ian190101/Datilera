@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+            <i class="fas fa-comments text-primary-600 mr-3"></i>
+            Comunicaciones
+        </h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Mensajes y notificaciones del centro</p>
+    </div>
+    <div class="ml-auto flex items-center gap-6">  <!-- gap-6 para separación moderada -->
+        <button onclick="openNewMessageModal()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow transition-all flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Nuevo Mensaje
+        </button>
+        <button onclick="openNewNotificaacionModal()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow transition-all flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Nueva Notificación
+        </button>
+    </div>
+</div>
+
+<!-- Tabs de Navegación -->
+<div class="mb-6">
+    <nav class="flex space-x-4 border-b border-gray-200 dark:border-gray-700">
+        <button class="tab-btn active px-4 py-3 text-sm font-medium border-b-2 border-primary-600 text-primary-600 dark:text-primary-500" data-tab="chat">
+            <i class="fas fa-comments mr-2"></i>
+            Chat
+            <span id="chat-badge" class="hidden ml-2 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">0</span>
+        </button>
+    </nav>
+</div>
+
+<!-- Tab: CHAT EN TIEMPO REAL -->
+<div id="tab-chat" class="tab-content active">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)]">
+        
+        <!-- Lista de Conversaciones -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <input type="text" 
+                       id="search-conversations" 
+                       placeholder="Buscar conversaciones..." 
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+            </div>
+            
+            <div id="conversations-list" class="flex-1 overflow-y-auto">
+                <!-- Se carga dinámicamente -->
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin text-4xl text-primary-500 mb-3"></i>
+                        <p class="text-gray-600 dark:text-gray-400">Cargando conversaciones...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ventana de Chat -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+            
+            <!-- Header del Chat -->
+            <div id="chat-header" class="hidden p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                            <span id="chat-avatar-initials">TU</span>
+                        </div>
+                        <div>
+                            <h3 id="chat-name" class="font-semibold text-gray-900 dark:text-white">Selecciona una conversación</h3>
+                            <p id="chat-role" class="text-xs text-gray-500 dark:text-gray-400">-</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="markConversationAsRead()" class="p-2 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-500" title="Marcar como leído">
+                            <i class="fas fa-check-double"></i>
+                        </button>
+                        <button onclick="archiveConversation()" class="p-2 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-500" title="Archivar">
+                            <i class="fas fa-archive"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mensajes del Chat -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center">
+                        <i class="fas fa-comments text-6xl text-gray-300 dark:text-gray-700 mb-4"></i>
+                        <p class="text-gray-600 dark:text-gray-400">Selecciona una conversación para comenzar</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input de Mensaje -->
+            <div id="chat-input-container" class="hidden p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                <form id="send-message-form" class="flex items-center space-x-3">
+                    <button type="button" class="p-2 text-gray-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-500" title="Adjuntar archivo">
+                        <i class="fas fa-paperclip text-xl"></i>
+                    </button>
+                    <textarea id="message-input" 
+                              rows="1" 
+                              placeholder="Escribe un mensaje..." 
+                              class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                              style="max-height: 120px;"></textarea>
+                    <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-all">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal: Nuevo Mensaje -->
+<div id="new-message-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black opacity-50" onclick="closeNewMessageModal()"></div>
+        
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    <i class="fas fa-envelope text-primary-600 mr-2"></i>
+                    Nuevo Mensaje
+                </h3>
+                <button onclick="closeNewMessageModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="new-message-form" class="flex flex-col h-full">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Para <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <div class="relative mb-2">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="recipient-search" 
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 text-sm transition-shadow" 
+                            placeholder="Buscar por nombre o rol (ej: Valentina, Profesora)...">
+                    </div>
+
+                    <div class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 h-48 overflow-y-auto custom-scrollbar">
+                        <div id="recipients-list" class="p-1 space-y-0.5">
+                            <div class="text-center py-8 text-gray-500 text-sm">
+                                <i class="fas fa-spinner fa-spin mb-2"></i> Cargando usuarios...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-1 px-1">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span id="selected-count" class="font-bold text-primary-600 dark:text-primary-400">0</span> usuarios seleccionados
+                        </p>
+                        <button type="button" id="btn-select-all" class="text-xs text-blue-500 hover:text-blue-700 hover:underline">
+                            Seleccionar todos
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Asunto <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="message-subject" required placeholder="Asunto del mensaje" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                </div>
+                
+                <div class="mb-4 flex-1 flex flex-col">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Mensaje <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="message-body" required placeholder="Escribe tu mensaje aquí..." class="w-full flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-primary-500"></textarea>
+                </div>
+                
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 mt-auto">
+                    <div class="w-1/3">
+                        <select id="message-priority" class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 focus:ring-primary-500">
+                            <option value="NORMAL">Prioridad Normal</option>
+                            <option value="ALTA">Alta Importancia</option>
+                            <option value="URGENTE">🔥 Urgente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeNewMessageModal()" class="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors text-sm font-medium">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-[#DD8E0A] hover:bg-[#c57d09] text-white rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 text-sm font-bold flex items-center">
+                            <i class="fas fa-paper-plane mr-2"></i> Enviar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="new-notificacion-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black opacity-50" onclick="closeNewNotificacionModal()"></div>
+        
+        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    <i class="fas fa-bell text-primary-600 mr-2"></i>
+                    Enviar Notificación
+                </h3>
+                <button onclick="closeNewNotificacionModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="new-notificacion-form" class="flex flex-col h-full">
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Destinatarios <span class="text-red-500">*</span>
+                    </label>
+                    
+                    <div class="relative mb-2">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="notif-recipient-search" 
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 text-sm" 
+                            placeholder="Buscar usuario...">
+                    </div>
+
+                    <div class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 h-48 overflow-y-auto custom-scrollbar">
+                        <div id="notif-recipients-list" class="p-1 space-y-0.5">
+                            <div class="text-center py-8 text-gray-500 text-sm">
+                                <i class="fas fa-spinner fa-spin mb-2"></i> Cargando usuarios...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-1 px-1">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span id="notif-selected-count" class="font-bold text-primary-600 dark:text-primary-400">0</span> seleccionados
+                        </p>
+                        <button type="button" id="btn-notif-select-all" class="text-xs text-blue-500 hover:underline">
+                            Seleccionar todos
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Título <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="notif-titulo" required placeholder="Título breve" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Mensaje <span class="text-red-500">*</span>
+                    </label>
+                    <textarea id="notif-mensaje" required rows="3" placeholder="Contenido de la notificación..." class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white resize-none"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select id="notif-tipo" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                            <option value="INFO">Información</option>
+                            <option value="ALERTA">Alerta</option>
+                            <option value="PAGO">Pagos</option>
+                            <option value="ACADEMICO">Académico</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prioridad</label>
+                        <select id="notif-prioridad" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
+                            <option value="baja">Baja</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeNewNotificacionModal()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-[#DD8E0A] hover:bg-[#c57d09] text-white rounded-lg font-bold">
+                        <i class="fas fa-paper-plane mr-2"></i> Enviar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="/static/js/comunicaciones.js"></script>
+{% endblock %}

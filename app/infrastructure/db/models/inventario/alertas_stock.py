@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey, Boolean, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class AlertaStock(Base):
     __tablename__ = "alertas_stock"
@@ -11,3 +12,8 @@ class AlertaStock(Base):
     resuelta = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     resuelta_en = Column(DateTime, nullable=True)
+
+
+    item = relationship("Item", back_populates="alertas_stock")
+    sede = relationship("Sede", back_populates="alertas_stock")
+

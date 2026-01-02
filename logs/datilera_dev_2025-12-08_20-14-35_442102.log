@@ -1,0 +1,3 @@
+2025-12-08 20:14:35.444 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-08 20:14:35.536 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: LoaderStrategyException: Can't find strategy (('lazy', 'seleccionar'),) for Usuario.auditoria_prompts_ia
+2025-12-08 20:16:10.094 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

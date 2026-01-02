@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func, Text
 from app.infrastructure.db.base import Base
 from sqlalchemy import Enum as SQLEnum
 import enum
+from sqlalchemy.orm import relationship
 
 class TipoFirmante(enum.Enum):  # <-- esto es nuevo
     madre = "madre"  # <-- esto es nuevo
@@ -23,3 +24,5 @@ class Firma(Base):
     __table_args__ = (
         UniqueConstraint("formulario_id", "tipo_firmante", name="uq_firma_form_tipo"),  # <-- esto es nuevo
     )
+
+    formulario = relationship("FormularioInscripcion", back_populates="firmas")

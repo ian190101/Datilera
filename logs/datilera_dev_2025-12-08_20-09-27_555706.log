@@ -1,0 +1,3 @@
+2025-12-08 20:09:27.559 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-08 20:09:27.624 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: NoForeignKeysError: Could not determine join condition between parent/child tables on relationship Sede.notificaciones - there are no foreign keys linking these tables.  Ensure that referencing columns are associated with a ForeignKey or ForeignKeyConstraint, or specify a 'primaryjoin' expression.
+2025-12-08 20:09:59.632 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

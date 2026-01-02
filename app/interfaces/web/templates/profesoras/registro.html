@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Personal - Datilera</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { 'primary': { 50: '#FEF8E8', 100: '#FEEFC7', 500: '#DD8E0A', 600: '#C67306', 700: '#A45909' } } } }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .step-container { display: none; }
+        .step-container.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.5rem; margin-top: 0.25rem; }
+        .form-input:focus { outline: none; border-color: #DD8E0A; box-shadow: 0 0 0 2px #fde68a; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <div class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="/static/img/logo.png" alt="Datilera" class="h-10 w-auto mr-3">
+                <h1 class="text-xl font-bold text-gray-800">Portal Docente</h1>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        
+        <div class="mb-8 bg-white p-4 rounded-xl shadow-sm">
+            <div class="flex justify-between text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                <span id="step-indicator">Paso 1 de 2</span>
+                <span id="step-title">Validación</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-primary-500 rounded-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+        </div>
+
+        <form id="form-registro-profes" class="bg-white rounded-xl shadow-lg p-6 md:p-10">
+            
+            <div id="step-1" class="step-container active">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-chalkboard-teacher text-2xl text-primary-600"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Bienvenida, Profe</h2>
+                    <p class="text-gray-600 mb-8">Ingresa el código de activación proporcionado por Dirección.</p>
+                    
+                    <div class="max-w-xs mx-auto">
+                        <input type="text" id="codigo-registro" name="codigo" maxlength="6"
+                               class="text-center text-3xl font-mono uppercase tracking-[0.3em] py-3 border-2 border-gray-300 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 w-full mb-4 transition-all"
+                               placeholder="******" autocomplete="off">
+                        <button type="button" id="btn-validar-codigo" class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 rounded-lg shadow transition-colors">
+                            Validar Código
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-2" class="step-container">
+                <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-id-card text-primary-500 mr-3"></i>Datos Personales
+                </h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Nombre Completo *</label>
+                        <input type="text" name="nombres_completos" class="form-input" required placeholder="Ej: Lic. Ana García">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">C.I. *</label>
+                            <input type="text" name="ci" class="form-input" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700">Celular *</label>
+                            <input type="tel" name="celular" class="form-input" required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Dirección Domicilio *</label>
+                        <input type="text" name="direccion" class="form-input" required placeholder="Calle, Número, Zona">
+                    </div>
+
+                    <div class="pt-6 border-t mt-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Credenciales de Acceso</h3>
+                        <div class="space-y-4 bg-gray-50 p-4 rounded-lg">
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Usuario *</label>
+                                <input type="text" name="nombre_usuario" class="form-input" required placeholder="Ej: ana.garcia">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700">Contraseña *</label>
+                                    <input type="password" name="password" id="password" class="form-input" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700">Repetir Contraseña *</label>
+                                    <input type="password" name="password_confirm" id="password_confirm" class="form-input" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8 pt-6 border-t border-gray-100">
+                <button type="button" id="btn-anterior" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition hidden">Anterior</button>
+                <button type="submit" id="btn-finalizar" class="ml-auto px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold shadow-lg transition hidden">
+                    <i class="fas fa-check-circle mr-2"></i> Finalizar Registro
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <script type="module" src="/static/js/registro-profesoras.js"></script>
+</body>
+</html>

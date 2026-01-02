@@ -1,0 +1,3 @@
+2025-12-08 19:44:48.817 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-08 19:44:58.383 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: object NoneType can't be used in 'await' expression
+2025-12-08 19:54:28.712 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

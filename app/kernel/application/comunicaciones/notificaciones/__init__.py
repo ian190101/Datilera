@@ -10,6 +10,8 @@ from .crear_notificacion_programada import CrearNotificacionProgramadaUseCase
 from .cancelar_notificacion_programada import CancelarNotificacionProgramadaUseCase
 from .procesar_notificaciones_programadas import ProcesarNotificacionesProgramadasUseCase
 from .listar_tipos_notificaciones import ListarTiposNotificacionesUseCase
+from .agrupar_notificaciones_por_tipo import AgruparNotificacionesPorTipoUseCase  # NUEVO
+from .enviar_masivo import EnviarNotificacionMasivaUseCase  # NUEVO
 
 __all__ = [
     "CrearNotificacionUseCase",
@@ -22,4 +24,6 @@ __all__ = [
     "CancelarNotificacionProgramadaUseCase",
     "ProcesarNotificacionesProgramadasUseCase",
     "ListarTiposNotificacionesUseCase",
+    "AgruparNotificacionesPorTipoUseCase",  # NUEVO
+    "EnviarNotificacionMasivaUseCase",  # NUEVO
 ]

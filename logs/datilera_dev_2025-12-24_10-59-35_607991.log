@@ -1,0 +1,6 @@
+2025-12-24 10:59:35.610 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-24 10:59:41.143 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Usuario' object has no attribute 'username'
+2025-12-24 10:59:41.473 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Usuario' object has no attribute 'username'
+2025-12-24 10:59:42.528 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Usuario' object has no attribute 'username'
+2025-12-24 10:59:44.579 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Usuario' object has no attribute 'username'
+2025-12-24 11:06:30.492 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum as SQLEnum, func
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class TipoAdjunto(enum.Enum):
     imagen = "imagen"
@@ -17,3 +18,5 @@ class MensajeAdjunto(Base):
     url = Column(String(255), nullable=False)
     nombre_archivo = Column(String(160), nullable=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+    mensaje = relationship("Mensaje", back_populates="adjuntos")

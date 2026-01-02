@@ -11,6 +11,11 @@ from .precios_turnos import PrecioTurno
 from .estado_cuenta_nino import EstadoCuentaNino
 from .conciliaciones import Conciliacion
 from .arqueos import Arqueo
+from .descuento import Descuento
+from .plan_pago_personalizado import PlanPagoPersonalizado
+from .cuota_plan_pago import CuotaPlanPago
+from .prorrateo import Prorrateo
+from .egresos import Egreso
 
 __all__ = [
     "CategoriaPago",
@@ -26,4 +31,9 @@ __all__ = [
     "EstadoCuentaNino",
     "Conciliacion",
     "Arqueo",
+    "Descuento",
+    "PlanPagoPersonalizado",
+    "CuotaPlanPago",
+    "Prorrateo",
+    "Egresos",
 ]

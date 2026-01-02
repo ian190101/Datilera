@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from pydantic import AnyHttpUrl, Field, ValidationError, field_validator, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AnyUrl
 
 
 class Settings(BaseSettings):
@@ -25,6 +26,10 @@ class Settings(BaseSettings):
     # Base de datos (async)
     # Debe ser un driver async válido: mysql+aiomysql, postgresql+asyncpg, sqlite+aiosqlite
     database_url: str = Field(validation_alias="DATABASE_URL")
+    REDIS_URL: str = Field(validation_alias="REDIS_URL")
+    MEDIA_DIR: str = Field(validation_alias="MEDIA_DIR")
+    GEMINI_API_KEY: str = Field(validation_alias="GEMINI_API_KEY")
+    PDF_DIR: str = Field(validation_alias="PDF_DIR", default="pdfs")
 
     # Seguridad / Auth
     jwt_secret: str = Field(validation_alias="JWT_SECRET")
@@ -40,6 +45,8 @@ class Settings(BaseSettings):
     cors_allow_credentials: bool = True
     cors_allow_methods: Sequence[str] = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
     cors_allow_headers: Sequence[str] = ("Authorization", "Content-Type")
+    STATIC_DIR: str = Field(validation_alias="STATIC_DIR")
+    TEMPLATES_DIR: str = Field(validation_alias="TEMPLATES_DIR")
 
     # Logging
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

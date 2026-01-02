@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/lectura/confirmar_lectura_reporte.py
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
@@ -18,6 +19,8 @@ class ConfirmarLecturaReporteIn(BaseModel):
 class ConfirmarLecturaReporteOut(BaseModel):
     lectura: LecturaTutor
 
+    model_config = {"from_attributes": True}  # ¡¡Fundamental para serializar ORM!!
+
 
 class ConfirmarLecturaReporteCU:
     def __init__(
@@ -28,7 +31,8 @@ class ConfirmarLecturaReporteCU:
         self._reportes_repo = reportes_repo
         self._lecturas_repo = lecturas_repo
 
-    async def __call__(
+    # CAMBIADO: de __call__ → execute
+    async def execute(
         self,
         data: ConfirmarLecturaReporteIn,
     ) -> ConfirmarLecturaReporteOut:

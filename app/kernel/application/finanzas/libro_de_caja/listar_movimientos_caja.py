@@ -7,7 +7,7 @@ from datetime import date
 from typing import List, Optional
 
 from app.kernel.domain.finanzas import LibroCaja, TipoMovimiento
-from app.kernel.domain.finanzas.ports import LibroCajaRepositoryPort
+from app.kernel.domain.finanzas.ports import ILibroCajaRepository
 
 
 @dataclass
@@ -22,7 +22,7 @@ class ListarMovimientosCajaQuery:
 class ListarMovimientosCajaUseCase:
     """Caso de uso: Listar movimientos del libro de caja"""
 
-    def __init__(self, libro_repo: LibroCajaRepositoryPort):
+    def __init__(self, libro_repo: ILibroCajaRepository):
         self.libro_repo = libro_repo
 
     async def execute(self, query: ListarMovimientosCajaQuery) -> List[LibroCaja]:

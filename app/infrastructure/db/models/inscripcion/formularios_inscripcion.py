@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func, Enum as SQLEnum, UniqueConstraint
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 
 class EstadoFormulario(enum.Enum):
@@ -26,4 +27,15 @@ class FormularioInscripcion(Base):
     revisado_en = Column(DateTime, nullable=True)  # <-- esto es nuevo
     aprobado_por = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=True, index=True)  # <-- esto es nuevo
     aprobado_en = Column(DateTime, nullable=True)  # <-- esto es nuevo
+
+
+    alumno = relationship("Alumno", back_populates="formularios_inscripcion")
+    sede = relationship("Sede", back_populates="formularios_inscripcion")
+    turno = relationship("Turno", back_populates="formularios_inscripcion")
+    revisado_por_usuario = relationship("Usuario", foreign_keys=[revisado_por], back_populates="formularios_revisados")
+    aprobado_por_usuario = relationship("Usuario", foreign_keys=[aprobado_por], back_populates="formularios_aprobados")
+    contratos = relationship("Contrato", back_populates="formulario", cascade="all, delete-orphan")
+    firmas = relationship("Firma", back_populates="formulario", cascade="all, delete-orphan")
+    documentos = relationship("DocumentoInscripcion", back_populates="formulario", cascade="all, delete-orphan")
+    respuestas = relationship("FormularioRespuesta", back_populates="formulario", cascade="all, delete-orphan")
     

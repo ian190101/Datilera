@@ -23,6 +23,19 @@ class CodigosAccesoRepository(BaseRepository[CodigoAcceso]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, CodigoAcceso)
 
+    async def guardar(self, codigo: CodigoAcceso) -> None:
+        """
+        Agrega el código a la sesión.
+        IMPORTANTE: No hace commit, eso lo hace el UoW al final.
+        """
+        self.session.add(codigo)
+
+    async def existe_valor(self, valor: str) -> bool:
+        """Verifica si el código (ej: 'A1B2C3') ya existe en la BD."""
+        stmt = select(func.count(CodigoAcceso.id)).where(CodigoAcceso.codigo == valor)
+        count = await self.session.scalar(stmt)
+        return count > 0
+
     async def _by_codigo(self, codigo: str) -> Optional[CodigoAcceso]:
         stmt = (
             select(CodigoAcceso)

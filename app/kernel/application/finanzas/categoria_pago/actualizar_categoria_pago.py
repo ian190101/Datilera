@@ -7,10 +7,10 @@ from decimal import Decimal
 from typing import Optional
 
 from app.kernel.domain.finanzas import CategoriaPago
-from app.kernel.domain.finanzas.ports import CategoriaPagoRepositoryPort
+from app.kernel.domain.finanzas.ports import ICategoriaPagoRepository
 from app.kernel.domain.finanzas.errors import (
-    CategoriaPagoNoEncontrada,
-    CategoriaPagoDuplicada
+    CategoriaPagoNoEncontradaError,
+    CategoriaPagoYaExisteError
 )
 
 
@@ -28,7 +28,7 @@ class ActualizarCategoriaPagoCommand:
 class ActualizarCategoriaPagoUseCase:
     """Caso de uso: Actualizar categoría de pago"""
 
-    def __init__(self, categoria_repo: CategoriaPagoRepositoryPort):
+    def __init__(self, categoria_repo: ICategoriaPagoRepository):
         self.categoria_repo = categoria_repo
 
     async def execute(self, command: ActualizarCategoriaPagoCommand) -> CategoriaPago:
@@ -42,7 +42,7 @@ class ActualizarCategoriaPagoUseCase:
         # Obtener categoría existente
         categoria = await self.categoria_repo.obtener_por_id(command.categoria_id)
         if not categoria:
-            raise CategoriaPagoNoEncontrada(command.categoria_id)
+            raise CategoriaPagoNoEncontradaError(command.categoria_id)
 
         # Validar nombre único si se cambia
         if command.nombre and command.nombre != categoria.nombre:
@@ -52,7 +52,7 @@ class ActualizarCategoriaPagoUseCase:
                 excluir_id=categoria.id
             )
             if existe:
-                raise CategoriaPagoDuplicada(command.nombre, categoria.sede_id)
+                raise CategoriaPagoYaExisteError(command.nombre, categoria.sede_id)
             categoria.nombre = command.nombre.strip()
 
         # Actualizar campos opcionales

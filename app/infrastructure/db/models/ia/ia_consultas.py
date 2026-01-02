@@ -6,9 +6,10 @@ Tabla: ia_consultas
 """
 from __future__ import annotations
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, JSON, Numeric
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, JSON, Numeric, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 from app.infrastructure.db.base import Base
+
 
 
 class IAConsulta(Base):
@@ -28,8 +29,8 @@ class IAConsulta(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Usuario y Sede (si aplica)
-    usuario_id = Column(Integer, nullable=True, index=True)
-    sede_id = Column(Integer, nullable=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True, index=True)
+    sede_id = Column(Integer, ForeignKey("sedes.id", ondelete="SET NULL"), nullable=True, index=True)
     
     # Proveedor y Modelo
     proveedor = Column(String(50), nullable=False, index=True)  # openai, perplexity, gemini, grok
@@ -63,4 +64,7 @@ class IAConsulta(Base):
     
     def __repr__(self) -> str:
         return f"<IAConsulta(id={self.id}, proveedor={self.proveedor}, modelo={self.modelo})>"
+    
+    usuario = relationship("Usuario", back_populates="ia_consultas", foreign_keys=[usuario_id])
+    sede = relationship("Sede", back_populates="ia_consultas")
     

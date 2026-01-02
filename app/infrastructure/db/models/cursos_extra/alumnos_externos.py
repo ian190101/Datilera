@@ -36,6 +36,6 @@ class AlumnoExterno(Base):
     registrado_por_id = Column(Integer, ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
     
     # ============ Relaciones ============
-    sede = relationship("Sede")
+    sede = relationship("Sede", back_populates="alumnos_externos")
     inscripciones = relationship("InscripcionCursoExtra", back_populates="alumno_externo")
     registrado_por = relationship("Usuario")

@@ -1,0 +1,12 @@
+2025-12-29 15:26:06.419 | INFO     | app.main:lifespan:115 - Iniciando API de Datilera en ambiente: dev
+2025-12-29 17:02:23.289 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:02:23.380 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:02:24.454 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:02:26.605 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:09:31.673 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:09:31.784 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:09:32.914 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:09:35.047 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-29 17:17:19.902 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/inscripciones/127/foto
+2025-12-29 17:18:48.056 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/inscripciones/105/foto
+2025-12-29 17:26:39.136 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

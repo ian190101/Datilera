@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class AlertaVencimiento(Base):
     __tablename__ = "alertas_vencimiento"
@@ -11,3 +12,7 @@ class AlertaVencimiento(Base):
     fecha_vencimiento = Column(Date, nullable=False, index=True)
     notificada = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+
+    item = relationship("Item", back_populates="alertas_vencimiento")
+    sede = relationship("Sede", back_populates="alertas_vencimiento")

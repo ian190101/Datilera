@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, func, Index
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 
 class AuditoriaCambio(Base):
@@ -32,3 +33,5 @@ class AuditoriaCambio(Base):
     __table_args__ = (
         Index('idx_cambio_accion_campo', 'auditoria_accion_id', 'campo'),
     )
+
+    accion = relationship("AuditoriaAccion", back_populates="cambios")

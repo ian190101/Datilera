@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+        <div class="flex items-center gap-2 text-gray-500 text-sm mb-1">
+            <a href="/academico" class="hover:text-[#DD8E0A] transition">Académico</a>
+            <i class="fas fa-chevron-right text-xs"></i>
+            <span>Planificaciones</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">
+            <i class="fas fa-folder-open text-blue-500 mr-2"></i>
+            Gestión de Planificaciones
+        </h1>
+    </div>
+    
+    <button onclick="window.location.href='/academico'" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+        <i class="fas fa-arrow-left mr-2"></i> Volver al Diario
+    </button>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 border-b">
+                <tr>
+                    <th class="px-6 py-4">Título</th>
+                    <th class="px-6 py-4">Duración</th>
+                    <th class="px-6 py-4">Profesora</th>
+                    <th class="px-6 py-4 text-center">Fecha Subida</th>
+                    <th class="px-6 py-4 text-center">Archivo</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-planificaciones" class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr><td colspan="6" class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    import { fetchAPI, showToast, showConfirm } from '/static/js/main.js';
+    const API_BASE = '/api/v1';
+
+    document.addEventListener('DOMContentLoaded', loadPlanificaciones);
+
+    async function loadPlanificaciones() {
+        const tbody = document.getElementById('tabla-planificaciones');
+        try {
+            const res = await fetchAPI(`${API_BASE}/academico/planificaciones`);
+            const data = await res.json();
+            
+            tbody.innerHTML = '';
+            if(data.items.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-gray-500">No hay planificaciones registradas</td></tr>';
+                return;
+            }
+
+            data.items.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = "bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${p.titulo}</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                            ${p.duracion}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">${p.profesora}</td>
+                    <td class="px-6 py-4 text-center text-gray-500">${p.fecha_creacion}</td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="${p.archivo_url}" target="_blank" class="text-red-600 hover:text-red-800 transition" title="Ver PDF">
+                            <i class="fas fa-file-pdf text-xl"></i>
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="eliminarPlan(${p.id})" class="text-gray-400 hover:text-red-600 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-500">Error al cargar datos</td></tr>';
+        }
+    }
+
+    // Exponer función globalmente para el onclick
+    window.eliminarPlan = async (id) => {
+        const confirm = await showConfirm('¿Eliminar planificación?', 'Esta acción no se puede deshacer.');
+        if(confirm.isConfirmed) {
+            try {
+                await fetchAPI(`${API_BASE}/academico/planificaciones/${id}`, { method: 'DELETE' });
+                showToast('Eliminado correctamente');
+                loadPlanificaciones();
+            } catch(e) {
+                showToast('Error al eliminar', 'error');
+            }
+        }
+    };
+</script>
+
+{% endblock %}

@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/reporte/listar_reportes_alumno.py
 from __future__ import annotations
 
 from datetime import date
@@ -20,12 +21,16 @@ class ListarReportesAlumnoIn(BaseModel):
 class ListarReportesAlumnoOut(BaseModel):
     reportes: List[ReporteDiario]
 
+    # ¡¡ESTO ES CLAVE!! Permite que FastAPI serialice objetos ORM directamente
+    model_config = {"from_attributes": True}
+
 
 class ListarReportesAlumnoCU:
     def __init__(self, reportes_repo: AbstractReportesDiariosRepository) -> None:
         self._reportes_repo = reportes_repo
 
-    async def __call__(
+    # CAMBIADO: de __call__ → execute
+    async def execute(
         self,
         data: ListarReportesAlumnoIn,
     ) -> ListarReportesAlumnoOut:

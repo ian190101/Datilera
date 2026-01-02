@@ -1,0 +1,4 @@
+2025-12-29 13:03:59.033 | INFO     | app.main:lifespan:115 - Iniciando API de Datilera en ambiente: dev
+2025-12-29 13:04:06.547 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/tutores/completar-registro
+2025-12-29 13:08:15.775 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Usuario' object has no attribute 'role'
+2025-12-29 14:05:45.697 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

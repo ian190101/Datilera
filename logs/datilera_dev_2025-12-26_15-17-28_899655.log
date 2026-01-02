@@ -1,0 +1,4 @@
+2025-12-26 15:17:28.901 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-26 16:28:57.446 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: UndefinedError: 'app.kernel.domain.seguridad.user_entidad.Usuario object' has no attribute 'rol'
+2025-12-26 16:29:16.195 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: UndefinedError: 'app.kernel.domain.seguridad.user_entidad.Usuario object' has no attribute 'rol'
+2025-12-26 16:51:36.385 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

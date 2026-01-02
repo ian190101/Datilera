@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Sequence
+from typing import List, Optional
 from app.infrastructure.db.models.academico.grupos import Grupo as GrupoModel
 from app.infrastructure.db.repositories.base import BaseRepository
 
@@ -71,3 +72,12 @@ class GruposRepository(BaseRepository[GrupoModel]):
             id_: ID del grupo a desactivar
         """
         await self.update(id_, {"activo": False})
+
+    async def listar_activos_por_sede(self, sede_id: int, gestion: int) -> List[GrupoModel]:
+        stmt = select(GrupoModel).where(
+            GrupoModel.sede_id == sede_id,
+            GrupoModel.gestion == gestion,
+            GrupoModel.activo == True
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

@@ -77,6 +77,14 @@ class BaseRepository(Generic[T]):
 
     # Escrituras -------------------------------------------------------------
 
+    def add(self, entity: T) -> None:
+        """
+        Agrega la entidad a la sesión sin realizar flush inmediato.
+        Útil para operaciones en bloque o cuando el flush se gestiona externamente.
+        """
+        self.session.add(entity)
+
+
     async def create(self, entity: T) -> T:
         """
         Agrega la entidad a la sesión y hace flush para disponer de la PK

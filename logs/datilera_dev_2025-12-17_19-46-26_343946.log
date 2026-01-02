@@ -1,0 +1,3 @@
+2025-12-17 19:46:26.346 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-17 19:59:25.214 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: AuditoriaAccionesRepository.registrar() missing 3 required positional arguments: 'sede_id', 'entidad', and 'accion'
+2025-12-18 09:38:48.547 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class PreferenciaUsuario(Base):
     __tablename__ = "preferencias_usuario"
@@ -11,3 +12,5 @@ class PreferenciaUsuario(Base):
     notificaciones_email = Column(Boolean, nullable=False, default=False, server_default="0")
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    usuario = relationship("Usuario", back_populates="preferencias")

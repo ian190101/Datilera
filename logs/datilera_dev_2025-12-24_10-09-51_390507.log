@@ -1,0 +1,14 @@
+2025-12-24 10:09:51.392 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-24 10:10:07.789 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:07.852 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:08.916 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:10.970 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:12.651 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:12.694 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:13.760 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:15.816 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:46.676 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:46.778 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:47.844 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:10:49.926 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'Alumno' has no attribute 'nombres'
+2025-12-24 10:11:16.785 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

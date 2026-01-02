@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mb-8 flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Horarios</h1>
+    <div class="flex gap-2">
+        <a href="/inscripciones" class="text-gray-500 hover:text-gray-700 dark:hover:text-white px-4 py-2">Volver</a>
+        <button onclick="nuevoHorario()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg shadow flex items-center">
+            <i class="fas fa-plus mr-2"></i> Nuevo Horario
+        </button>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <input type="search" id="search-horario" placeholder="Buscar horario..." class="border rounded px-4 py-2 w-full max-w-md dark:bg-gray-700 dark:text-white dark:border-gray-600">
+    </div>
+    <table class="w-full text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-300 uppercase text-xs">
+            <tr>
+                <th class="px-6 py-3">Nombre</th>
+                <th class="px-6 py-3">Hora Inicio</th>
+                <th class="px-6 py-3">Hora Fin</th>
+                <th class="px-6 py-3 text-right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="tbody-horarios" class="divide-y divide-gray-200 dark:divide-gray-700 text-sm dark:text-gray-300"></tbody>
+    </table>
+</div>
+
+<div id="modal-horario" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
+        <form id="form-horario" class="p-6">
+            <input type="hidden" name="id" id="horario-id">
+            
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="modal-title">Nuevo Horario</h3>
+                <button type="button" onclick="closeModal('modal-horario')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Nombre</label>
+                    <input type="text" name="nombre" id="horario-nombre" required placeholder="Ej: Periodo 1" class="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1 dark:text-gray-300">Inicio</label>
+                        <input type="time" name="hora_inicio" id="horario-inicio" required class="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1 dark:text-gray-300">Fin</label>
+                        <input type="time" name="hora_fin" id="horario-fin" required class="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('modal-horario')" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 font-medium shadow-sm">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="/static/js/horarios.js"></script>
+{% endblock %}

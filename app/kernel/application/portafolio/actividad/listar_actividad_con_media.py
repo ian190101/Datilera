@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/actividad/listar_actividad_con_media.py
 from __future__ import annotations
 
 from typing import List
@@ -21,6 +22,9 @@ class ListarActividadConMediaOut(BaseModel):
     actividad: ActividadPortafolio
     media: List[ArchivoMediaPortafolio]
 
+    # ¡¡OBLIGATORIO para que FastAPI serialice objetos ORM y listas de ORM!!
+    model_config = {"from_attributes": True}
+
 
 class ListarActividadConMediaCU:
     def __init__(
@@ -31,7 +35,8 @@ class ListarActividadConMediaCU:
         self._actividades_repo = actividades_repo
         self._media_repo = media_repo
 
-    async def __call__(
+    # CAMBIADO: de __call__ → execute
+    async def execute(
         self,
         data: ListarActividadConMediaIn,
     ) -> ListarActividadConMediaOut:

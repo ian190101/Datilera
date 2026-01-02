@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Integer, String, Text, Date, DateTime, Numeric, ForeignKey, Enum, func, Index
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 
 class TipoMovimientoEnum(str, enum.Enum):
@@ -45,6 +46,14 @@ class LibroCaja(Base):
         index=True,
         comment="Referencia a pago si aplica"
     )
+
+    egreso_id = Column(
+        Integer, 
+        ForeignKey("egresos.id", ondelete="SET NULL"), 
+        nullable=True, 
+        index=True,
+        comment="Referencia a egreso si aplica"
+    )
     
     monto = Column(Numeric(10, 2), nullable=False)
     saldo_acumulado = Column(
@@ -71,3 +80,12 @@ class LibroCaja(Base):
         Index('ix_libro_caja_sede_fecha', 'sede_id', 'fecha'),
         Index('ix_libro_caja_sede_tipo', 'sede_id', 'tipo'),
     )
+
+
+    sede = relationship("Sede", back_populates="movimientos_caja")
+    categoria_pago = relationship("CategoriaPago", back_populates="movimientos_ingreso")
+    #categoria_egreso = relationship("CategoriaEgreso", back_populates="movimientos_egreso")
+    usuario_registro = relationship("Usuario", back_populates="movimientos_caja_registrados")
+    egreso = relationship("Egreso", back_populates="libro_caja_item", uselist=False)
+    #pagos = relationship("Pago", back_populates="libro_caja_item", uselist=False)
+    

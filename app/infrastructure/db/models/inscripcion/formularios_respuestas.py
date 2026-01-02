@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, func, UniqueConstraint 
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class FormularioRespuesta(Base):
     __tablename__ = "formularios_respuestas"
@@ -15,3 +16,6 @@ class FormularioRespuesta(Base):
     __table_args__ = (
         UniqueConstraint("formulario_id", "campo", name="uq_form_campo"),  # <-- esto es nuevo
     )
+
+
+    formulario = relationship("FormularioInscripcion", back_populates="respuestas")

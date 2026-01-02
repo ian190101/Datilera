@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Date, DateTime, ForeignKey, Boolean, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class PrestamoUniforme(Base):
     __tablename__ = "prestamos_uniformes"
@@ -12,3 +13,7 @@ class PrestamoUniforme(Base):
     devuelto = Column(Boolean, nullable=False, default=False, server_default="0")
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
+
+
+    alumno = relationship("Alumno", back_populates="prestamos_uniformes")
+    item = relationship("Item", back_populates="prestamos_uniformes")

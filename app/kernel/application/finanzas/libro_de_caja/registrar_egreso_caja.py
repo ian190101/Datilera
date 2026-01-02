@@ -10,13 +10,13 @@ from typing import Optional
 
 from app.kernel.domain.finanzas import LibroCaja, TipoMovimiento
 from app.kernel.domain.finanzas.ports import (
-    LibroCajaRepositoryPort,
-    CategoriaEgresoRepositoryPort
+    ILibroCajaRepository,
+    ICategoriaEgresoRepository
 )
 from app.kernel.domain.finanzas.errors import (
-    CategoriaEgresoNoEncontrada,
-    SaldoNegativo,
-    MovimientoInvalido
+    CategoriaEgresoNoEncontradaError,
+    SaldoCajaInvalidoError,
+    MovimientoNoEncontradoError
 )
 
 
@@ -37,8 +37,8 @@ class RegistrarEgresoCajaUseCase:
 
     def __init__(
         self,
-        libro_repo: LibroCajaRepositoryPort,
-        categoria_repo: CategoriaEgresoRepositoryPort
+        libro_repo: ILibroCajaRepository,
+        categoria_repo: ICategoriaEgresoRepository
     ):
         self.libro_repo = libro_repo
         self.categoria_repo = categoria_repo
@@ -55,16 +55,16 @@ class RegistrarEgresoCajaUseCase:
         # Validar categoría existe y es de la sede
         categoria = await self.categoria_repo.obtener_por_id(command.categoria_egreso_id)
         if not categoria:
-            raise CategoriaEgresoNoEncontrada(command.categoria_egreso_id)
+            raise CategoriaEgresoNoEncontradaError(command.categoria_egreso_id)
         if categoria.sede_id != command.sede_id:
-            raise MovimientoInvalido(
+            raise MovimientoNoEncontradoError(
                 f"Categoría {command.categoria_egreso_id} no pertenece a sede {command.sede_id}"
             )
 
         # Obtener saldo actual y validar que no quede negativo
         saldo_actual = await self.libro_repo.obtener_saldo_actual(command.sede_id)
         if saldo_actual < command.monto:
-            raise SaldoNegativo(float(saldo_actual), float(command.monto))
+            raise SaldoCajaInvalidoError(float(saldo_actual), float(command.monto))
 
         nuevo_saldo = saldo_actual - command.monto
 

@@ -1,352 +1,417 @@
 # app/kernel/domain/finanzas/ports.py
-"""
-Puertos (interfaces) para el módulo de Finanzas.
-Define los contratos que deben implementar los repositorios.
-"""
-from abc import ABC, abstractmethod
-from datetime import date, datetime
+from typing import Protocol, Optional, List, Dict, Any
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from datetime import date, datetime
+from app.kernel.domain.finanzas.cuota_plan_pago_entidad import CuotaPlanPagoEntidad
+from app.kernel.domain.finanzas.plan_pago_entidad import PlanPagoEntidad
+# ==================== REPOSITORIOS ====================
 
-from .categoria_pago_entidad import CategoriaPago
-from .categoria_egreso_entidad import CategoriaEgreso
-from .libro_caja_entidad import LibroCaja, TipoMovimiento
-from .pago_entidad import Pago
-from .comprobante_entidad import Comprobante
-from .arqueo_entidad import ArqueoCaja
-from .conciliacion_entidad import Conciliacion
-from .libro_caja_entidad import LibroCaja, TipoMovimiento
-
-
-# ==========================================
-# Repositorio: Categorías de Pago
-# ==========================================
-class CategoriaPagoRepositoryPort(ABC):
-    """Puerto para repositorio de categorías de pago"""
-
-    @abstractmethod
-    async def crear(self, categoria: CategoriaPago) -> CategoriaPago:
-        """Crea una nueva categoría de pago"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, categoria_id: int) -> Optional[CategoriaPago]:
-        """Obtiene una categoría por ID"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede(
-        self, 
-        sede_id: int, 
-        solo_activas: bool = True
-    ) -> List[CategoriaPago]:
-        """Lista categorías de pago de una sede"""
-        pass
-
-    @abstractmethod
-    async def actualizar(self, categoria: CategoriaPago) -> CategoriaPago:
-        """Actualiza una categoría de pago"""
-        pass
-
-    @abstractmethod
-    async def existe_nombre_en_sede(
-        self, 
-        sede_id: int, 
-        nombre: str, 
-        excluir_id: Optional[int] = None
-    ) -> bool:
-        """Verifica si existe una categoría con ese nombre en la sede"""
-        pass
-
-
-# ==========================================
-# Repositorio: Categorías de Egreso
-# ==========================================
-class CategoriaEgresoRepositoryPort(ABC):
-    """Puerto para repositorio de categorías de egreso"""
-
-    @abstractmethod
-    async def crear(self, categoria: CategoriaEgreso) -> CategoriaEgreso:
-        """Crea una nueva categoría de egreso"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, categoria_id: int) -> Optional[CategoriaEgreso]:
-        """Obtiene una categoría por ID"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede(
-        self, 
-        sede_id: int, 
-        solo_activas: bool = True
-    ) -> List[CategoriaEgreso]:
-        """Lista categorías de egreso de una sede"""
-        pass
-
-    @abstractmethod
-    async def actualizar(self, categoria: CategoriaEgreso) -> CategoriaEgreso:
-        """Actualiza una categoría de egreso"""
-        pass
-
-    @abstractmethod
-    async def existe_nombre_en_sede(
-        self, 
-        sede_id: int, 
-        nombre: str, 
-        excluir_id: Optional[int] = None
-    ) -> bool:
-        """Verifica si existe una categoría con ese nombre en la sede"""
-        pass
+class IPagoRepository(Protocol):
+    """Puerto: Repositorio de pagos."""
+    
+    async def crear(
+        self,
+        alumno_id: int,
+        monto_pagado: Decimal,
+        fecha_pago: datetime,
+        metodo_pago: str,
+        categoria_pago_id: int,
+        numero_comprobante: Optional[str],
+        observaciones: Optional[str],
+        registrado_por: int,
+        sede_id: Optional[int]
+    ) -> int: ...
+    
+    async def obtener_por_id(self, pago_id: int) -> Optional[Dict[str, Any]]: ...
+    
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        alumno_id: Optional[int] = None,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        metodo_pago: Optional[str] = None,
+        incluir_anulados: bool = False,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def contar(
+        self,
+        sede_id: Optional[int] = None,
+        alumno_id: Optional[int] = None,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        metodo_pago: Optional[str] = None,
+        incluir_anulados: bool = False
+    ) -> int: ...
+    
+    async def anular(
+        self,
+        pago_id: int,
+        anulado_por_id: int,
+        motivo: str
+    ) -> bool: ...
+    
+    async def verificar_duplicado_comprobante(self, numero: str) -> bool: ...
 
 
-# ==========================================
-# Repositorio: Libro de Caja
-# ==========================================
-class LibroCajaRepositoryPort(ABC):
-    """Puerto para repositorio de libro de caja"""
-
-    @abstractmethod
-    async def registrar_movimiento(self, movimiento: LibroCaja) -> LibroCaja:
-        """Registra un movimiento en el libro de caja"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, movimiento_id: int) -> Optional[LibroCaja]:
-        """Obtiene un movimiento por ID"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede_y_periodo(
+class IEgresoRepository(Protocol):
+    """Puerto: Repositorio de egresos."""
+    
+    async def crear(
         self,
         sede_id: int,
+        monto: Decimal,
+        categoria_egreso_id: int,
+        descripcion: str,
+        fecha_egreso: datetime,
+        numero_comprobante: Optional[str],
+        observaciones: Optional[str],
+        registrado_por: int
+    ) -> int: ...
+    
+    async def obtener_por_id(self, egreso_id: int) -> Optional[Dict[str, Any]]: ...
+    
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        categoria_id: Optional[int] = None,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        incluir_anulados: bool = False,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def contar(
+        self,
+        sede_id: Optional[int] = None,
+        categoria_id: Optional[int] = None,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        incluir_anulados: bool = False
+    ) -> int: ...
+    
+    async def anular(
+        self,
+        egreso_id: int,
+        anulado_por_id: int,
+        motivo: str
+    ) -> bool: ...
+    
+    async def verificar_duplicado_comprobante(self, numero: str) -> bool: ...
+    
+    async def calcular_total_periodo(
+        self,
+        sede_id: Optional[int],
+        fecha_desde: date,
+        fecha_hasta: date,
+        incluir_anulados: bool = False
+    ) -> Decimal: ...
+
+
+class IEstadoCuentaNinoRepository(Protocol):
+    """Puerto: Repositorio de estado de cuenta de niño."""
+    
+    async def obtener_por_alumno(
+        self,
+        alumno_id: int
+    ) -> Optional[Dict[str, Any]]: ...
+    
+    async def crear(
+        self,
+        alumno_id: int,
+        total_deuda: Decimal,
+        total_pagado: Decimal,
+        saldo_pendiente: Decimal
+    ) -> int: ...
+    
+    async def registrar_pago(
+        self,
+        alumno_id: int,
+        monto: Decimal
+    ) -> None: ...
+    
+    async def registrar_cargo(
+        self,
+        alumno_id: int,
+        monto: Decimal
+    ) -> None: ...
+    
+    async def calcular_saldo(
+        self,
+        alumno_id: int
+    ) -> Decimal: ...
+    
+    async def listar_deudores(
+        self,
+        sede_id: Optional[int] = None,
+        limite: int = 100
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def actualizar_saldo_pendiente(
+        self,
+        alumno_id: int,
+        nuevo_saldo: Decimal
+    ) -> bool: ...
+    
+    async def obtener_historial_movimientos(
+        self,
+        alumno_id: int,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]: ...
+
+
+class ILibroCajaRepository(Protocol):
+    """Puerto: Repositorio de libro de caja."""
+    
+    async def registrar_ingreso(
+        self,
+        monto: Decimal,
+        fecha: datetime,
+        registrado_por_id: int,
+        observaciones: str,
+        pago_id: Optional[int] = None,
+        sede_id: Optional[int] = None
+    ) -> int: ...
+    
+    async def registrar_egreso(
+        self,
+        monto: Decimal,
+        fecha: datetime,
+        registrado_por_id: int,
+        observaciones: str,
+        egreso_id: Optional[int] = None,
+        sede_id: Optional[int] = None
+    ) -> int: ...
+    
+    async def obtener_saldo_actual(
+        self,
+        sede_id: Optional[int] = None,
+        hasta_fecha: Optional[datetime] = None
+    ) -> Decimal: ...
+    
+    async def listar_movimientos(
+        self,
+        fecha_desde: date,
+        fecha_hasta: date,
+        sede_id: Optional[int] = None,
+        tipo_movimiento: Optional[str] = None,
+        limit: int = 500,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def calcular_totales_periodo(
+        self,
+        fecha_desde: date,
+        fecha_hasta: date,
+        sede_id: Optional[int] = None
+    ) -> Dict[str, Any]: ...
+
+
+class IPlanCuotaRepository(Protocol):
+    """Puerto: Repositorio de cuotas de planes de pago."""
+    
+    async def listar_por_plan(
+        self,
+        plan_pago_id: int,
+        estado: Optional[str] = None
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def obtener_proxima_pendiente(
+        self,
+        plan_pago_id: int
+    ) -> Optional[Dict[str, Any]]: ...
+    
+    async def marcar_vencidas(self) -> int: ...
+    
+    async def registrar_pago_cuota(
+        self,
+        cuota_id: int,
+        monto_pagado: Decimal,
+        pago_id: Optional[int] = None
+    ) -> bool: ...
+
+    async def obtener_por_alumno(
+        self,
+        alumno_id: int,
+        sede_id: int,
+        solo_activo: bool = True
+    ) -> Optional[PlanPagoEntidad]:
+        """
+        Obtiene el plan de pago de un alumno.
+        
+        Args:
+            alumno_id: ID del alumno
+            sede_id: ID de la sede (segregación)
+            solo_activo: Si True, solo retorna planes con estado='activo'
+        
+        Returns:
+            Plan de pago del alumno o None si no existe
+        """
+        ...
+
+
+class IArqueoRepository(Protocol):
+    """Puerto: Repositorio de arqueos de caja."""
+    
+    async def crear(self, arqueo_data: dict) -> int: ...
+    async def cerrar(self, arqueo_id: int, cerrado_por_id: int) -> bool: ...
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        fecha_desde: Optional[date] = None,
+        fecha_hasta: Optional[date] = None,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]: ...
+
+
+class IComprobanteRepository(Protocol):
+    """Puerto: Repositorio de comprobantes."""
+    
+    async def crear(self, comprobante_data: dict) -> int: ...
+    async def obtener(self, comprobante_id: int) -> Optional[Dict[str, Any]]: ...
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        tipo: Optional[str] = None,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]: ...
+
+
+class IConciliacionRepository(Protocol):
+    """Puerto: Repositorio de conciliaciones bancarias."""
+    
+    async def crear(self, conciliacion_data: dict) -> int: ...
+    async def marcar_conciliado(self, conciliacion_id: int) -> bool: ...
+    async def reversar(self, conciliacion_id: int, revertido_por_id: int) -> bool: ...
+
+
+class ICategoriaPagoRepository(Protocol):
+    """Puerto: Repositorio de categorías de pago."""
+    
+    async def crear(
+        self,
+        nombre: str,
+        descripcion: Optional[str],
+        sede_id: int
+    ) -> int: ...
+    
+    async def obtener_por_id(self, categoria_id: int) -> Optional[Dict[str, Any]]: ...
+    
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        activo: Optional[bool] = True
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def actualizar(
+        self,
+        categoria_id: int,
+        nombre: Optional[str] = None,
+        descripcion: Optional[str] = None,
+        activo: Optional[bool] = None
+    ) -> bool: ...
+
+
+class ICategoriaEgresoRepository(Protocol):
+    """Puerto: Repositorio de categorías de egreso."""
+    
+    async def crear(
+        self,
+        nombre: str,
+        descripcion: Optional[str],
+        sede_id: int
+    ) -> int: ...
+    
+    async def obtener_por_id(self, categoria_id: int) -> Optional[Dict[str, Any]]: ...
+    
+    async def listar(
+        self,
+        sede_id: Optional[int] = None,
+        activo: Optional[bool] = True
+    ) -> List[Dict[str, Any]]: ...
+    
+    async def actualizar(
+        self,
+        categoria_id: int,
+        nombre: Optional[str] = None,
+        descripcion: Optional[str] = None,
+        activo: Optional[bool] = None
+    ) -> bool: ...
+
+
+# ==================== SERVICIOS DE DOMINIO ====================
+
+class ICalculadorDescuento(Protocol):
+    """Puerto: Servicio de cálculo de descuentos."""
+    
+    async def calcular_disponible(
+        self,
+        alumno_id: int,
+        tipo_descuento: str
+    ) -> Decimal: ...
+    
+    async def aplicar(
+        self,
+        alumno_id: int,
+        monto_descuento: Decimal,
+        tipo: str,
+        motivo: str
+    ) -> int: ...
+
+
+class ICalculadorProrrateo(Protocol):
+    """Puerto: Servicio de cálculo de prorrateo."""
+    
+    async def calcular(
+        self,
+        monto_total: Decimal,
         fecha_inicio: date,
         fecha_fin: date,
-        tipo: Optional[TipoMovimiento] = None
-    ) -> List[LibroCaja]:
-        """Lista movimientos de una sede en un período"""
-        pass
+        tipo_periodo: str
+    ) -> Dict[str, Any]: ...
 
-    @abstractmethod
-    async def obtener_saldo_actual(self, sede_id: int) -> Decimal:
-        """Obtiene el saldo actual de una sede"""
-        pass
+    # ========================================
+# AGREGADO: Port para Cuotas de Plan de Pago
+# ========================================
 
-    @abstractmethod
-    async def calcular_totales_periodo(
+class ICuotaPlanPagoRepository(Protocol):
+    """Port para repositorio de cuotas individuales de planes de pago"""
+    
+    async def crear(self, cuota: CuotaPlanPagoEntidad) -> CuotaPlanPagoEntidad:
+        """Crea una nueva cuota"""
+        ...
+    
+    async def obtener_por_id(self, cuota_id: int) -> Optional[CuotaPlanPagoEntidad]:
+        """Obtiene una cuota por ID"""
+        ...
+    
+    async def listar_por_plan(self, plan_id: int) -> List[CuotaPlanPagoEntidad]:
+        """Lista todas las cuotas de un plan de pago"""
+        ...
+    
+    async def listar_vencidas(
         self,
         sede_id: int,
-        fecha_inicio: date,
-        fecha_fin: date
-    ) -> Tuple[Decimal, Decimal, Decimal]:
-        """
-        Calcula totales de un período.
-        Retorna: (total_ingresos, total_egresos, saldo_final)
-        """
-        pass
-
-    @abstractmethod
-    async def listar_por_categoria(
-        self,
-        sede_id: int,
-        categoria_id: int,
-        tipo: TipoMovimiento,
-        fecha_inicio: date,
-        fecha_fin: date
-    ) -> List[LibroCaja]:
-        """Lista movimientos de una categoría específica"""
-        pass
-
-
-# ==========================================
-# Repositorio: Pagos
-# ==========================================
-class PagoRepositoryPort(ABC):
-    """Puerto para repositorio de pagos"""
-
-    @abstractmethod
-    async def crear(self, pago: Pago) -> Pago:
-        """Registra un nuevo pago"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, pago_id: int) -> Optional[Pago]:
-        """Obtiene un pago por ID"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede_y_periodo(
-        self,
-        sede_id: int,
-        fecha_inicio: date,
-        fecha_fin: date
-    ) -> List[Pago]:
-        """Lista pagos de una sede en un período"""
-        pass
-
-    @abstractmethod
-    async def listar_por_categoria(
-        self,
-        sede_id: int,
-        categoria_id: int,
-        fecha_inicio: date,
-        fecha_fin: date
-    ) -> List[Pago]:
-        """Lista pagos de una categoría específica"""
-        pass
-
-    @abstractmethod
-    async def existe_comprobante(self, comprobante_id: int) -> bool:
-        """Verifica si ya existe un pago con ese comprobante"""
-        pass
-
-
-# ==========================================
-# Repositorio: Comprobantes
-# ==========================================
-class ComprobanteRepositoryPort(ABC):
-    """Puerto para repositorio de comprobantes"""
-
-    @abstractmethod
-    async def crear(self, comprobante: Comprobante) -> Comprobante:
-        """Crea un nuevo comprobante"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, comprobante_id: int) -> Optional[Comprobante]:
-        """Obtiene un comprobante por ID"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_hash(self, hash_comprobante: str) -> Optional[Comprobante]:
-        """Obtiene un comprobante por su hash"""
-        pass
-
-    @abstractmethod
-    async def existe_hash(self, hash_comprobante: str) -> bool:
-        """Verifica si existe un comprobante con ese hash"""
-        pass
-
-
-# ==========================================
-# Repositorio: Arqueos
-# ==========================================
-class ArqueoRepositoryPort(ABC):
-    """Puerto para repositorio de arqueos de caja"""
-
-    @abstractmethod
-    async def crear(self, arqueo: ArqueoCaja) -> ArqueoCaja:
-        """Crea un nuevo arqueo"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, arqueo_id: int) -> Optional[ArqueoCaja]:
-        """Obtiene un arqueo por ID"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_sede_y_periodo(
-        self,
-        sede_id: int,
-        periodo_inicio: date,
-        periodo_fin: date
-    ) -> Optional[ArqueoCaja]:
-        """Obtiene el arqueo de una sede para un período específico"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede(
-        self,
-        sede_id: int,
-        limite: Optional[int] = None
-    ) -> List[ArqueoCaja]:
-        """Lista arqueos de una sede (ordenados por fecha desc)"""
-        pass
-
-    @abstractmethod
-    async def actualizar(self, arqueo: ArqueoCaja) -> ArqueoCaja:
-        """Actualiza un arqueo (para recalcular)"""
-        pass
-
-    @abstractmethod
-    async def existe_para_periodo(
-        self,
-        sede_id: int,
-        periodo_inicio: date,
-        periodo_fin: date
-    ) -> bool:
-        """Verifica si ya existe un arqueo para el período"""
-        pass
-
-
-# ==========================================
-# Repositorio: Conciliaciones
-# ==========================================
-class ConciliacionRepositoryPort(ABC):
-    """Puerto para repositorio de conciliaciones bancarias"""
-
-    @abstractmethod
-    async def crear(self, conciliacion: Conciliacion) -> Conciliacion:
-        """Crea una nueva conciliación"""
-        pass
-
-    @abstractmethod
-    async def obtener_por_id(self, conciliacion_id: int) -> Optional[Conciliacion]:
-        """Obtiene una conciliación por ID"""
-        pass
-
-    @abstractmethod
-    async def listar_por_sede(
-        self,
-        sede_id: int,
-        fecha_inicio: Optional[date] = None,
-        fecha_fin: Optional[date] = None
-    ) -> List[Conciliacion]:
-        """Lista conciliaciones de una sede"""
-        pass
-
-    @abstractmethod
-    async def actualizar(self, conciliacion: Conciliacion) -> Conciliacion:
-        """Actualiza una conciliación"""
-        pass
-
-
-    @abstractmethod
-    async def existe_egreso_por_pago(self, pago_id: int) -> bool:
-        """Retorna True si existe un EGRESO en libro_caja con pago_id dado (reversa de pago)."""
-        pass
-
-    @abstractmethod
-    async def existe_movimiento_por_referencia(self, sede_id: int, referencia: str) -> bool:
-        """Retorna True si existe un movimiento con esa referencia en la sede (idempotencia)."""
-        pass
-
-class LibroCajaRepositoryPort(ABC):
-    @abstractmethod
-    async def registrar_movimiento(self, movimiento: LibroCaja) -> LibroCaja: ...
-    @abstractmethod
-    async def obtener_por_id(self, movimiento_id: int) -> Optional[LibroCaja]: ...
-    @abstractmethod
-    async def listar_por_sede_y_periodo(
-        self, sede_id: int, fecha_inicio: date, fecha_fin: date, tipo: Optional[TipoMovimiento] = None
-    ) -> List[LibroCaja]: ...
-    @abstractmethod
-    async def obtener_saldo_actual(self, sede_id: int) -> Decimal: ...
-    @abstractmethod
-    async def calcular_totales_periodo(
-        self, sede_id: int, fecha_inicio: date, fecha_fin: date
-    ) -> Tuple[Decimal, Decimal, Decimal]: ...
-    @abstractmethod
-    async def existe_egreso_por_pago(self, pago_id: int) -> bool: ...
-    @abstractmethod
-    async def existe_movimiento_por_referencia(self, sede_id: int, referencia: str) -> bool: ...
-
-class PagoRepositoryPort(ABC):
-    @abstractmethod
-    async def crear(self, pago: Pago) -> Pago: ...
-    @abstractmethod
-    async def obtener_por_id(self, pago_id: int) -> Optional[Pago]: ...
-    @abstractmethod
-    async def listar_por_sede_y_periodo(
-        self, sede_id: int, fecha_inicio: Optional[date], fecha_fin: Optional[date]
-    ) -> List[Pago]: ...
+        fecha_corte: Optional[date] = None
+    ) -> List[CuotaPlanPagoEntidad]:
+        """Lista cuotas vencidas hasta una fecha"""
+        ...
+    
+    async def actualizar(self, cuota: CuotaPlanPagoEntidad) -> CuotaPlanPagoEntidad:
+        """Actualiza una cuota existente"""
+        ...
+    
+    async def actualizar_masivo(self, cuotas: List[CuotaPlanPagoEntidad]) -> List[CuotaPlanPagoEntidad]:
+        """Actualiza múltiples cuotas en batch"""
+        ...
+    
+    async def eliminar(self, cuota_id: int) -> bool:
+        """Elimina lógicamente una cuota"""
+        ...
+    
+    

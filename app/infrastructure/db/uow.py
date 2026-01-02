@@ -5,6 +5,11 @@ from typing import AsyncGenerator, AsyncIterator, cast
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.infrastructure.db.repositories.acceso.codigos_acceso_repo import CodigosAccesoRepository  # <-- esto es nuevo
+from app.infrastructure.db.repositories.alumnos.alumnos_repo import AlumnosRepository  # <-- esto es nuevo
+from app.infrastructure.db.repositories.academico.grupos_repo import GruposRepository
+from app.infrastructure.db.repositories.acceso.codigos_acceso_usos_repo import CodigosAccesoUsosRepository
+
 
 class UnitOfWork:
     """
@@ -35,20 +40,36 @@ class UnitOfWork:
 
     @asynccontextmanager
     async def begin(self) -> AsyncGenerator[UnitOfWork, None]:
+        # 1. Re-entrancia: Si ya estamos dentro de un bloque 'async with uow', reutilizar.
+        if self.session is not None:
+            yield self
+            return
+
         async with self._session_factory() as s:
             self.session = s
-            async with s.begin():
-                try:
-                    yield self
-                finally:
-                    self.session = None
+            
+            # Inicializar repositorios
+            self.codigos = CodigosAccesoRepository(s)
+            self.codigos_usos = CodigosAccesoUsosRepository(s)
+            self.alumnos = AlumnosRepository(s)
+            self.grupos = GruposRepository(s)
+
+            # 2. Gestión Inteligente de Transacciones
+            # Si la sesión ya tiene una transacción abierta (ej: por la autenticación),
+            # nos unimos a ella en lugar de abrir una nueva y causar error.
+            if s.in_transaction():
+                yield self
+            else:
+                # Si está limpia, abrimos transacción nueva
+                async with s.begin():
+                    try:
+                        yield self
+                    finally:
+                        self.session = None
 
     @asynccontextmanager
     async def begin_nested(self) -> AsyncGenerator[UnitOfWork, None]:
-        """
-        Subtransacción (SAVEPOINT). Requiere begin() activo.
-        Útil en pruebas o en una sección que puede fallar sin abortar todo el caso de uso.
-        """
+        """Subtransacción (SAVEPOINT)."""
         if self.session is None:
             raise RuntimeError("UnitOfWork.begin() debe estar activo para begin_nested()")
         async with self.session.begin_nested():
@@ -56,13 +77,19 @@ class UnitOfWork:
 
     @property
     def session_required(self) -> AsyncSession:
-        """
-        Devuelve la sesión activa o lanza error si no hay transacción abierta.
-        Evita usos fuera de contexto.
-        """
         if self.session is None:
             raise RuntimeError("UnitOfWork.begin() no ha sido iniciado")
         return cast(AsyncSession, self.session)
+
+    async def commit(self):
+        """Helper para casos de uso."""
+        if self.session:
+            await self.session.commit()
+
+    async def rollback(self):
+        """Helper para casos de uso."""
+        if self.session:
+            await self.session.rollback()
 
 
 # ---------------------------------------------------------------------------

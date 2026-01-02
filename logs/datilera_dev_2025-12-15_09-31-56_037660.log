@@ -1,0 +1,10 @@
+2025-12-15 09:31:56.039 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-15 09:44:01.138 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 09:44:01.274 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 09:44:02.337 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 09:44:04.392 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 10:06:53.952 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 10:06:53.987 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 10:06:55.057 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 10:06:57.106 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type FormData is not JSON serializable
+2025-12-15 10:33:01.611 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

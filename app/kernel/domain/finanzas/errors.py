@@ -1,155 +1,421 @@
 # app/kernel/domain/finanzas/errors.py
 """
-Excepciones de dominio para el módulo de Finanzas.
+Excepciones personalizadas del dominio de finanzas.
+Organizadas por entidad para facilitar mantenimiento.
 """
 
 
+# ==================== EXCEPCIONES BASE ====================
+
 class FinanzasError(Exception):
-    """Excepción base para errores del dominio de finanzas"""
+    """Excepción base para errores de finanzas."""
     pass
 
 
-# ==========================================
-# Categorías de Pago
-# ==========================================
-class CategoriaPagoNoEncontrada(FinanzasError):
-    """Categoría de pago no encontrada"""
-    def __init__(self, categoria_id: int):
-        super().__init__(f"Categoría de pago con ID {categoria_id} no encontrada")
+# ==================== PAGOS ====================
+
+class PagoError(FinanzasError):
+    """Excepción base para errores relacionados con pagos."""
+    pass
 
 
-class CategoriaPagoDuplicada(FinanzasError):
-    """Categoría de pago con nombre duplicado en la sede"""
-    def __init__(self, nombre: str, sede_id: int):
-        super().__init__(f"Ya existe una categoría de pago '{nombre}' en la sede {sede_id}")
+class PagoNoEncontradoError(PagoError):
+    """El pago solicitado no existe."""
+    pass
 
 
-class CategoriaPagoEnUso(FinanzasError):
-    """No se puede eliminar categoría de pago en uso"""
-    def __init__(self, categoria_id: int):
-        super().__init__(f"La categoría de pago {categoria_id} está en uso y no puede eliminarse")
+class PagoYaAnuladoError(PagoError):
+    """El pago ya está anulado."""
+    pass
 
 
-# ==========================================
-# Categorías de Egreso
-# ==========================================
-class CategoriaEgresoNoEncontrada(FinanzasError):
-    """Categoría de egreso no encontrada"""
-    def __init__(self, categoria_id: int):
-        super().__init__(f"Categoría de egreso con ID {categoria_id} no encontrada")
+class MontoPagoInvalidoError(PagoError):
+    """El monto del pago es inválido (debe ser mayor a cero)."""
+    pass
 
 
-class CategoriaEgresoDuplicada(FinanzasError):
-    """Categoría de egreso con nombre duplicado en la sede"""
-    def __init__(self, nombre: str, sede_id: int):
-        super().__init__(f"Ya existe una categoría de egreso '{nombre}' en la sede {sede_id}")
+class MetodoPagoInvalidoError(PagoError):
+    """El método de pago no es válido (solo efectivo o qr)."""
+    pass
 
 
-class CategoriaEgresoEnUso(FinanzasError):
-    """No se puede eliminar categoría de egreso en uso"""
-    def __init__(self, categoria_id: int):
-        super().__init__(f"La categoría de egreso {categoria_id} está en uso y no puede eliminarse")
+class ComprobantePagoYaExisteError(PagoError):
+    """El comprobante de pago ya existe en el sistema."""
+    pass
 
 
-# ==========================================
-# Libro de Caja
-# ==========================================
+class AlumnoSinDeudaError(PagoError):
+    """El alumno no tiene deuda registrada."""
+    pass
+
+
+class PagoExcedeMoraError(PagoError):
+    """El monto del pago excede la mora del alumno."""
+    pass
+
+
+class PagoSinAlumnoError(PagoError):
+    """El pago no tiene un alumno asignado."""
+    pass
+
+
+class PagoSinCategoriaError(PagoError):
+    """El pago no tiene una categoría asignada."""
+    pass
+
+
+# ==================== EGRESOS ====================
+
+class EgresoError(FinanzasError):
+    """Excepción base para errores relacionados con egresos."""
+    pass
+
+
+class EgresoNoEncontradoError(EgresoError):
+    """El egreso solicitado no existe."""
+    pass
+
+
+class EgresoYaAnuladoError(EgresoError):
+    """El egreso ya está anulado."""
+    pass
+
+
+class MontoEgresoInvalidoError(EgresoError):
+    """El monto del egreso es inválido (debe ser mayor a cero)."""
+    pass
+
+
+class DescripcionInvalidaError(EgresoError):
+    """La descripción del egreso es inválida (muy corta o vacía)."""
+    pass
+
+
+class ComprobanteEgresoYaExisteError(EgresoError):
+    """El comprobante del egreso ya existe en el sistema."""
+    pass
+
+
+class MotivoAnulacionInvalidoError(EgresoError):
+    """El motivo de anulación es inválido (muy corto o vacío)."""
+    pass
+
+
+class EgresoSinSedeError(EgresoError):
+    """El egreso no tiene una sede asignada."""
+    pass
+
+
+class EgresoSinCategoriaError(EgresoError):
+    """El egreso no tiene una categoría asignada."""
+    pass
+
+
+# ==================== CATEGORÍAS DE PAGO ====================
+
+class CategoriaPagoError(FinanzasError):
+    """Excepción base para errores relacionados con categorías de pago."""
+    pass
+
+
+class CategoriaPagoNoEncontradaError(CategoriaPagoError):
+    """La categoría de pago solicitada no existe."""
+    pass
+
+
+class CategoriaPagoYaExisteError(CategoriaPagoError):
+    """Ya existe una categoría de pago con ese nombre en la sede."""
+    pass
+
+
+class CategoriaPagoInactivaError(CategoriaPagoError):
+    """La categoría de pago está inactiva."""
+    pass
+
+
+class CategoriaPagoEnUsoError(CategoriaPagoError):
+    """La categoría de pago no puede eliminarse porque está en uso."""
+    pass
+
+
+class NombreCategoriaPagoInvalidoError(CategoriaPagoError):
+    """El nombre de la categoría de pago es inválido."""
+    pass
+
+
+# ==================== CATEGORÍAS DE EGRESO ====================
+
+class CategoriaEgresoError(FinanzasError):
+    """Excepción base para errores relacionados con categorías de egreso."""
+    pass
+
+
+class CategoriaEgresoNoEncontradaError(CategoriaEgresoError):
+    """La categoría de egreso solicitada no existe."""
+    pass
+
+
+class CategoriaEgresoYaExisteError(CategoriaEgresoError):
+    """Ya existe una categoría de egreso con ese nombre en la sede."""
+    pass
+
+
+class CategoriaEgresoInactivaError(CategoriaEgresoError):
+    """La categoría de egreso está inactiva."""
+    pass
+
+
+class CategoriaEgresoEnUsoError(CategoriaEgresoError):
+    """La categoría de egreso no puede eliminarse porque está en uso."""
+    pass
+
+
+class NombreCategoriaEgresoInvalidoError(CategoriaEgresoError):
+    """El nombre de la categoría de egreso es inválido."""
+    pass
+
+
+# ==================== DESCUENTOS ====================
+
+class DescuentoError(FinanzasError):
+    """Excepción base para errores relacionados con descuentos."""
+    pass
+
+
+class DescuentoNoEncontradoError(DescuentoError):
+    """El descuento solicitado no existe."""
+    pass
+
+
+class DescuentoYaAplicadoError(DescuentoError):
+    """El descuento ya fue aplicado al alumno."""
+    pass
+
+
+class DescuentoExcedeLimiteError(DescuentoError):
+    """El monto del descuento excede el límite permitido."""
+    pass
+
+
+class TipoDescuentoInvalidoError(DescuentoError):
+    """El tipo de descuento no es válido."""
+    pass
+
+
+class DescuentoVencidoError(DescuentoError):
+    """El descuento ha vencido."""
+    pass
+
+
+class AlumnoSinDescuentoDisponibleError(DescuentoError):
+    """El alumno no tiene descuentos disponibles."""
+    pass
+
+
+# ==================== PLANES DE PAGO ====================
+
+class PlanPagoError(FinanzasError):
+    """Excepción base para errores relacionados con planes de pago."""
+    pass
+
+
+class PlanPagoNoEncontradoError(PlanPagoError):
+    """El plan de pago solicitado no existe."""
+    pass
+
+
+class PlanPagoYaExisteError(PlanPagoError):
+    """El alumno ya tiene un plan de pago activo."""
+    pass
+
+
+class MontoTotalInvalidoError(PlanPagoError):
+    """El monto total del plan de pago es inválido."""
+    pass
+
+
+class NumeroCuotasInvalidoError(PlanPagoError):
+    """El número de cuotas es inválido."""
+    pass
+
+
+class CuotaNoEncontradaError(PlanPagoError):
+    """La cuota solicitada no existe."""
+    pass
+
+
+class CuotaYaPagadaError(PlanPagoError):
+    """La cuota ya está pagada."""
+    pass
+
+
+class PlanPagoCanceladoError(PlanPagoError):
+    """El plan de pago está cancelado."""
+    pass
+
+
+class FechaInicioInvalidaError(PlanPagoError):
+    """La fecha de inicio del plan de pago es inválida."""
+    pass
+
+
+# ==================== ESTADO DE CUENTA ====================
+
+class EstadoCuentaError(FinanzasError):
+    """Excepción base para errores relacionados con estado de cuenta."""
+    pass
+
+
+class EstadoCuentaNoEncontradoError(EstadoCuentaError):
+    """El estado de cuenta del alumno no existe."""
+    pass
+
+
+class SaldoInsuficienteError(EstadoCuentaError):
+    """El saldo del alumno es insuficiente."""
+    pass
+
+
+class OperacionEstadoCuentaError(EstadoCuentaError):
+    """Error al realizar operación en el estado de cuenta."""
+    pass
+
+
+class AlumnoNoTieneEstadoCuentaError(EstadoCuentaError):
+    """El alumno no tiene estado de cuenta registrado."""
+    pass
+
+
+# ==================== LIBRO DE CAJA ====================
+
 class LibroCajaError(FinanzasError):
-    """Error genérico en operaciones de libro de caja"""
+    """Excepción base para errores relacionados con libro de caja."""
     pass
 
 
-class MovimientoInvalido(LibroCajaError):
-    """Movimiento de libro de caja inválido"""
+class MovimientoNoEncontradoError(LibroCajaError):
+    """El movimiento de caja no existe."""
     pass
 
 
-class CategoriaTipoIncorrecto(LibroCajaError):
-    """Categoría no corresponde al tipo de movimiento"""
-    def __init__(self, tipo_movimiento: str, categoria_tipo: str):
-        super().__init__(
-            f"Tipo de movimiento '{tipo_movimiento}' requiere una categoría de "
-            f"{'pago' if tipo_movimiento == 'ingreso' else 'egreso'}, "
-            f"pero se proporcionó una categoría de {categoria_tipo}"
-        )
+class SaldoCajaInvalidoError(LibroCajaError):
+    """El saldo de caja es inválido."""
+    pass
 
 
-class SaldoNegativo(LibroCajaError):
-    """Operación resultaría en saldo negativo"""
-    def __init__(self, saldo_actual: float, monto_egreso: float):
-        super().__init__(
-            f"El egreso de {monto_egreso} excede el saldo disponible {saldo_actual}"
-        )
+class FechaCierreInvalidaError(LibroCajaError):
+    """La fecha de cierre es inválida."""
+    pass
 
 
-# ==========================================
-# Pagos
-# ==========================================
-class PagoNoEncontrado(FinanzasError):
-    """Pago no encontrado"""
-    def __init__(self, pago_id: int):
-        super().__init__(f"Pago con ID {pago_id} no encontrado")
+class CajaYaCerradaError(LibroCajaError):
+    """La caja ya está cerrada para esa fecha."""
+    pass
 
 
-class ComprobanteInvalido(FinanzasError):
-    """Comprobante inválido o duplicado"""
-    def __init__(self, mensaje: str):
-        super().__init__(mensaje)
+class ObservacionesRequeridaError(LibroCajaError):
+    """Las observaciones son requeridas para este tipo de movimiento."""
+    pass
 
 
-class MontoPagoIncorrecto(FinanzasError):
-    """Monto de pago no coincide con el esperado"""
-    def __init__(self, monto_recibido: float, monto_esperado: float):
-        super().__init__(
-            f"El monto recibido {monto_recibido} no coincide con el esperado {monto_esperado}"
-        )
+# ==================== ARQUEOS ====================
+
+class ArqueoError(FinanzasError):
+    """Excepción base para errores relacionados con arqueos."""
+    pass
 
 
-# ==========================================
-# Arqueos
-# ==========================================
-class ArqueoNoEncontrado(FinanzasError):
-    """Arqueo no encontrado"""
-    def __init__(self, arqueo_id: int):
-        super().__init__(f"Arqueo con ID {arqueo_id} no encontrado")
+class ArqueoNoEncontradoError(ArqueoError):
+    """El arqueo solicitado no existe."""
+    pass
 
 
-class ArqueoPeriodoInvalido(FinanzasError):
-    """Período de arqueo inválido"""
-    def __init__(self, mensaje: str):
-        super().__init__(mensaje)
+class ArqueoYaCerradoError(ArqueoError):
+    """El arqueo ya está cerrado."""
+    pass
 
 
-class ArqueoYaExiste(FinanzasError):
-    """Ya existe un arqueo para el período"""
-    def __init__(self, sede_id: int, periodo: str):
-        super().__init__(f"Ya existe un arqueo para la sede {sede_id} en el período {periodo}")
+class DiferenciaArqueoExcedeLimiteError(ArqueoError):
+    """La diferencia del arqueo excede el límite permitido."""
+    pass
 
 
-# ==========================================
-# Conciliaciones
-# ==========================================
+class ArqueoFechaInvalidaError(ArqueoError):
+    """La fecha del arqueo es inválida."""
+    pass
+
+
+# ==================== COMPROBANTES ====================
+
+class ComprobanteError(FinanzasError):
+    """Excepción base para errores relacionados con comprobantes."""
+    pass
+
+
+class ComprobanteNoEncontradoError(ComprobanteError):
+    """El comprobante solicitado no existe."""
+    pass
+
+
+class ComprobanteYaGeneradoError(ComprobanteError):
+    """El comprobante ya fue generado."""
+    pass
+
+
+class TipoComprobanteInvalidoError(ComprobanteError):
+    """El tipo de comprobante no es válido."""
+    pass
+
+
+class NumeroComprobanteInvalidoError(ComprobanteError):
+    """El número de comprobante es inválido."""
+    pass
+
+
+# ==================== CONCILIACIONES ====================
+
 class ConciliacionError(FinanzasError):
-    """Error en conciliación bancaria"""
+    """Excepción base para errores relacionadas con conciliaciones."""
     pass
 
 
-class ConciliacionNoEncontrada(FinanzasError):
-    """Conciliación no encontrada"""
-    def __init__(self, conciliacion_id: int):
-        super().__init__(f"Conciliación con ID {conciliacion_id} no encontrada")
+class ConciliacionNoEncontradaError(ConciliacionError):
+    """La conciliación solicitada no existe."""
+    pass
 
 
-# ==========================================
-# Permisos y Acceso
-# ==========================================
-class AccesoFinanzasDenegado(FinanzasError):
-    """Usuario no tiene permisos para operación financiera"""
-    def __init__(self, usuario_id: int, operacion: str):
-        super().__init__(f"Usuario {usuario_id} no autorizado para {operacion}")
+class ConciliacionYaProcesadaError(ConciliacionError):
+    """La conciliación ya fue procesada."""
+    pass
 
 
-class AccesoSedeFinanzasDenegado(FinanzasError):
-    """Usuario no tiene acceso a finanzas de esta sede"""
-    def __init__(self, usuario_id: int, sede_id: int):
-        super().__init__(f"Usuario {usuario_id} no tiene acceso a finanzas de sede {sede_id}")
+class MontoConciliacionInvalidoError(ConciliacionError):
+    """El monto de la conciliación es inválido."""
+    pass
+
+
+class ConciliacionYaReversadaError(ConciliacionError):
+    """La conciliación ya está reversada."""
+    pass
+
+
+# ==================== PRORRATEO ====================
+
+class ProrrateoError(FinanzasError):
+    """Excepción base para errores relacionados con prorrateo."""
+    pass
+
+
+class FechaInicioMayorFinError(ProrrateoError):
+    """La fecha de inicio no puede ser mayor que la fecha de fin."""
+    pass
+
+
+class PeriodoProrrateoInvalidoError(ProrrateoError):
+    """El período de prorrateo es inválido."""
+    pass
+
+
+class TipoProrrateoInvalidoError(ProrrateoError):
+    """El tipo de prorrateo no es válido."""
+    pass

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Enum as SQLEnum, JSON, func
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class CanalNotificacion(enum.Enum):
     app = "app"
@@ -44,3 +45,8 @@ class Notificacion(Base):
     metadatos = Column(JSON, nullable=True)  # ← AÑADIR
     
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+
+    usuario = relationship("Usuario", back_populates="notificaciones")
+    mensaje_relacionado = relationship("Mensaje", back_populates="notificaciones", foreign_keys="[Notificacion.relacionado_mensaje_id]")
+    #vistas = relationship("NotificacionVista", back_populates="notificacion", cascade="all, delete-orphan", lazy="select")

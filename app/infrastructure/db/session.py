@@ -71,6 +71,7 @@ AsyncSessionLocal: async_sessionmaker[AsyncSession] = async_sessionmaker(
 # Estrategia A (recomendada): transacción en capa superior
 # Usa UnitOfWork o estos helpers; los repos NO llaman begin() internamente.
 # -----------------------------------------------------------------------------
+
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependencia para FastAPI u otras capas: entrega una sesión.

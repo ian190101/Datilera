@@ -1,7 +1,7 @@
 # app/domain/ports/alumnos/ports.py
 
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import date
 
 from app.kernel.domain.alumnos.alumno_entidad import AlumnoEntidad
@@ -262,6 +262,51 @@ class AsistenciaAlumnosRepositoryPort(ABC):
     async def actualizar(self, id: int, asistencia: AsistenciaAlumnoEntidad) -> AsistenciaAlumnoEntidad:
         """Actualizar registro de asistencia"""
         pass
+    # app/kernel/domain/asistencia/ports/asistencia_alumnos_repository_port.py
+
+    @abstractmethod
+    async def obtener_estadisticas_paralelo(
+        self,
+        paralelo_id: int,
+        fecha_inicio: date,
+        fecha_fin: date
+    ) -> Dict[str, Any]:
+        """Obtiene estadísticas de asistencia de un paralelo."""
+        pass
+
+    @abstractmethod
+    async def obtener_estadisticas_sede(
+        self,
+        sede_id: int,
+        fecha_inicio: date,
+        fecha_fin: date
+    ) -> Dict[str, Any]:
+        """Obtiene estadísticas de asistencia de una sede."""
+        pass
+
+    @abstractmethod
+    async def obtener_retrasos(
+        self,
+        sede_id: int,
+        fecha_inicio: date,
+        fecha_fin: date,
+        limite: int = 100
+    ) -> List[AsistenciaAlumnoEntidad]:
+        """Obtiene registros de retrasos."""
+        pass
+
+    @abstractmethod
+    async def obtener_faltas(
+        self,
+        sede_id: int,
+        fecha_inicio: date,
+        fecha_fin: date,
+        solo_sin_justificar: bool = False,
+        limite: int = 100
+    ) -> List[AsistenciaAlumnoEntidad]:
+        """Obtiene registros de faltas."""
+        pass
+
 
 
 # ============================================================================

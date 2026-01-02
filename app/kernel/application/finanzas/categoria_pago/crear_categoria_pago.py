@@ -8,8 +8,8 @@ from decimal import Decimal
 from typing import Optional
 
 from app.kernel.domain.finanzas import CategoriaPago
-from app.kernel.domain.finanzas.ports import CategoriaPagoRepositoryPort
-from app.kernel.domain.finanzas.errors import CategoriaPagoDuplicada
+from app.kernel.domain.finanzas.ports import ICategoriaPagoRepository
+from app.kernel.domain.finanzas.errors import CategoriaPagoEnUsoError
 
 
 @dataclass
@@ -31,7 +31,7 @@ class CrearCategoriaPagoUseCase:
     - Monto base >= 0 si se proporciona
     """
 
-    def __init__(self, categoria_repo: CategoriaPagoRepositoryPort):
+    def __init__(self, categoria_repo: ICategoriaPagoRepository):
         self.categoria_repo = categoria_repo
 
     async def execute(self, command: CrearCategoriaPagoCommand) -> CategoriaPago:
@@ -48,7 +48,7 @@ class CrearCategoriaPagoUseCase:
             nombre=command.nombre
         )
         if existe:
-            raise CategoriaPagoDuplicada(command.nombre, command.sede_id)
+            raise CategoriaPagoEnUsoError(command.nombre, command.sede_id)
 
         # Crear entidad
         categoria = CategoriaPago(

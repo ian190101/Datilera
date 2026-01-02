@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Categoria(Base):
     __tablename__ = "categorias"
@@ -10,3 +11,6 @@ class Categoria(Base):
     descripcion = Column(String(200), nullable=True)
     activo = Column(Boolean, nullable=False, default=True, server_default="1")
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+    familia = relationship("Familia", back_populates="categorias")
+    items = relationship("Item", back_populates="categoria", cascade="all, delete-orphan")

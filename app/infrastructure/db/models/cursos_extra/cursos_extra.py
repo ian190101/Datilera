@@ -60,3 +60,4 @@ class CursoExtra(Base):
     costos = relationship("CostoCursoExtra", back_populates="curso", cascade="all, delete-orphan")
     categorias_costo = relationship("CategoriaCostoCursoExtra", back_populates="curso", cascade="all, delete-orphan")
     creado_por = relationship("Usuario")
+    ingresos = relationship("IngresoCursoExtra", back_populates="curso", uselist=False)

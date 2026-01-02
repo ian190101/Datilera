@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func, SmallInteger, Text 
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class DocumentoInscripcion(Base):
     __tablename__ = "documentos_inscripcion"
@@ -21,3 +22,5 @@ class DocumentoInscripcion(Base):
     error_ultima = Column(Text, nullable=True)  # <-- esto es nuevo
 
     watermark_url = Column(String(255), nullable=True)  # <-- esto es nuevo
+
+    formulario = relationship("FormularioInscripcion", back_populates="documentos")

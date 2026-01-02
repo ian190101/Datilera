@@ -81,3 +81,49 @@ class MediaExpiradaError(PortafolioError):
             detail=f"ArchivoMedia id={media_id}",
         )
         self.media_id = media_id
+
+
+# === NUEVOS ERRORES PARA PROCESAMIENTO MARCA DE AGUA ===
+
+class MediaNoReprocesableError(PortafolioError):
+    media_id: int
+    razon: str
+    
+    def __init__(self, media_id: int, razon: str) -> None:
+        super().__init__(
+            code=400,
+            message="El archivo no puede ser reprocesado",
+            detail=f"ArchivoMedia id={media_id}: {razon}",
+        )
+        self.media_id = media_id
+        self.razon = razon
+
+
+class MediaIntentosExcedidosError(PortafolioError):
+    media_id: int
+    intentos: int
+    max_intentos: int
+    
+    def __init__(self, media_id: int, intentos: int, max_intentos: int) -> None:
+        super().__init__(
+            code=429,
+            message="Máximo de intentos de procesamiento excedido",
+            detail=f"ArchivoMedia id={media_id}: {intentos}/{max_intentos}",
+        )
+        self.media_id = media_id
+        self.intentos = intentos
+        self.max_intentos = max_intentos
+
+
+class MediaProcesamientoError(PortafolioError):
+    media_id: int
+    error_tecnico: str
+    
+    def __init__(self, media_id: int, error_tecnico: str) -> None:
+        super().__init__(
+            code=500,
+            message="Error al procesar marca de agua",
+            detail=f"ArchivoMedia id={media_id}: {error_tecnico}",
+        )
+        self.media_id = media_id
+        self.error_tecnico = error_tecnico

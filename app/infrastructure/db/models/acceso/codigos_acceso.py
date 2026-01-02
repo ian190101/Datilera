@@ -5,6 +5,7 @@ from sqlalchemy import (
 )
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class EstadoCodigo(enum.Enum):
     pendiente = "pendiente"
@@ -50,6 +51,33 @@ class CodigoAcceso(Base):
     creado_en = Column(DateTime, nullable=False, server_default=func.now(), index=True)
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
+    sede = relationship("Sede", back_populates="codigos_acceso")
+    rol = relationship("Rol", back_populates="codigos_acceso")
+
+    usuario_destino = relationship(
+        "Usuario",
+        foreign_keys=[usuario_destino_id],
+        back_populates="codigos_acceso_asignados",
+    )
+
+    creador = relationship(
+        "Usuario",
+        foreign_keys=[creado_por],
+        back_populates="codigos_acceso_creados",
+    )
+
+    alumno = relationship(
+        "Alumno",
+        back_populates="codigos_acceso",
+    )
+
+    usos = relationship(
+        "CodigoAccesoUso",
+        back_populates="codigo",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
 
 class CodigoAccesoUso(Base):
     __tablename__ = "codigos_acceso_usos"
@@ -60,3 +88,7 @@ class CodigoAccesoUso(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
     rol_id = Column(Integer, ForeignKey("roles.id", ondelete="RESTRICT"), nullable=False, index=True)
     consumido_en = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    codigo = relationship("CodigoAcceso", back_populates="usos")
+    usuario = relationship("Usuario", back_populates="codigos_acceso_usados")
+    rol = relationship("Rol", back_populates="usos_codigos_acceso")

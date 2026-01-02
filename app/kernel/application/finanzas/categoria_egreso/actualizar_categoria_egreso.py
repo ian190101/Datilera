@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.kernel.domain.finanzas import CategoriaEgreso
-from app.kernel.domain.finanzas.ports import CategoriaEgresoRepositoryPort
+from app.kernel.domain.finanzas.ports import ICategoriaEgresoRepository
 from app.kernel.domain.finanzas.errors import (
-    CategoriaEgresoNoEncontrada,
-    CategoriaEgresoDuplicada
+    CategoriaEgresoNoEncontradaError,
+    CategoriaEgresoYaExisteError
 )
 
 
@@ -26,7 +26,7 @@ class ActualizarCategoriaEgresoCommand:
 class ActualizarCategoriaEgresoUseCase:
     """Caso de uso: Actualizar categoría de egreso"""
 
-    def __init__(self, categoria_repo: CategoriaEgresoRepositoryPort):
+    def __init__(self, categoria_repo: ICategoriaEgresoRepository):
         self.categoria_repo = categoria_repo
 
     async def execute(self, command: ActualizarCategoriaEgresoCommand) -> CategoriaEgreso:
@@ -40,7 +40,7 @@ class ActualizarCategoriaEgresoUseCase:
         # Obtener categoría existente
         categoria = await self.categoria_repo.obtener_por_id(command.categoria_id)
         if not categoria:
-            raise CategoriaEgresoNoEncontrada(command.categoria_id)
+            raise CategoriaEgresoNoEncontradaError(command.categoria_id)
 
         # Validar nombre único si se cambia
         if command.nombre and command.nombre != categoria.nombre:
@@ -50,7 +50,7 @@ class ActualizarCategoriaEgresoUseCase:
                 excluir_id=categoria.id
             )
             if existe:
-                raise CategoriaEgresoDuplicada(command.nombre, categoria.sede_id)
+                raise CategoriaEgresoYaExisteError(command.nombre, categoria.sede_id)
             categoria.nombre = command.nombre.strip()
 
         # Actualizar campos opcionales

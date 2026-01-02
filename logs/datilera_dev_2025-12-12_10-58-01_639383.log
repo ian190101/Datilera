@@ -1,0 +1,4 @@
+2025-12-12 10:58:01.640 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-12 11:14:54.733 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TemplateNotFound: academico/grupos/index.html
+2025-12-12 11:20:08.215 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Settings' object has no attribute 'API_SECRET_KEY'
+2025-12-12 11:53:07.367 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

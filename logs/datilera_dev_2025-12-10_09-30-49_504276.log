@@ -1,0 +1,4 @@
+2025-12-10 09:30:49.506 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-10 09:30:52.355 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: OperationalError: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on '127.0.0.1'")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-12-10 10:03:42.485 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

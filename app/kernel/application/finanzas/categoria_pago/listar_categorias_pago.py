@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import List
 
 from app.kernel.domain.finanzas import CategoriaPago
-from app.kernel.domain.finanzas.ports import CategoriaPagoRepositoryPort
+from app.kernel.domain.finanzas.ports import ICategoriaPagoRepository
 
 
 @dataclass
@@ -19,7 +19,7 @@ class ListarCategoriasPagoQuery:
 class ListarCategoriasPagoUseCase:
     """Caso de uso: Listar categorías de pago de una sede"""
 
-    def __init__(self, categoria_repo: CategoriaPagoRepositoryPort):
+    def __init__(self, categoria_repo: ICategoriaPagoRepository):
         self.categoria_repo = categoria_repo
 
     async def execute(self, query: ListarCategoriasPagoQuery) -> List[CategoriaPago]:

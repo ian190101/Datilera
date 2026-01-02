@@ -1,56 +1,123 @@
-# app/application/finanzas/egresos/anular_egreso.py
+# app/application/use_cases/finanzas/anular_egreso.py
 """
-CU: Anular egreso creando contramovimiento INGRESO (no borra movimiento original).
-Regla: saldo = saldo_actual + monto, referencia "reversa egreso:<mov_id>".
+Caso de uso: Anular un egreso existente.
+Arquitectura hexagonal - Solo usa puertos, no implementaciones concretas.
 """
-from dataclasses import dataclass
-from datetime import date
-from app.kernel.domain.finanzas import LibroCaja, TipoMovimiento
-from app.kernel.domain.finanzas.ports import LibroCajaRepositoryPort
-from app.kernel.domain.finanzas.errors import MovimientoInvalido
+from datetime import datetime
+
+from app.kernel.domain.finanzas.egreso_entidad import EgresoAnular
+from app.kernel.domain.finanzas.ports import (
+    IEgresoRepository,
+    ILibroCajaRepository,
+)
+from app.kernel.domain.finanzas.errors import (
+    EgresoNoEncontradoError,
+    EgresoYaAnuladoError,
+    EgresoError,
+)
 
 
-@dataclass
-class AnularEgresoCommand:
-    movimiento_id: int
-    sede_id: int
-    fecha: date
-    usuario_registro_id: int
-    referencia: str | None = None
-    concepto: str | None = None
-    categoria_pago_id: int | None = None  # opcional: categoría de ajuste ingreso
+class AnularEgresoUC:
+    """
+    Caso de uso: Anular un egreso existente.
+    
+    Flujo:
+    1. Obtener egreso usando puerto
+    2. Validar que existe y no está anulado
+    3. Anular el egreso usando puerto
+    4. Registrar anulación en libro de caja (como ingreso de reversión)
+    5. Retornar confirmación
+    """
 
+    def __init__(
+        self,
+        egreso_repo: IEgresoRepository,
+        libro_caja_repo: ILibroCajaRepository
+    ):
+        """
+        Constructor con inyección de dependencias por puertos.
+        
+        Args:
+            egreso_repo: Puerto del repositorio de egresos
+            libro_caja_repo: Puerto del repositorio de libro de caja
+        """
+        self._egreso_repo = egreso_repo
+        self._libro_caja_repo = libro_caja_repo
 
-class AnularEgresoUseCase:
-    def __init__(self, libro_repo: LibroCajaRepositoryPort):
-        self.libro_repo = libro_repo
-
-    async def execute(self, cmd: AnularEgresoCommand) -> LibroCaja:
-        mov = await self.libro_repo.obtener_por_id(cmd.movimiento_id)
-        if not mov:
-            raise MovimientoInvalido(f"Movimiento {cmd.movimiento_id} no existe")
-        if mov.sede_id != cmd.sede_id:
-            raise MovimientoInvalido(f"El movimiento {cmd.movimiento_id} no pertenece a la sede {cmd.sede_id}")
-        if mov.tipo != TipoMovimiento.EGRESO:
-            raise MovimientoInvalido(f"El movimiento {cmd.movimiento_id} no es un egreso")
-
-        # idempotencia sencilla: si ya existe una reversa con misma referencia, no duplicar
-        # (en repo real, podrías buscar por referencia exacta "reversa egreso:<id>")
-        saldo_actual = await self.libro_repo.obtener_saldo_actual(cmd.sede_id)
-        saldo_nuevo = saldo_actual + mov.monto
-
-        reversa = LibroCaja(
-            id=0,
-            sede_id=cmd.sede_id,
-            fecha=cmd.fecha,
-            tipo=TipoMovimiento.INGRESO,
-            categoria_pago_id=cmd.categoria_pago_id,   # puede ser None; se admite concepto libre
-            categoria_egreso_id=None,
-            pago_id=None,
-            monto=mov.monto,
-            saldo_acumulado=saldo_nuevo,
-            concepto=cmd.concepto or f"Reversa de egreso {mov.id}",
-            referencia=cmd.referencia or f"reversa egreso:{mov.id}",
-            usuario_registro_id=cmd.usuario_registro_id,
-        )
-        return await self.libro_repo.registrar_movimiento(reversa)
+    async def execute(
+        self,
+        egreso_id: int,
+        datos: EgresoAnular
+    ) -> bool:
+        """
+        Anula un egreso existente.
+        
+        Args:
+            egreso_id: ID del egreso a anular
+            datos: Schema Pydantic con motivo y usuario (ya validados)
+            
+        Returns:
+            True si se anuló correctamente
+            
+        Raises:
+            EgresoNoEncontradoError: Si el egreso no existe
+            EgresoYaAnuladoError: Si el egreso ya está anulado
+            EgresoError: Para otros errores de negocio
+        """
+        # ✅ 1. Pydantic ya validó motivo (>=10 caracteres) y anulado_por (>0)
+        
+        # ✅ 2. Obtener egreso usando el puerto
+        egreso_dict = await self._egreso_repo.obtener_por_id(egreso_id)
+        
+        if not egreso_dict:
+            raise EgresoNoEncontradoError(
+                f"Egreso con ID {egreso_id} no encontrado"
+            )
+        
+        # ✅ 3. Validar que no esté anulado
+        if egreso_dict.get('anulado', False):
+            raise EgresoYaAnuladoError(
+                f"El egreso {egreso_id} ya está anulado"
+            )
+        
+        # ✅ 4. Obtener datos del egreso
+        monto = egreso_dict.get('monto')
+        sede_id = egreso_dict.get('sede_id')
+        
+        if not monto or monto <= 0:
+            raise EgresoError(
+                f"Egreso {egreso_id} tiene monto inválido: {monto}"
+            )
+        
+        # ✅ 5. Anular el egreso usando el puerto
+        try:
+            success = await self._egreso_repo.anular(
+                egreso_id=egreso_id,
+                anulado_por_id=datos.anulado_por,
+                motivo=datos.motivo_anulacion
+            )
+            
+            if not success:
+                raise EgresoError(f"No se pudo anular el egreso {egreso_id}")
+                
+        except Exception as e:
+            raise EgresoError(f"Error al anular el egreso: {str(e)}")
+        
+        # ✅ 6. Registrar anulación en libro de caja (como ingreso de reversión)
+        try:
+            await self._libro_caja_repo.registrar_ingreso(
+                monto=monto,
+                fecha=datetime.utcnow(),
+                registrado_por_id=datos.anulado_por,
+                observaciones=f"Anulación de egreso ID {egreso_id}. Motivo: {datos.motivo_anulacion}",
+                pago_id=None,
+                sede_id=sede_id
+            )
+        except Exception as e:
+            # El egreso ya se anuló, pero falló el libro de caja
+            # Podrías implementar compensación o logging
+            raise EgresoError(
+                f"Egreso {egreso_id} anulado pero falló registro en libro de caja: {str(e)}"
+            )
+        
+        return True

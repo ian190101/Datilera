@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-8 flex items-center justify-between"> <div> <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Finanzas</h1> <p class="mt-2 text-gray-600 dark:text-gray-400">Control de Caja, Ingresos, Egresos, Arqueo y Reportes.</p> </div> <div class="flex flex-wrap gap-3"> <button onclick="openModal('modal-gasto')" class="inline-flex items-center px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all"> <i class="fas fa-minus-circle mr-2"></i> Registrar Gasto </button>
+<button onclick="openModal('modal-pago')"
+  class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all">
+  <i class="fas fa-plus-circle mr-2"></i> Registrar Ingreso
+</button>
+</div> </div> <!-- KPIs --> <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4"> <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"> <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Ingresos del Mes</p> <h3 class="text-2xl font-bold text-gray-900 dark:text-white mt-2" id="kpi_ingresos">Bs. 0.00</h3> </div> <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"> <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Gastos del Mes</p> <h3 class="text-2xl font-bold text-red-600 mt-2" id="kpi_gastos">Bs. 0.00</h3> </div> <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"> <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Saldo en Caja</p> <h3 class="text-2xl font-bold text-blue-600 mt-2" id="kpi_saldo">Bs. 0.00</h3> </div> </div> <!-- Botones debajo de KPIs --> <div class="mb-8 flex flex-wrap gap-3"> <button onclick="openModal('modal-cat-egreso')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center"> <i class="fas fa-tags mr-2"></i> Nueva categoría de egreso </button>
+<button onclick="openModal('modal-cat-ingreso')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center">
+<i class="fas fa-tags mr-2"></i> Nueva categoría de ingreso
+</button>
+
+<button onclick="openModal('modal-plan-pago')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center">
+<i class="fas fa-calendar-check mr-2"></i> Plan de pago
+</button>
+
+</div> 
+<!-- Tabs --> 
+<div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+        
+        <li class="mr-2">
+            <button onclick="cambiarTab('pagos')" id="tab-pagos" 
+                class="inline-block p-4 border-b-2 rounded-t-lg transition-colors border-[#DD8E0A] text-[#DD8E0A] dark:text-[#DD8E0A] dark:border-[#DD8E0A]">
+                Historial
+            </button>
+        </li>
+
+        <li class="mr-2">
+            <button onclick="cambiarTab('deudas')" id="tab-deudas" 
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg transition-colors text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                Deudores
+            </button>
+        </li>
+
+        <li class="mr-2">
+            <button onclick="cambiarTab('sueldos')" id="tab-sueldos" 
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg transition-colors text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                Sueldos
+            </button>
+        </li>
+
+        <li class="mr-2">
+            <button onclick="cambiarTab('arqueo')" id="tab-arqueo" 
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg transition-colors text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                Arqueo (Resumen)
+            </button>
+        </li>
+
+        <li class="mr-2">
+            <button onclick="cambiarTab('movimientos')" id="tab-movimientos" 
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg transition-colors text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                Movimientos
+            </button>
+        </li>
+    </ul>
+</div>
+<!-- VISTA: HISTORIAL --> <div id="vista-pagos" class="block"> <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700"> 
+    <div class="overflow-x-auto"> 
+        <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400"> 
+            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs"> 
+                <tr> 
+                    <th class="px-6 py-3">Fecha</th> 
+                    <th class="px-6 py-3">Tipo</th> 
+                    <th class="px-6 py-3">Detalle</th> 
+                    <th class="px-6 py-3">Método</th> 
+                    <th class="px-6 py-3 text-right">Monto (Bs.)</th> 
+                    <th class="px-6 py-3 text-center">Recibo</th> 
+                </tr> 
+            </thead> 
+            <tbody id="tabla-historial-body" class="divide-y divide-gray-200 dark:divide-gray-700"> 
+                <tr> <td colspan="6" class="px-6 py-8 text-center text-gray-400">Cargando...</td> 
+                </tr> 
+            </tbody> 
+        </table> 
+    </div> 
+</div> 
+</div> 
+<!-- VISTA: DEUDAS --> <div id="vista-deudas" class="hidden"> <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700"> <div class="overflow-x-auto"> <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400"> <thead class="bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 uppercase text-xs"> <tr> <th class="px-6 py-3">Alumno</th> <th class="px-6 py-3">Concepto</th> <th class="px-6 py-3">Días atraso</th> <th class="px-6 py-3 text-right">Deuda (Bs.)</th> <th class="px-6 py-3 text-center">Acción</th> </tr> </thead> <tbody id="tabla-deudores" class="divide-y divide-gray-200 dark:divide-gray-700"> <tr> <td colspan="5" class="px-6 py-8 text-center text-gray-400">Cargando...</td> </tr> </tbody> </table> </div> </div> </div> 
+ <!-- VISTA: ARQUEO RESUMEN --> 
+  <div id="vista-arqueo" class="hidden"> 
+    <div id="reporte-eeff-container" class="space-y-6">
+
+    </div> 
+  </div>
+ <div id="vista-sueldos" class="hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Gestión</label>
+                <input id="sueldo_anio" type="number" value="2025" class="mt-1 w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Mes</label>
+                <select id="sueldo_mes" class="mt-1 w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Estado</label>
+                <select id="sueldo_estado" class="mt-1 w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                    <option value="todos">Todos</option>
+                    <option value="pagado">Pagados</option>
+                    <option value="pendiente">Pendientes</option>
+                </select>
+            </div>
+            <div>
+                <button onclick="cargarReporteSueldos()" class="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium shadow">
+                    Filtrar Planilla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400"> 
+              <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs"> 
+                    <tr>
+                        <th class="px-6 py-3">Profesora / Staff</th>
+                        <th class="px-6 py-3 text-center">Estado</th>
+                        <th class="px-6 py-3 text-right">Monto Pagado</th>
+                        <th class="px-6 py-3 text-center">Fecha Pago</th>
+                        <th class="px-6 py-3 text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-sueldos-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tr><td colspan="5" class="px-6 py-8 text-center">Cargando planilla...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div> 
+<!-- VISTA: MOVIMIENTOS (EXCEL) --> 
+ <div id="vista-movimientos" class="hidden"> 
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 mb-4"> 
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <div class="md:col-span-2"> 
+                <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Periodo</label> 
+                <select id="mov_periodo" class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"> 
+                    <option value="mes">Mes</option> <option value="gestion">Gestión (Año)</option> </select> </div>
+  <div>
+    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Año</label>
+    <input id="mov_anio" type="number" min="2015" step="1"
+      class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+  </div>
+
+  <div>
+    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Mes</label>
+    <select id="mov_mes"
+      class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+      <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+      <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+      <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase">Tipo</label>
+    <select id="mov_tipo"
+      class="mt-1 w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+      <option value="todos">Todos</option>
+      <option value="ingreso">Ingresos</option>
+      <option value="egreso">Egresos</option>
+    </select>
+  </div>
+
+  <div class="md:col-span-1 flex gap-2">
+    <button onclick="cargarMovimientosCaja()"
+      class="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium shadow">
+      Buscar
+    </button>
+  </div>
+</div>
+
+<div class="mt-3 flex flex-wrap gap-3 text-sm">
+  <div class="text-gray-700 dark:text-gray-200">Total ingresos: <span id="mov_total_ingresos" class="font-semibold">Bs. 0.00</span></div>
+  <div class="text-gray-700 dark:text-gray-200">Total egresos: <span id="mov_total_egresos" class="font-semibold">Bs. 0.00</span></div>
+  <div class="text-gray-700 dark:text-gray-200">Saldo: <span id="mov_saldo_periodo" class="font-semibold">Bs. 0.00</span></div>
+</div>
+</div> 
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700"> 
+    <div class="overflow-x-auto"> 
+        <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400"> 
+            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs"> 
+                <tr> 
+                    <th class="px-6 py-3">Fecha</th>
+                    <th class="px-6 py-3">Tipo</th> <th class="px-6 py-3">Categoría</th>
+                    <th class="px-6 py-3">Detalle</th> <th class="px-6 py-3">Método</th> 
+                    <th class="px-6 py-3 text-right">Monto</th> 
+                </tr> 
+            </thead> 
+            <tbody id="tabla-movimientos-body" class="divide-y divide-gray-200 dark:divide-gray-700"> 
+                <tr> 
+                    <td colspan="7" class="px-6 py-8 text-center text-gray-400">Seleccione filtros y presione “Buscar”.</td> 
+                </tr> 
+            </tbody> 
+        </table> 
+    </div> 
+</div> 
+</div> 
+<div id="modal-pago" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-pago')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form id="form-pago" onsubmit="guardarPago(event)" enctype="multipart/form-data" class="p-6">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Registrar ingreso</h3>
+                    <button type="button" onclick="closeModal('modal-pago')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alumno</label>
+                        <select id="pago_alumno_id" name="pagoalumnoid" required onchange="cargarCuotasDelAlumno()"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                            <option value="">Seleccione un alumno...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cuota / Concepto</label>
+                        <select id="pago_cuota_id" name="pagocuotaid" required onchange="actualizarMontoPagar()"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                            <option value="">Seleccione primero al alumno...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría (Ingreso)</label>
+                        <select id="pago_categoria_id" name="pagocategoriaid" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                            <option value="">Cargando categorías...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto a pagar (Bs.)</label>
+                        <input type="number" step="0.01" id="pago_monto" name="pagomonto" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors font-bold text-green-600 dark:text-green-400">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método</label>
+                            <select id="pago_metodo" name="pago_metodo" onchange="toggleCamposComprobante()"
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                                <option value="EFECTIVO">Efectivo</option>
+                                <option value="QR">QR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
+                            <input type="date" id="pago_fecha" name="pago_fecha" required
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div id="div-comprobante" class="hidden p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nro. referencia</label>
+                            <input type="text" id="pago_referencia" name="pago_referencia" placeholder="Ej: 123456"
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprobante (foto/PDF)</label>
+                            <input type="file" id="pago_archivo" name="pago_compobante" accept="image/*,.pdf"
+                                class="block w-full text-sm text-gray-500 dark:text-gray-400
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-lg file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-green-100 file:text-green-700
+                                dark:file:bg-green-900/30 dark:file:text-green-300
+                                hover:file:bg-green-200 dark:hover:file:bg-green-900/50
+                                cursor-pointer transition-colors">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-pago')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-700 shadow-md transition-colors flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i> Confirmar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<div id="modal-gasto" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-gasto')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form id="form-gasto" onsubmit="guardarGasto(event)" enctype="multipart/form-data" class="p-6">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Registrar egreso</h3>
+                    <button type="button" onclick="closeModal('modal-gasto')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría (Egreso)</label>
+                        <select id="gasto_categoria" name="categoria" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none transition-colors">
+                            <option value="">Cargando categorías...</option>
+                        </select>
+                    </div>
+
+                    <div id="div-gasto-profesora" class="hidden bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                        <label class="block text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Seleccionar Profesora</label>
+                        <select id="gasto_profesora" name="profesora_id" 
+                            class="block w-full border border-blue-300 dark:border-blue-700 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm outline-none">
+                            <option value="">-- Seleccione --</option>
+                        </select>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-2">* Se agregará el nombre al detalle automáticamente.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Detalle / Proveedor</label>
+                        <input type="text" name="detalle" required placeholder="Ej: Pago factura Elfec Septiembre"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none transition-colors">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto (Bs.)</label>
+                            <input type="number" step="0.01" name="monto" required placeholder="0.00"
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
+                            <input type="date" name="fecha" id="gasto_fecha" required
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método</label>
+                        <select name="metodopago"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-red-500 focus:border-red-500 outline-none transition-colors">
+                            <option value="EFECTIVO">Efectivo (Caja chica)</option>
+                            <option value="TRANSFERENCIA">Transferencia</option>
+                            <option value="CHEQUE">Cheque</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprobante (Opcional)</label>
+                        <input type="file" name="archivocomprobante" accept="image/*,.pdf"
+                            class="block w-full text-sm text-gray-500 dark:text-gray-400
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-lg file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-red-50 file:text-red-700
+                            dark:file:bg-red-900/20 dark:file:text-red-300
+                            hover:file:bg-red-100 dark:hover:file:bg-red-900/40
+                            cursor-pointer transition-colors">
+                    </div>
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-gasto')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-red-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-red-700 shadow-md transition-colors flex items-center gap-2">
+                        <i class="fas fa-save"></i> Registrar Egreso
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<div id="modal-cat-egreso" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-cat-egreso')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form id="form-cat-egreso" class="p-6" onsubmit="submitCategoria(event,'egreso')">
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva categoría de egreso</h3>
+                    <button type="button" onclick="closeModal('modal-cat-egreso')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Mantenimiento, Publicidad" 
+                        class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/finanzas/categorias/egresos" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">
+                        Ver todas las categorías
+                    </a>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-cat-egreso')" 
+                            class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                            Guardar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<!-- ===================== MODAL: CATEGORÍA INGRESO ===================== --> 
+ <div id="modal-cat-ingreso" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-cat-ingreso')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form id="form-cat-ingreso" class="p-6" onsubmit="submitCategoria(event,'ingreso')">
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva categoría de ingreso</h3>
+                    <button type="button" onclick="closeModal('modal-cat-ingreso')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Mensualidad, Matricula" 
+                        class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/finanzas/categorias/ingresos" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">
+                        Ver todas las categorías
+                    </a>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-cat-ingreso')" 
+                            class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                            Guardar
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<div id="modal-plan-pago" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-plan-pago')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full border border-gray-200 dark:border-gray-700">
+            
+            <form id="form-plan-pago" class="p-6" onsubmit="submitPlanPago(event)">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Crear plan de pago</h3>
+                    <button type="button" onclick="closeModal('modal-plan-pago')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alumno</label>
+                        <select id="plan_alumno_id" name="alumnoid" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha de ingreso</label>
+                        <input type="date" name="fecha_ingreso" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mensualidad (Bs.)</label>
+                        <input type="number" step="0.01" name="mensualidad" required placeholder="0.00"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Incluye material/merienda</label>
+                        <select name="incluye_material"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                            <option value="SI">SI</option>
+                            <option value="NO">NO</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto material (Bs.)</label>
+                        <input type="number" step="0.01" name="monto_material" value="3400"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Plan</label>
+                        <select name="tipo_pago" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors">
+                            <option value="MENSUAL">MENSUAL</option>
+                            <option value="SEMESTRAL">SEMESTRAL</option>
+                            <option value="ANUAL">ANUAL</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/finanzas/planes-pago" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">
+                        Ver todos los planes
+                    </a>
+                    
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-plan-pago')" 
+                            class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" 
+                            class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                            Generar plan
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+
+<script type="module" src="/static/js/finanzas.js"></script>
+{% endblock %}

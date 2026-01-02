@@ -1,0 +1,4 @@
+2025-12-09 08:37:52.184 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-09 08:38:02.878 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: UnknownHashError: hash could not be identified
+2025-12-09 08:42:45.187 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: ValueError: password cannot be longer than 72 bytes, truncate manually if necessary (e.g. my_password[:72])
+2025-12-09 08:52:19.608 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

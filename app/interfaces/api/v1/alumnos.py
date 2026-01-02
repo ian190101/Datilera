@@ -76,6 +76,11 @@ from app.kernel.application.alumnos import (
     AsignarAlumnoParaleloCU,
     ListarAlumnosParaleloCU,
     EliminarAsignacionParaleloCU,
+    #Estadisticas
+    ObtenerReporteRetrasosUseCase,
+    ObtenerReporteFaltasUseCase,
+    ObtenerEstadisticasParaleloUseCase,
+    ObtenerEstadisticasSedeUseCase,
 )
 
 router = APIRouter(prefix="/alumnos", tags=["Alumnos"])
@@ -531,3 +536,93 @@ async def eliminar_asignacion_paralelo(asignacion_id: int, db: SessionDep):
     uc = EliminarAsignacionParaleloCU(paralelos_repo(db))
     await uc.ejecutar(asignacion_id)
     return None
+
+# ---------------------------------------------------------------------------
+# ESTADÍSTICAS DE ASISTENCIA
+# ---------------------------------------------------------------------------
+
+@router.get("/asistencia/estadisticas/paralelo/{paralelo_id}")
+async def obtener_estadisticas_paralelo(
+    paralelo_id: int,
+    fecha_inicio: date,
+    fecha_fin: date,
+    db: SessionDep,
+):
+    """Obtener estadísticas de asistencia de un paralelo.
+    
+    Retorna contadores de presentes, tardanzas, ausentes y porcentajes.
+    """
+    from app.kernel.application.alumnos.estadisticas import (
+        ObtenerEstadisticasParaleloUseCase
+    )
+    
+    uc = ObtenerEstadisticasParaleloUseCase(asis_alum_repo(db))
+    return await uc.ejecutar(paralelo_id, fecha_inicio, fecha_fin)
+
+
+@router.get("/asistencia/estadisticas/sede/{sede_id}")
+async def obtener_estadisticas_sede(
+    sede_id: int,
+    fecha_inicio: date,
+    fecha_fin: date,
+    db: SessionDep,
+):
+    """Obtener estadísticas de asistencia de una sede.
+    
+    Retorna estadísticas globales de todos los paralelos de la sede.
+    """
+    from app.kernel.application.alumnos.estadisticas import (
+        ObtenerEstadisticasSedeUseCase
+    )
+    
+    uc = ObtenerEstadisticasSedeUseCase(asis_alum_repo(db))
+    return await uc.ejecutar(sede_id, fecha_inicio, fecha_fin)
+
+
+@router.get("/asistencia/retrasos/reporte")
+async def obtener_reporte_retrasos(
+    sede_id: int,
+    fecha_inicio: date,
+    fecha_fin: date,
+    db: SessionDep,
+    limite: int = 100,
+):
+    """Obtener reporte de retrasos.
+    
+    Lista todos los registros de asistencia con estado='tarde'.
+    Útil para seguimiento y notificaciones a tutores.
+    """
+    from app.kernel.application.alumnos.estadisticas import (
+        ObtenerReporteRetrasosUseCase
+    )
+    
+    uc = ObtenerReporteRetrasosUseCase(asis_alum_repo(db))
+    return await uc.ejecutar(sede_id, fecha_inicio, fecha_fin, limite)
+
+
+@router.get("/asistencia/faltas/reporte")
+async def obtener_reporte_faltas(
+    sede_id: int,
+    fecha_inicio: date,
+    fecha_fin: date,
+    db: SessionDep,
+    solo_sin_justificar: bool = False,
+    limite: int = 100,
+):
+    """Obtener reporte de faltas.
+    
+    Lista todos los registros de ausencias (justificadas o no).
+    Útil para seguimiento académico y alertas tempranas.
+    """
+    from app.kernel.application.alumnos.estadisticas import (
+        ObtenerReporteFaltasUseCase
+    )
+    
+    uc = ObtenerReporteFaltasUseCase(asis_alum_repo(db))
+    return await uc.ejecutar(
+        sede_id, 
+        fecha_inicio, 
+        fecha_fin, 
+        solo_sin_justificar, 
+        limite
+    )

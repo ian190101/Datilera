@@ -1,0 +1,12 @@
+2025-12-23 13:09:46.622 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-23 13:10:22.585 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:12:28.310 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:16:51.953 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:18:34.110 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:20:30.413 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:22:08.783 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:23:07.373 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:23:14.828 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:24:48.514 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:26:40.789 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-23 13:51:03.278 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

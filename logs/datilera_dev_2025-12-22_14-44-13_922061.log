@@ -1,0 +1,4 @@
+2025-12-22 14:44:13.924 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-22 14:57:38.395 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-22 14:57:38.419 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-22 15:08:35.959 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

@@ -1,103 +1,110 @@
 # app/kernel/domain/finanzas/plan_pago_entidad.py
-from __future__ import annotations
-from datetime import datetime, date
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from datetime import date, datetime
 from decimal import Decimal
-from enum import Enum
-from typing import List, Optional
-from pydantic import BaseModel, Field, model_validator, computed_field
+from typing import Optional, Annotated
+from dateutil.relativedelta import relativedelta
 
-class ReglaInicial(str, Enum):
-    CUARENTA_PORCIENTO = "40%"
-    MIL_BS = "1000_bs"
-    PERSONALIZADA = "personalizada"  # permite monto inicial distinto
 
-class PlanCuota(BaseModel):
-    """Entidad de cuota del plan (tabla independiente en infraestructura)."""
-    id: int
-    plan_id: int
+class PlanPagoEntidad(BaseModel):
+    """Entidad de dominio: Plan de pago personalizado."""
     
-    # Validación: Monto > 0
-    monto: Decimal = Field(..., gt=0, decimal_places=2)
-    vencimiento: date
-    
-    pagada: bool = False
-    pago_id: Optional[int] = None
-    
+    model_config = ConfigDict(
+        from_attributes=True,       # equiv. a orm_mode / from_attributes en v1
+        populate_by_name=True,      # permite usar alias si los defines
+    )
+
+    # Identificación
+    id: Optional[int] = None
+    alumno_id: int = Field(..., gt=0)
+
+    # Montos base
+    monto_base: Decimal = Field(default=Decimal('3400.00'), ge=0)
+
+    # Material (opcional)
+    incluye_material: bool = False
+    monto_material: Decimal = Field(default=Decimal('0.00'), ge=0)
+
+    # Merienda (opcional)
+    incluye_merienda: bool = False
+    monto_merienda: Decimal = Field(default=Decimal('0.00'), ge=0)
+
+    # Total y cuotas
+    monto_total: Decimal = Field(..., ge=0)
+    numero_cuotas: int = Field(default=12, ge=1, le=24)
+    monto_cuota: Decimal = Field(..., ge=0)
+
+    # Vigencia
+    fecha_inicio: date = Field(...)
+    fecha_fin: Optional[date] = None
+
+    # Estado
+    estado: Annotated[str, Field(default='activo', pattern=r'^(activo|completado|cancelado)$')]
+
+    # Ubicación
+    sede_id: int = Field(..., gt=0)
+
+    # Auditoría
+    creado_por: int = Field(..., gt=0)
     creado_en: datetime = Field(default_factory=datetime.utcnow)
-    pagada_en: Optional[datetime] = None
+    actualizado_en: Optional[datetime] = None
 
-    def registrar_pago(self, pago_id: int, fecha: Optional[datetime] = None) -> None:
-        """Método de dominio para actualizar el estado de la cuota"""
-        if self.pagada:
-            return
-        self.pagada = True
-        self.pago_id = pago_id
-        self.pagada_en = fecha or datetime.utcnow()
+    # ------------------------------------------------------------------
+    # Validadores
+    # ------------------------------------------------------------------
 
-class PlanPago(BaseModel):
-    """
-    Plan anual de pago para categorías dinámicas (p.ej., 'material' o 'merienda').
+    @field_validator('monto_material')
+    @classmethod
+    def validar_material(cls, v: Decimal, info) -> Decimal:
+        if info.data.get('incluye_material') and v <= 0:
+            raise ValueError('Si incluye material, el monto debe ser mayor a 0')
+        return v
 
-    Reglas (del documento):
-    - Total base sugerido: 3.400 Bs (parametrizable).
-    - Cuota inicial: 40% o 1.000 Bs, o personalizada.
-    - Resto: cuotas mensuales variables personalizadas (sin intereses).
-    - Debe permitir adelantos (marcar pagado una o varias cuotas).
-    """
-    id: int
-    nino_id: int
-    sede_id: int
-    
-    # Referencia a CategoriaPago. gt=0 asegura ID válido.
-    categoria_id: int = Field(..., gt=0)
-    
-    # Default sugerido 3400, validación > 0
-    total: Decimal = Field(default=Decimal("3400.00"), gt=0, decimal_places=2)
-    
-    regla_inicial: ReglaInicial = ReglaInicial.CUARENTA_PORCIENTO
-    monto_inicial_personalizado: Optional[Decimal] = Field(default=None, decimal_places=2)
-    
-    # Inicializa lista vacía
-    cuotas: List[PlanCuota] = Field(default_factory=list)
-    creado_en: datetime = Field(default_factory=datetime.utcnow)
+    @field_validator('monto_merienda')
+    @classmethod
+    def validar_merienda(cls, v: Decimal, info) -> Decimal:
+        if info.data.get('incluye_merienda') and v <= 0:
+            raise ValueError('Si incluye merienda, el monto debe ser mayor a 0')
+        return v
 
     @model_validator(mode='after')
-    def validar_regla_personalizada(self) -> PlanPago:
-        """
-        Valida que si la regla es PERSONALIZADA, se haya provisto un monto inicial válido.
-        """
-        if self.regla_inicial == ReglaInicial.PERSONALIZADA:
-            if self.monto_inicial_personalizado is None or self.monto_inicial_personalizado <= 0:
-                raise ValueError("Monto inicial personalizado inválido para la regla seleccionada.")
+    def calcular_montos(self) -> 'PlanPagoEntidad':
+        """Calcula monto_total y monto_cuota automáticamente si no están definidos."""
+        total = self.monto_base
+
+        if self.incluye_material:
+            total += self.monto_material
+        if self.incluye_merienda:
+            total += self.monto_merienda
+
+        # Si no viene definido o es cero, lo calculamos
+        if self.monto_total in (None, Decimal('0')):
+            self.monto_total = total
+
+        # Cálculo de cuota con redondeo a 2 decimales
+        if self.numero_cuotas > 0:
+            cuota = (self.monto_total / Decimal(self.numero_cuotas)).quantize(Decimal('0.01'))
+            self.monto_cuota = cuota
+
         return self
 
-    @computed_field
-    def monto_inicial_calculado(self) -> Decimal:
-        """
-        Calcula el monto de la cuota inicial según la regla.
-        Se incluye en la serialización JSON.
-        """
-        if self.regla_inicial == ReglaInicial.CUARENTA_PORCIENTO:
-            return (self.total * Decimal("0.40")).quantize(Decimal("0.01"))
-        
-        if self.regla_inicial == ReglaInicial.MIL_BS:
-            return Decimal("1000.00")
-        
-        return self.monto_inicial_personalizado or Decimal("0.00")
+    # ------------------------------------------------------------------
+    # Métodos de dominio
+    # ------------------------------------------------------------------
 
-    @computed_field
-    def saldo_pendiente(self) -> Decimal:
-        """
-        Calcula el saldo restante (Total - Inicial - Cuotas Pagadas).
-        """
-        # Sumamos solo las cuotas que ya están pagadas
-        pagado_cuotas = sum(
-            (c.monto for c in self.cuotas if c.pagada), 
-            Decimal("0.00")
-        )
-        # El saldo es: Total Plan - Monto Inicial (que se paga al principio) - Cuotas ya abonadas
-        # Nota: Asume que la 'cuota inicial' se paga aparte o se gestiona distinto a las cuotas mensuales listadas
-        return self.total - self.monto_inicial_calculado - pagado_cuotas
+    def calcular_fecha_fin(self) -> date:
+        """Fecha de finalización = fecha_inicio + numero_cuotas meses."""
+        return self.fecha_inicio + relativedelta(months=self.numero_cuotas)
 
-    def agregar_cuota(self, cuota: PlanCuota) -> None:
-        self.cuotas.append(cuota)
+    def esta_activo(self) -> bool:
+        return self.estado == 'activo'
+
+    # ------------------------------------------------------------------
+    # Uso típico (para que veas cómo queda la serialización perfecta)
+    # ------------------------------------------------------------------
+
+    # En tus endpoints o servicios:
+    # data = plan.model_dump()                    # → objetos date/datetime (ideal para Python)
+    # json_compatible = plan.model_dump(mode='json')  # → todo en strings ISO, listo para API
+    # json_str = plan.model_dump_json(indent=2)   # → string JSON directo

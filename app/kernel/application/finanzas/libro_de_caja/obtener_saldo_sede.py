@@ -4,7 +4,7 @@ CU: Obtener saldo actual de caja por sede
 """
 from dataclasses import dataclass
 from decimal import Decimal
-from app.kernel.domain.finanzas.ports import LibroCajaRepositoryPort
+from app.kernel.domain.finanzas.ports import ILibroCajaRepository
 
 
 @dataclass
@@ -13,7 +13,7 @@ class ObtenerSaldoSedeQuery:
 
 
 class ObtenerSaldoSedeUseCase:
-    def __init__(self, libro_repo: LibroCajaRepositoryPort):
+    def __init__(self, libro_repo: ILibroCajaRepository):
         self.libro_repo = libro_repo
 
     async def execute(self, query: ObtenerSaldoSedeQuery) -> Decimal:

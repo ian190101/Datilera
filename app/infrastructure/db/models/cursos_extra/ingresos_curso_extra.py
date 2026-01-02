@@ -43,4 +43,4 @@ class IngresoCursoExtra(Base):
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     
     # ============ Relaciones ============
-    curso = relationship("CursoExtra")
+    curso = relationship("CursoExtra", back_populates="ingresos")

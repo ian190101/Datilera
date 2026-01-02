@@ -1,0 +1,4 @@
+2025-12-15 11:32:38.271 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-15 11:33:02.050 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/inscripciones/120/foto
+2025-12-15 12:02:48.107 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/inscripciones/120/foto
+2025-12-15 15:25:18.138 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

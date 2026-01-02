@@ -1,0 +1,3 @@
+2025-12-09 08:01:14.248 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-09 08:02:48.383 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: NoForeignKeysError: Could not determine join condition between parent/child tables on relationship PlanPago.cuotas - there are no foreign keys linking these tables.  Ensure that referencing columns are associated with a ForeignKey or ForeignKeyConstraint, or specify a 'primaryjoin' expression.
+2025-12-09 08:04:12.456 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

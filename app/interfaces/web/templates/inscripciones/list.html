@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Inscripciones</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Gestión de alumnos inscritos y pre-inscritos</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/inscripciones/nueva" class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all">
+            <i class="fas fa-plus mr-2"></i> Nueva Pre-Inscripción
+        </a>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6 transition-colors">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Buscar</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="search" id="search-input" placeholder="Nombre, apellido, código..." 
+                       class="w-full pl-10 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all">
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Estado</label>
+            <select id="filter-estado" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Todos</option>
+                <option value="ACTIVO">Activo (Inscrito)</option>
+                <option value="PENDIENTE">Pendiente (Pre-inscrito)</option>
+                <option value="INACTIVO">Baja</option>
+            </select>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Grupo</label>
+            <select id="filter-grupo" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none">
+                <option value="">Todos</option>
+                </select>
+        </div>
+    </div>
+    
+    <div class="mt-4 flex justify-between items-center border-t border-gray-100 dark:border-gray-700 pt-4">
+        <button onclick="resetFilters()" class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <i class="fas fa-undo mr-2"></i> Limpiar Filtros
+        </button>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 flex space-x-8">
+        <div><span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</span><p class="text-xl font-bold text-gray-900 dark:text-white" id="total-count">--</p></div>
+        <div><span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Activos</span><p class="text-xl font-bold text-green-600 dark:text-green-400" id="activos-count">--</p></div>
+        <div><span class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pendientes</span><p class="text-xl font-bold text-yellow-600 dark:text-yellow-400" id="pendientes-count">--</p></div>
+        <div><button onclick="openModal('modal-grupo')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center">
+            <i class="fas fa-layer-group mr-2"></i> Nuevo Grupo
+        </button></div>
+        <div><button onclick="openModal('modal-paralelo')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center">
+            <i class="fas fa-columns mr-2"></i> Nuevo Paralelo
+        </button></div>
+        <div><button onclick="openModal('modal-turno')" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow transition-colors flex items-center">
+            <i class="fas fa-clock mr-2"></i> Nuevo Turno
+        </button></div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full whitespace-nowrap">
+            <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                    
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Alumno</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Código</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Edad</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Grupo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Paralelo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Turno</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tutor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="inscripciones-tbody" class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                </tbody>
+        </table>
+    </div>
+    
+     <!-- Paginación -->
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+            <div>
+                <select id="per-page" 
+                        class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100">
+                    <option value="10">10 por página</option>
+                    <option value="25">25 por página</option>
+                    <option value="50">50 por página</option>
+                    <option value="100">100 por página</option>
+                </select>
+            </div>
+            
+            <div id="pagination" class="flex space-x-2">
+                <!-- Botones de paginación generados dinámicamente -->
+            </div>
+        </div>
+    </div>
+    
+</div>
+</div>
+<div id="modal-grupo" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-grupo')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            <form id="form-grupo" class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo Grupo</h3>
+                    <button type="button" onclick="closeModal('modal-grupo')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Grupo</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Sala Cuna, Nidito" class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 focus:border-primary-500 outline-none">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gestión (Año)</label>
+                    <input type="number" name="gestion" required value="2025" class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-primary-500 outline-none">
+                </div>
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/academico/grupos" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">Ver todos los grupos</a>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-grupo')" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600">Cancelar</button>
+                        <button type="submit" class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-paralelo" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-paralelo')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            <form id="form-paralelo" class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo Paralelo</h3>
+                    <button type="button" onclick="closeModal('modal-paralelo')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Grupo Padre</label>
+                    <select id="select-grupo-modal" name="grupo_id" required class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 outline-none">
+                        </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Letra/Nombre</label>
+                        <input type="text" name="letra" required placeholder="A, B, Rojo..." class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Capacidad</label>
+                        <input type="number" name="capacidad" value="15" class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/academico/paralelos" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">Ver todos los paralelos</a>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-paralelo')" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-turno" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-turno')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            <form id="form-turno" class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo Turno</h3>
+                    <button type="button" onclick="closeModal('modal-turno')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Mañana, Tarde" class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora Inicio</label>
+                        <input type="time" name="hora_inicio" required class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora Fin</label>
+                        <input type="time" name="hora_fin" required class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/finanzas/turnos" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">Ver todos los turnos</a>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-turno')" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-horario" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-horario')"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            <form id="form-horario" class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo Horario</h3>
+                    <button type="button" onclick="closeModal('modal-horario')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                    <input type="text" name="nombre" required placeholder="Ej: Periodo 1" class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora Inicio</label>
+                        <input type="time" name="hora_inicio" required class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hora Fin</label>
+                        <input type="time" name="hora_fin" required class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <a href="/academico/horarios" class="text-sm text-primary-600 hover:text-primary-800 dark:text-primary-400 hover:underline">Ver horarios</a>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="closeModal('modal-horario')" class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-asignacion" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4">
+        <form id="form-asignacion" class="p-6">
+            <input type="hidden" name="alumno_id" id="assign-alumno-id">
+            
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Asignación Académica</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" id="assign-alumno-nombre">Seleccione el aula y turno</p>
+                </div>
+                <button type="button" onclick="closeModal('modal-asignacion')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Grupo / Nivel</label>
+                    <select id="assign-grupo" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Seleccione grupo...</option>
+                        </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Paralelo / Aula</label>
+                    <select id="assign-paralelo" name="paralelo_id" disabled class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-60 cursor-not-allowed">
+                        <option value="">Primero seleccione un grupo</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Turno</label>
+                    <select id="assign-turno" name="turno_id" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Seleccione turno...</option>
+                        </select>
+                </div>
+                
+                </div>
+            
+            <div class="mt-8 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('modal-asignacion')" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md flex items-center">
+                    <i class="fas fa-save mr-2"></i> Guardar Asignación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-foto" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-70 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
+        <h3 class="text-lg font-bold mb-4 dark:text-white">Subir Fotografía</h3>
+        <form id="form-foto" class="space-y-4">
+            <input type="hidden" id="foto-alumno-id" name="alumno_id">
+            
+            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer relative">
+                <input type="file" name="file" accept="image/*" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="previewImage(this)">
+                <div id="preview-container">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                    <p class="text-sm text-gray-500">Click para seleccionar</p>
+                </div>
+                <img id="img-preview" class="hidden mx-auto h-32 w-32 object-cover rounded-full border-4 border-white shadow-lg">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeModal('modal-foto')" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Subir</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-ficha" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-90 flex items-center justify-center backdrop-blur-sm overflow-y-auto py-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl mx-4 my-auto border border-gray-200 dark:border-gray-700">
+        
+        <div class="flex flex-col md:flex-row border-b-4 border-yellow-600">
+            <div class="bg-gray-800 p-4 flex items-center justify-center w-full md:w-48">
+                <div class="text-center">
+                    <i class="fas fa-home text-yellow-500 text-4xl"></i>
+                    <h2 class="text-yellow-500 font-bold text-sm mt-1">Datilera</h2>
+                </div>
+            </div>
+            <div class="flex-1 bg-yellow-700 p-4 flex flex-col justify-center text-center">
+                <h1 class="text-3xl font-bold text-white uppercase tracking-wider">FILE PERSONAL</h1>
+                <p class="text-yellow-100 text-sm mt-1">CENTRO INFANTIL DE DESARROLLO INTEGRAL</p>
+            </div>
+            <div class="w-full md:w-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center p-2 relative">
+                <img id="ficha-foto" src="" alt="Foto" class="h-32 w-32 object-cover rounded shadow-md bg-white">
+                <span class="absolute bottom-1 right-2 text-xs text-gray-500 font-mono">FOTO</span>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-6 text-sm">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border border-gray-400">
+                <div class="md:col-span-2 bg-gray-800 text-white p-2 font-bold flex items-center">Nombre Niñ@</div>
+                <div class="md:col-span-10 p-2 font-bold text-lg uppercase bg-gray-100 dark:bg-gray-700 dark:text-white" id="ficha-nombre">--</div>
+                
+                <div class="md:col-span-2 bg-gray-800 text-white p-2 font-bold">Fecha Nac.</div>
+                <div class="md:col-span-4 p-2 border-r border-gray-400 dark:text-white" id="ficha-nacimiento">--</div>
+                
+                <div class="md:col-span-1 bg-gray-800 text-white p-2 font-bold text-center">EDAD</div>
+                <div class="md:col-span-3 p-2 border-r border-gray-400 dark:text-white" id="ficha-edad">--</div>
+                <div class="md:col-span-2 p-2 text-right dark:text-white"><span id="ficha-meses">0</span> meses</div>
+            </div>
+
+            <div>
+                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Datos Familiares</div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border-l border-r border-b border-gray-400 bg-white dark:bg-gray-800">
+                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold uppercase">Nombre de Mamá</div>
+                    <div class="md:col-span-5 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-nombre">--</div>
+                    <div class="md:col-span-2 bg-gray-700 text-white p-2 text-xs font-bold">C.I.</div>
+                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-mama-ci">--</div>
+
+                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold">Correo / Celular</div>
+                    <div class="md:col-span-9 p-2 border-t border-gray-300 dark:text-white">
+                        <span id="ficha-mama-email" class="mr-4">--</span> | <span id="ficha-mama-cel" class="ml-4 font-bold">--</span>
+                    </div>
+
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Profesión</div>
+                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-prof">--</div>
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Lugar Trabajo</div>
+                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-lugar">--</div>
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Dirección Trab.</div>
+                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-mama-dir">--</div>
+                </div>
+
+                <div class="h-2 bg-gray-100 dark:bg-gray-900 border-l border-r border-gray-400"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border-l border-r border-b border-gray-400 bg-white dark:bg-gray-800">
+                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold uppercase">Nombre de Papá</div>
+                    <div class="md:col-span-5 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-nombre">--</div>
+                    <div class="md:col-span-2 bg-gray-700 text-white p-2 text-xs font-bold">C.I.</div>
+                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-papa-ci">--</div>
+
+                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold">Correo / Celular</div>
+                    <div class="md:col-span-9 p-2 border-t border-gray-300 dark:text-white">
+                        <span id="ficha-papa-email" class="mr-4">--</span> | <span id="ficha-papa-cel" class="ml-4 font-bold">--</span>
+                    </div>
+
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Profesión</div>
+                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-prof">--</div>
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Lugar Trabajo</div>
+                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-lugar">--</div>
+                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Dirección Trab.</div>
+                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-papa-dir">--</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-400">
+                <div class="bg-gray-800 text-white p-2 font-bold text-center">DIRECCIÓN FAMILIAR</div>
+                <div class="p-2 dark:text-white" id="ficha-direccion">--</div>
+                <div class="bg-gray-800 text-white p-2 font-bold text-center border-t border-gray-500">CELULARES</div>
+                <div class="p-2 border-t border-gray-400 dark:text-white" id="ficha-celulares">--</div>
+            </div>
+
+            <div>
+                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Persona a la que se avisa en caso de necesidad</div>
+                <div class="grid grid-cols-3 bg-gray-800 text-white text-xs text-center py-1">
+                    <div>NOMBRE</div>
+                    <div>PARENTESCO</div>
+                    <div>TELÉFONO</div>
+                </div>
+                <div class="grid grid-cols-3 border border-gray-400 text-center py-2 dark:text-white">
+                    <div id="ficha-emerg-nombre">--</div>
+                    <div id="ficha-emerg-paren">--</div>
+                    <div id="ficha-emerg-tel">--</div>
+                </div>
+            </div>
+
+             <div>
+                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Familiares autorizados a recoger al niño(a)</div>
+                <div class="grid grid-cols-3 bg-gray-800 text-white text-xs text-center py-1">
+                    <div>NOMBRE</div>
+                    <div>PARENTESCO</div>
+                    <div>TELÉFONO</div>
+                </div>
+                <div class="grid grid-cols-3 border border-gray-400 text-center py-2 dark:text-white">
+                    <div id="ficha-recojo-nombre">--</div>
+                    <div id="ficha-recojo-paren">--</div>
+                    <div id="ficha-recojo-tel">--</div>
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="bg-gray-100 dark:bg-gray-900 p-4 flex justify-center border-t border-gray-200 dark:border-gray-700">
+            <button onclick="closeModal('modal-ficha')" class="px-6 py-2 bg-gray-800 text-white rounded shadow hover:bg-gray-700">Cerrar Ficha</button>
+            <button onclick="window.print()" class="ml-4 px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"><i class="fas fa-print mr-2"></i> Imprimir</button>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="/static/js/inscripciones-list.js"></script>
+{% endblock %}

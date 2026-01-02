@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Enum as SQLEnum, func
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class TipoConversacion(enum.Enum):
     directo = "directo"       # 1 a 1
@@ -21,4 +22,9 @@ class Conversacion(Base):
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     ultima_actividad_en = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    participantes = relationship("ConversacionParticipante", back_populates="conversacion", cascade="all, delete-orphan", lazy="select")
+    mensajes = relationship("Mensaje", back_populates="conversacion", cascade="all, delete-orphan", lazy="select")
+    sede = relationship("Sede", back_populates="conversaciones")
+    creador = relationship("Usuario", back_populates="conversaciones_creadas", foreign_keys="[Conversacion.creado_por_id]")
 

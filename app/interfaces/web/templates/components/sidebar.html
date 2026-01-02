@@ -1,0 +1,96 @@
+<!-- app/interfaces/web/templates/components/sidebar.html -->
+<aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-gray-800 to-gray-900 dark:from-gray-900 dark:to-black text-white flex flex-col transition-transform duration-300 
+              -translate-x-full md:translate-x-0 md:static md:z-auto md:flex-shrink-0">
+    <div class="flex items-center justify-center h-20 border-b border-gray-700">
+        <img src="/static/img/logo.png" alt="{{ APP_NAME }}" class="h-12 w-auto">
+        <span class="ml-3 text-2xl font-bold text-primary-400">{{ APP_NAME }}</span>
+    </div>
+    
+    {% if current_user %}
+    <div class="px-4 py-3 bg-gray-900/50 border-b border-gray-700">
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Sede</p>
+        <p class="text-sm font-semibold text-white">{{ current_user.sede_nombre }}</p>
+    </div>
+    {% endif %}
+    
+    <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        
+        {% set perms = current_user.lista_permisos %}
+        {% set roles = current_user.roles | map(attribute='nombre') | list %}
+
+        {% if 'Dashboard:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DUENO' in roles or 'SISTEMAS' in roles %}
+        <a href="/dashboard" 
+           class="nav-item {% if active_menu == 'dashboard' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-chart-line w-6 text-primary-400 group-hover:text-primary-300"></i>
+            <span class="ml-3 font-medium">Dashboard</span>
+        </a>
+        {% endif %}
+        {% if 'Inscripcion:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DUENO' in roles or 'SISTEMAS' in roles %}
+        <a href="/inscripciones" 
+           class="nav-item {% if active_menu == 'inscripciones' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-user-plus w-6 text-secondary-400 group-hover:text-secondary-300"></i>
+            <span class="ml-3 font-medium">Inscripciones</span>
+        </a>
+        {% endif %}
+        
+        {% if 'Academico:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' or 'TUTOR' or 'TUTORA' %}
+        <a href="/academico" 
+           class="nav-item {% if active_menu == 'academico' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-graduation-cap w-6 text-blue-400 group-hover:text-blue-300"></i>
+            <span class="ml-3 font-medium">Académico</span>
+        </a>
+        {% endif %}
+        
+        {% if 'Finanzas:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles %}
+        <a href="/finanzas" 
+           class="nav-item {% if active_menu == 'finanzas' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-dollar-sign w-6 text-green-400 group-hover:text-green-300"></i>
+            <span class="ml-3 font-medium">Finanzas & Pagos</span>
+        </a>
+        {% endif %}
+        
+        {% if 'Comunicaciones:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' or 'TUTOR' or 'TUTORA' %}
+        <a href="/comunicaciones" 
+           class="nav-item {% if active_menu == 'comunicaciones' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-comments w-6 text-purple-400 group-hover:text-purple-300"></i>
+            <span class="ml-3 font-medium">Comunicaciones</span>
+        </a>
+        {% endif %}
+        
+        {% if 'Inventario:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles %}
+        <a href="/inventario" 
+           class="nav-item {% if active_menu == 'inventario' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-boxes w-6 text-orange-400 group-hover:text-orange-300"></i>
+            <span class="ml-3 font-medium">Inventarios</span>
+        </a>
+        {% endif %}
+        
+
+        {% if 'CursoExtra:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles %}
+        <a href="/cursos-extra" 
+           class="nav-item {% if active_menu == 'cursos_extra' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-swimmer text-teal-600 w-6"></i></i>
+            <span class="ml-3 font-medium">Cursos Extra</span>
+        </a>
+        {% endif %}
+
+        {% if 'Usuarios:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles %}
+        <a href="/usuarios" 
+           class="nav-item {% if active_menu == 'usuarios' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
+            <i class="fas fa-user w-6 text-red-400 group-hover:text-red-300"></i>
+            <span class="ml-3 font-medium">Usuarios</span>
+        </a>
+        {% endif %}
+        
+    </nav>
+    
+    <div class="p-4 border-t border-gray-700">
+    <button type="button"
+            onclick="logout()"
+            class="w-full flex items-center justify-center px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-white">
+        <i class="fas fa-sign-out-alt mr-2"></i>
+        <span>Cerrar Sesión</span>
+    </button>
+</div>
+
+</aside>

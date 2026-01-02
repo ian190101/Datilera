@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Boolean, func, Index, Text
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 
 class AuditoriaExportacion(Base):
@@ -52,3 +53,6 @@ class AuditoriaExportacion(Base):
         Index('idx_exportacion_usuario_fecha', 'usuario_id', 'creado_en'),
         Index('idx_exportacion_tipo_fecha', 'tipo', 'creado_en'),
     )
+
+    usuario = relationship("Usuario", back_populates="auditoria_exportaciones")
+    sede = relationship("Sede", back_populates="auditoria_exportaciones")

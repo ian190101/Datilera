@@ -1,76 +1,107 @@
-# app/application/finanzas/egresos/registrar_egreso.py
+# app/application/use_cases/finanzas/registrar_egreso.py
 """
-CU: Registrar Egreso en Libro de Caja
-HU: Como contador, quiero registrar egresos categorizados en el libro de caja sin permitir saldo negativo.
+Caso de uso: Registrar un egreso (gasto).
+Arquitectura hexagonal - Solo usa puertos, no implementaciones concretas.
 """
-from dataclasses import dataclass
-from datetime import date
-from decimal import Decimal
+from datetime import datetime
 from typing import Optional
 
-from app.kernel.domain.finanzas import LibroCaja, TipoMovimiento  # TipoMovimiento.EGRESO
+from app.kernel.domain.finanzas.egreso_entidad import EgresoCreate
 from app.kernel.domain.finanzas.ports import (
-    LibroCajaRepositoryPort,
-    CategoriaEgresoRepositoryPort,
+    IEgresoRepository,
+    ILibroCajaRepository,
 )
 from app.kernel.domain.finanzas.errors import (
-    CategoriaEgresoNoEncontrada,
-    SaldoNegativo,
-    MovimientoInvalido,
+    ComprobantePagoYaExisteError,
+    EgresoError,
 )
 
 
-@dataclass
-class RegistrarEgresoCommand:
-    sede_id: int
-    categoria_egreso_id: int
-    monto: Decimal
-    fecha: date
-    usuario_registro_id: int
-    concepto: Optional[str] = None
-    referencia: Optional[str] = None
+class RegistrarEgresoUC:
+    """
+    Caso de uso: Registrar un egreso (gasto).
+    
+    Flujo:
+    1. Validar duplicidad de comprobante (si aplica)
+    2. Crear registro de egreso usando puerto
+    3. Registrar movimiento en libro de caja usando puerto
+    4. Retornar ID del egreso creado
+    """
 
-
-class RegistrarEgresoUseCase:
     def __init__(
         self,
-        libro_repo: LibroCajaRepositoryPort,
-        categoria_repo: CategoriaEgresoRepositoryPort,
+        egreso_repo: IEgresoRepository,
+        libro_caja_repo: ILibroCajaRepository
     ):
-        self.libro_repo = libro_repo
-        self.categoria_repo = categoria_repo
+        """
+        Constructor con inyección de dependencias por puertos.
+        
+        Args:
+            egreso_repo: Puerto del repositorio de egresos
+            libro_caja_repo: Puerto del repositorio de libro de caja
+        """
+        self._egreso_repo = egreso_repo
+        self._libro_caja_repo = libro_caja_repo
 
-    async def execute(self, cmd: RegistrarEgresoCommand) -> LibroCaja:
-        # 1) Validar categoría de egreso
-        categoria = await self.categoria_repo.obtener_por_id(cmd.categoria_egreso_id)
-        if not categoria:
-            raise CategoriaEgresoNoEncontrada(cmd.categoria_egreso_id)
-        if categoria.sede_id != cmd.sede_id:
-            raise MovimientoInvalido(
-                f"La categoría {cmd.categoria_egreso_id} no pertenece a la sede {cmd.sede_id}"
+    async def execute(
+        self,
+        datos: EgresoCreate
+    ) -> int:
+        """
+        Registra un nuevo egreso.
+        
+        Args:
+            datos: Schema Pydantic con los datos del egreso (ya validados)
+            
+        Returns:
+            ID del egreso creado
+            
+        Raises:
+            ComprobanteYaExisteError: Si el comprobante está duplicado
+            EgresoError: Para otros errores de negocio
+        """
+        # ✅ 1. Pydantic ya validó monto (>0) y descripción (>=5 caracteres)
+        
+        # ✅ 2. Verificar duplicidad de comprobante
+        if datos.numero_comprobante:
+            existe = await self._egreso_repo.verificar_duplicado_comprobante(
+                datos.numero_comprobante
             )
-
-        # 2) Validar saldo suficiente
-        saldo_actual = await self.libro_repo.obtener_saldo_actual(cmd.sede_id)
-        if saldo_actual < cmd.monto:
-            raise SaldoNegativo(float(saldo_actual), float(cmd.monto))
-
-        # 3) Construir movimiento
-        saldo_nuevo = saldo_actual - cmd.monto
-        movimiento = LibroCaja(
-            id=0,
-            sede_id=cmd.sede_id,
-            fecha=cmd.fecha,
-            tipo=TipoMovimiento.EGRESO,
-            categoria_pago_id=None,
-            categoria_egreso_id=cmd.categoria_egreso_id,
-            pago_id=None,
-            monto=cmd.monto,
-            saldo_acumulado=saldo_nuevo,
-            concepto=cmd.concepto,
-            referencia=cmd.referencia,
-            usuario_registro_id=cmd.usuario_registro_id,
-        )
-
-        # 4) Persistir movimiento
-        return await self.libro_repo.registrar_movimiento(movimiento)
+            if existe:
+                raise ComprobantePagoYaExisteError(
+                    f"Ya existe un egreso con el comprobante '{datos.numero_comprobante}'"
+                )
+        
+        # ✅ 3. Crear egreso usando el puerto
+        try:
+            egreso_id = await self._egreso_repo.crear(
+                sede_id=datos.sede_id,
+                monto=datos.monto,
+                categoria_egreso_id=datos.categoria_egreso_id,
+                descripcion=datos.descripcion,
+                fecha_egreso=datos.fecha_egreso,
+                numero_comprobante=datos.numero_comprobante,
+                observaciones=datos.observaciones,
+                registrado_por=datos.registrado_por
+            )
+        except Exception as e:
+            raise EgresoError(f"Error al crear el egreso: {str(e)}")
+        
+        # ✅ 4. Registrar en libro de caja usando el puerto
+        try:
+            await self._libro_caja_repo.registrar_egreso(
+                monto=datos.monto,
+                fecha=datos.fecha_egreso,
+                registrado_por_id=datos.registrado_por,
+                observaciones=datos.descripcion,
+                egreso_id=egreso_id,
+                sede_id=datos.sede_id
+            )
+        except Exception as e:
+            # Si falla el libro de caja, el egreso ya se creó
+            # Aquí podrías implementar compensación o logging
+            raise EgresoError(
+                f"Egreso creado (ID: {egreso_id}) pero falló registro en libro de caja: {str(e)}"
+            )
+        
+        return egreso_id

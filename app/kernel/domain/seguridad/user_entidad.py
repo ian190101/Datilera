@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, field_validator
 
@@ -15,9 +15,13 @@ class Usuario(BaseModel):
 
     id: int
     nombre_usuario: str
+    nombres: str 
+    apellidos: str
+    email: Optional[str] = None
     contrasena: str
-    rol: Rol
+    roles: List[Rol] = []
     sede_id: int
+    sede_nombre: str = "Principal"
     activo: bool = True
     foto_perfil: Optional[str] = None
 
@@ -25,6 +29,20 @@ class Usuario(BaseModel):
     ultimo_login: Optional[AwareDatetime] = None
 
     preferencias: PreferenciasUsuario = Field(default_factory=PreferenciasUsuario)
+
+    @property
+    def nombre_completo(self) -> str:
+        return f"{self.nombres} {self.apellidos}"
+    
+    @property
+    def lista_permisos(self) -> List[str]:
+        """Devuelve una lista plana de permisos ej: ['Inscripcion:Ver']"""
+        permisos_set = set()
+        for rol in self.roles:
+            for permiso in rol.permisos:
+                # Usa el nombre_completo que arreglamos en permiso_entidad
+                permisos_set.add(permiso.nombre_completo)
+        return list(permisos_set)
 
     @field_validator("foto_perfil")
     @classmethod
@@ -48,4 +66,10 @@ class Usuario(BaseModel):
         self.foto_perfil = nueva_foto  # validador asegura extensión válida
 
     def tiene_permiso(self, recurso: str, accion: Accion) -> bool:
-        return self.rol.tiene_permiso(recurso, accion)
+        # Nota: Aquí 'recurso' es el argumento que pasas, comparamos con 'vista' del permiso
+        # Buscamos si alguno de los roles tiene ese permiso específico
+        for rol in self.roles:
+            for p in rol.permisos:
+                if p.vista == recurso and p.accion == accion:
+                    return True
+        return False

@@ -3,13 +3,15 @@
 from fastapi import APIRouter, Depends, Query, Body, Path
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict
+from app.infrastructure.db.session import AsyncSessionLocal
+from app.infrastructure.db.uow import get_uow, UnitOfWork
+from typing import Dict, List
 from datetime import datetime
 
 from app.infrastructure.db.session import get_session
 from app.infrastructure.db.repositories.comunicaciones.notificaciones_repo import NotificacionesRepository
 from app.infrastructure.db.repositories.comunicaciones.notificacion_vistas_repo import NotificacionVistasRepository
-
+from app.infrastructure.db.repositories.seguridad.usuarios_repo import UsuariosRepository
 from app.kernel.application.comunicaciones.notificaciones import (
     CrearNotificacionUseCase,
     ObtenerNotificacionUseCase,
@@ -20,6 +22,15 @@ from app.kernel.application.comunicaciones.notificaciones import (
     CrearNotificacionProgramadaUseCase,
     CancelarNotificacionProgramadaUseCase,
     ListarTiposNotificacionesUseCase,
+    AgruparNotificacionesPorTipoUseCase,  # NUEVO
+    EnviarNotificacionMasivaUseCase,  # NUEVO
+)
+
+from app.kernel.application.comunicaciones.notificaciones.marcar_notificacion_leida_badge import (
+    MarcarNotificacionLeidaConBadgeService,
+)
+from app.kernel.application.comunicaciones.notificaciones.marcar_todas_leidas_badge import (
+    MarcarTodasLeidasConBadgeService,
 )
 
 from app.kernel.domain.comunicaciones import CanalNotificacion
@@ -37,6 +48,9 @@ router = APIRouter(prefix="/api/v1/comunicaciones/notificaciones", tags=["Comuni
 
 def get_notificacion_repo(session: AsyncSession = Depends(get_session)) -> NotificacionesRepository:
     return NotificacionesRepository(session)
+
+def get_usuario_repo(session: AsyncSession = Depends(get_session)) -> UsuariosRepository:
+    return UsuariosRepository(session)
 
 
 def get_vista_repo(session: AsyncSession = Depends(get_session)) -> NotificacionVistasRepository:
@@ -155,27 +169,32 @@ async def listar_notificaciones(
 async def marcar_notificacion_leida(
     notificacion_id: int = Path(...),
     usuario_id: int = Body(...),
-    notificacion_repo: NotificacionesRepository = Depends(get_notificacion_repo),
+    sede_id: int = Body(...),
+    uow: UnitOfWork = Depends(lambda: get_uow(AsyncSessionLocal)),
 ):
     """Marcar notificación como leída (US-COM-008).
-    
+
     Idempotente (no falla si ya está leída).
     """
-    caso = MarcarNotificacionLeidaUseCase(notificacion_repo)
-    await caso.ejecutar(notificacion_id, usuario_id)
+    service = MarcarNotificacionLeidaConBadgeService(uow)
+    await service.ejecutar(
+        notificacion_id=notificacion_id,
+        usuario_id=usuario_id,
+        sede_id=sede_id,
+    )
     return
 
 
 @router.patch("/leer-todas", status_code=status.HTTP_200_OK)
 async def marcar_todas_leidas(
     usuario_id: int = Body(...),
-    notificacion_repo: NotificacionesRepository = Depends(get_notificacion_repo),
+    sede_id: int = Body(...),
+    uow: UnitOfWork = Depends(lambda: get_uow(AsyncSessionLocal)),
 ):
-    """Marcar todas las notificaciones como leídas (US-COM-008)."""
-    caso = MarcarTodasLeidasUseCase(notificacion_repo)
-    count = await caso.ejecutar(usuario_id)
-    
+    service = MarcarTodasLeidasConBadgeService(uow)
+    count = await service.ejecutar(usuario_id=usuario_id, sede_id=sede_id)
     return {"data": {"marcadas": count}}
+
 
 
 @router.get("/no-leidas/contar")
@@ -252,3 +271,101 @@ async def listar_tipos_notificaciones(
     tipos = await caso.ejecutar()
     
     return {"data": tipos}
+@router.get("/agrupar-por-tipo")
+async def agrupar_notificaciones_por_tipo(
+    usuario_id: int = Query(..., description="ID del usuario"),
+    solo_no_leidas: bool = Query(False, description="Solo agrupar notificaciones no leídas"),
+    limite_por_tipo: int = Query(50, ge=1, le=100, description="Máximo de notificaciones por tipo"),
+    notificacion_repo: NotificacionesRepository = Depends(get_notificacion_repo),
+):
+    """Agrupar notificaciones por tipo (US-COM-008).
+    
+    Para organizar la campanita de notificaciones por categorías.
+    
+    Returns:
+        {
+            "notificaciones": {
+                "pago_vencimiento": [...],
+                "nuevo_mensaje": [...],
+                "reporte_diario": [...]
+            },
+            "estadisticas": {
+                "pago_vencimiento": 2,
+                "nuevo_mensaje": 1,
+                "reporte_diario": 5,
+                "total": 8,
+                "no_leidas": 3
+            }
+        }
+    """
+    caso = AgruparNotificacionesPorTipoUseCase(notificacion_repo)
+    resultado = await caso.ejecutar(
+        usuario_id=usuario_id,
+        solo_no_leidas=solo_no_leidas,
+        limite_por_tipo=limite_por_tipo
+    )
+    return {"data": resultado}
+
+
+@router.post("/masivo", status_code=status.HTTP_202_ACCEPTED)
+async def enviar_notificacion_masiva(
+    emisor_id: int = Body(..., description="ID del usuario que envía (directora/admin/superadmin)"),
+    titulo: str = Body(..., max_length=120, description="Título de la notificación"),
+    cuerpo: str = Body(..., description="Cuerpo de la notificación"),
+    tipo: str = Body(..., description="Tipo de notificación"),
+    sede_ids: List[int] | None = Body(None, description="IDs de sedes (None = todas las sedes)"),
+    rol_destinatarios: str | None = Body(None, description="Filtrar por rol: profesora, tutor, directora, etc."),
+    canal: CanalNotificacion = Body(CanalNotificacion.IN_APP, description="Canal de envío"),
+    prioridad: str = Body("media", description="Prioridad: baja, media, alta"),
+    programada_para: datetime | None = Body(None, description="Programar envío (opcional)"),
+    metadatos: Dict | None = Body(None, description="Metadatos adicionales"),
+    notificacion_repo: NotificacionesRepository = Depends(get_notificacion_repo),
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+):
+    """Enviar notificación masiva (US-COM-009).
+    
+    Solo para directora, admin y superadmin.
+    
+    **Permisos:**
+    - Superadmin: puede enviar a todas las sedes o filtrar por sede
+    - Directora/Admin: solo a su sede
+    
+    **Filtros:**
+    - Por sede(s): especificar lista de sede_ids o None para todas
+    - Por rol: solo profesoras, solo tutores, etc.
+    
+    **Procesamiento:**
+    - Si > 50 destinatarios: se encola en Celery/RQ para procesamiento asíncrono
+    - Si ≤ 50 destinatarios: se crea inmediatamente
+    
+    Returns:
+        {
+            "notificaciones_creadas": 45,
+            "destinatarios": [user_id1, user_id2, ...],
+            "tarea_id": "uuid-tarea-celery" (si es asíncrono),
+            "mensaje": "Notificación enviada/encolada..."
+        }
+    """
+    notificador_service = NotificadorServiceMock()
+    
+    caso = EnviarNotificacionMasivaUseCase(
+        notificacion_repo, 
+        notificador_service,
+        usuario_repo
+    )
+    
+    resultado = await caso.ejecutar(
+        emisor_id=emisor_id,
+        titulo=titulo,
+        cuerpo=cuerpo,
+        tipo=tipo,
+        sede_ids=sede_ids,
+        rol_destinatarios=rol_destinatarios,
+        canal=canal,
+        prioridad=prioridad,
+        programada_para=programada_para,
+        metadatos=metadatos,
+    )
+    
+    return {"data": resultado}
+

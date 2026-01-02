@@ -8,6 +8,7 @@ from app.config.settings import Settings
 class TokenData(BaseModel):
     sub: str  # Subject (username)
     id: int   # User ID
+    sede_id : int
     # Add other claims as needed
 
 def create_access_token(data: dict, settings: Settings) -> str:

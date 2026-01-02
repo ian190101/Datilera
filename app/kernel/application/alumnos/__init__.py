@@ -23,6 +23,12 @@ from .tutor import (
     EliminarRelacionTutorCU,
 )
 
+from .estadisticas import (
+    ObtenerEstadisticasParaleloUseCase,
+    ObtenerEstadisticasSedeUseCase,
+    ObtenerReporteFaltasUseCase,
+    ObtenerReporteRetrasosUseCase,
+)
 
 
 # Hermanos
@@ -133,4 +139,9 @@ __all__ = [
     "AsignarAlumnoParaleloCU",
     "ListarAlumnosParaleloCU",
     "EliminarAsignacionParaleloCU",
+    #Estadisticas
+    "ObtenerEstadisticasParaleloUseCase",
+    "ObtenerEstadisticasSedeUseCase",
+    "ObtenerReporteFaltasUseCase",
+    "ObtenerReporteRetrasosUseCase",
 ]

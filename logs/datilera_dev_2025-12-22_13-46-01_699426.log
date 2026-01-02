@@ -1,0 +1,3 @@
+2025-12-22 13:46:01.701 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-22 13:57:26.458 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Alumno' object has no attribute 'apellidos'
+2025-12-22 14:01:17.140 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

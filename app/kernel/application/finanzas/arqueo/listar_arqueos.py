@@ -5,7 +5,7 @@ CU: Listar arqueos por sede
 from dataclasses import dataclass
 from typing import List, Optional
 from app.kernel.domain.finanzas import ArqueoCaja
-from app.kernel.domain.finanzas.ports import ArqueoRepositoryPort
+from app.kernel.domain.finanzas.ports import IArqueoRepository
 
 
 @dataclass
@@ -15,7 +15,7 @@ class ListarArqueosQuery:
 
 
 class ListarArqueosUseCase:
-    def __init__(self, arqueo_repo: ArqueoRepositoryPort):
+    def __init__(self, arqueo_repo: IArqueoRepository):
         self.arqueo_repo = arqueo_repo
 
     async def execute(self, query: ListarArqueosQuery) -> List[ArqueoCaja]:

@@ -1,0 +1,5 @@
+2025-12-09 09:22:01.772 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-09 09:25:00.701 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Settings' object has no attribute 'env'
+2025-12-09 09:27:09.950 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Settings' object has no attribute 'env'
+2025-12-09 09:30:44.748 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Settings' object has no attribute 'env'
+2025-12-09 09:30:45.051 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

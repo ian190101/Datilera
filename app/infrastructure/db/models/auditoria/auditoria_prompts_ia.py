@@ -2,7 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON, Boolean, func, Index
 from app.infrastructure.db.base import Base
-
+from sqlalchemy.orm import relationship
 
 class AuditoriaPromptIA(Base):
     """
@@ -60,3 +60,6 @@ class AuditoriaPromptIA(Base):
         Index('idx_prompt_usuario_fecha', 'usuario_id', 'creado_en'),
         Index('idx_prompt_categoria_fecha', 'categoria', 'creado_en'),
     )
+
+    usuario = relationship("Usuario", back_populates="auditoria_prompts_ia")
+    sede = relationship("Sede", back_populates="auditoria_prompts_ia")

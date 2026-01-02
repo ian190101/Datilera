@@ -11,11 +11,16 @@ from .estado_cuenta_nino_repo import EstadoCuentaNinoRepository
 from .libro_caja_repo import LibroCajaRepository
 from .arqueos_repo import ArqueosRepository
 from .categorias_egreso_repo import CategoriaEgresoRepository
+from .descuentos_repo import DescuentosRepository
+from .cuotas_plan_pago_repo import CuotasPlanPagoRepository
+from .prorrateos_repo import ProrrateosRepository
 
 __all__ = [
     "CategoriasPagoRepository", "TurnosRepository", "PreciosTurnosRepository",
     "PagosRepository", "ComprobantesRepository", "ConciliacionesRepository",
     "PlanesPagoRepository", "PlanesCuotasRepository",
     "EstadoCuentaNinoRepository", "LibroCajaRepository", "ArqueosRepository",
-    "CategoriaEgresoRepository"
+    "CategoriaEgresoRepository", "DescuentosRepository",
+    "CuotasPlanPagoRepository",
+    "ProrrateosRepository",
 ]

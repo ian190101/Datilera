@@ -1,0 +1,14 @@
+2025-12-23 14:46:51.765 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-23 14:53:26.221 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:26.266 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:27.308 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:29.357 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:56.065 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:56.105 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:57.157 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:53:59.191 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:54:27.947 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:54:28.002 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:54:29.057 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:54:31.113 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'LibroCaja' has no attribute 'pago'
+2025-12-23 14:56:40.460 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

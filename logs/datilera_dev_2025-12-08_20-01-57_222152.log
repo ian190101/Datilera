@@ -1,0 +1,3 @@
+2025-12-08 20:01:57.223 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-08 20:02:17.489 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: Class <class 'app.infrastructure.db.models.finanzas.pagos.Pago'> does not have a mapped column named 'sede_id'
+2025-12-08 20:06:17.410 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

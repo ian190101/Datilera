@@ -10,14 +10,14 @@ from typing import Optional
 
 from app.kernel.domain.finanzas import LibroCaja, TipoMovimiento
 from app.kernel.domain.finanzas.ports import (
-    LibroCajaRepositoryPort,
-    CategoriaPagoRepositoryPort,
-    PagoRepositoryPort
+    ILibroCajaRepository,
+    ICategoriaPagoRepository,
+    IPagoRepository
 )
 from app.kernel.domain.finanzas.errors import (
-    CategoriaPagoNoEncontrada,
-    PagoNoEncontrado,
-    MovimientoInvalido
+    CategoriaPagoNoEncontradaError,
+    PagoNoEncontradoError,
+    MovimientoNoEncontradoError,
 )
 
 
@@ -39,9 +39,9 @@ class RegistrarIngresoCajaUseCase:
 
     def __init__(
         self,
-        libro_repo: LibroCajaRepositoryPort,
-        categoria_repo: CategoriaPagoRepositoryPort,
-        pago_repo: Optional[PagoRepositoryPort] = None
+        libro_repo: ILibroCajaRepository,
+        categoria_repo: ICategoriaPagoRepository,
+        pago_repo: Optional[ILibroCajaRepository] = None
     ):
         self.libro_repo = libro_repo
         self.categoria_repo = categoria_repo
@@ -59,9 +59,9 @@ class RegistrarIngresoCajaUseCase:
         # Validar categoría existe y es de la sede
         categoria = await self.categoria_repo.obtener_por_id(command.categoria_pago_id)
         if not categoria:
-            raise CategoriaPagoNoEncontrada(command.categoria_pago_id)
+            raise CategoriaPagoNoEncontradaError(command.categoria_pago_id)
         if categoria.sede_id != command.sede_id:
-            raise MovimientoInvalido(
+            raise MovimientoNoEncontradoError(
                 f"Categoría {command.categoria_pago_id} no pertenece a sede {command.sede_id}"
             )
 
@@ -69,7 +69,7 @@ class RegistrarIngresoCajaUseCase:
         if command.pago_id and self.pago_repo:
             pago = await self.pago_repo.obtener_por_id(command.pago_id)
             if not pago:
-                raise PagoNoEncontrado(command.pago_id)
+                raise PagoNoEncontradoError(command.pago_id)
 
         # Obtener saldo actual para calcular nuevo saldo
         saldo_actual = await self.libro_repo.obtener_saldo_actual(command.sede_id)

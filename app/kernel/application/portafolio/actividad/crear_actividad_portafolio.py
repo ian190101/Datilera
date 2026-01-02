@@ -1,3 +1,4 @@
+# app/kernel/application/portafolio/actividad/crear_actividad_portafolio.py
 from __future__ import annotations
 
 from datetime import date
@@ -23,12 +24,16 @@ class CrearActividadPortafolioIn(BaseModel):
 class CrearActividadPortafolioOut(BaseModel):
     actividad: ActividadPortafolio
 
+    # ¡¡ESENCIAL para que FastAPI serialice el objeto ORM correctamente!!
+    model_config = {"from_attributes": True}
+
 
 class CrearActividadPortafolioCU:
     def __init__(self, actividades_repo: AbstractActividadesRepository) -> None:
         self._actividades_repo = actividades_repo
 
-    async def __call__(
+    # CAMBIADO: de __call__ → execute
+    async def execute(
         self,
         data: CrearActividadPortafolioIn,
     ) -> CrearActividadPortafolioOut:

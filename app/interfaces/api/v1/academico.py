@@ -10,8 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.repositories.academico.grupos_repo import GruposRepository
 from app.infrastructure.db.repositories.academico.paralelos_repo import ParalelosRepository
 from app.infrastructure.db.repositories.academico.paralelos_profesoras_repo import ParalelosProfesorasRepository
-from app.infrastructure.db.repositories.academico.horarios_repo import HorariosRepository
-from app.infrastructure.db.repositories.academico.horarios_paralelos_repo import HorariosParalelosRepository
+
 
 # Casos de uso
 from app.kernel.application.academico.horarios.crear_horario import CrearHorario, CrearHorarioDTO, Horario
@@ -43,8 +42,7 @@ router = APIRouter(prefix="/academico", tags=["Académico"])
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
 # Helpers para inyección de dependencias
-def horario_repo(db: AsyncSession) -> HorariosRepository: 
-    return HorariosRepository(db)
+
 
 def grupo_repo(db: AsyncSession) -> GruposRepository: 
     return GruposRepository(db)
@@ -52,44 +50,14 @@ def grupo_repo(db: AsyncSession) -> GruposRepository:
 def paralelo_repo(db: AsyncSession) -> ParalelosRepository: 
     return ParalelosRepository(db)
 
-def hp_repo(db: AsyncSession) -> HorariosParalelosRepository: 
-    return HorariosParalelosRepository(db)
+
 
 def pp_repo(db: AsyncSession) -> ParalelosProfesorasRepository: 
     return ParalelosProfesorasRepository(db)
 
-# Horarios
-@router.post("/horarios", response_model=Horario, status_code=status.HTTP_201_CREATED)
-async def crear_horario(payload: CrearHorarioDTO, db: SessionDep):
-    """Crea un nuevo horario."""
-    uc = CrearHorario(horario_repo(db))
-    return await uc.execute(payload)
 
-@router.get("/horarios", response_model=Sequence[Horario])
-async def listar_horarios(db: SessionDep):
-    """Lista todos los horarios ordenados."""
-    uc = ListarHorarios(horario_repo(db))
-    return await uc.execute()
 
-@router.get("/horarios/{horario_id}", response_model=Horario)
-async def obtener_horario(horario_id: int, db: SessionDep):
-    """Obtiene un horario por ID."""
-    uc = ObtenerHorario(horario_repo(db))
-    return await uc.execute(horario_id)
 
-@router.put("/horarios/{horario_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def actualizar_horario(horario_id: int, payload: ActualizarHorarioDTO, db: SessionDep):
-    """Actualiza un horario existente."""
-    uc = ActualizarHorario(horario_repo(db))
-    await uc.execute(horario_id, payload)
-    return None
-
-@router.delete("/horarios/{horario_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def eliminar_horario(horario_id: int, db: SessionDep):
-    """Elimina un horario si no está en uso."""
-    uc = EliminarHorario(horario_repo(db), hp_repo(db))
-    await uc.execute(horario_id)
-    return None
 
 # Grupos
 @router.post("/grupos", response_model=Grupo, status_code=status.HTTP_201_CREATED)
@@ -162,23 +130,7 @@ async def obtener_paralelo(paralelo_id: int, db: SessionDep):
     uc = ObtenerParalelo(paralelo_repo(db))
     return await uc.execute(paralelo_id)
 
-# Horarios-Paralelos
-@router.post("/horarios-paralelos", response_model=HorarioParalelo, status_code=status.HTTP_201_CREATED)
-async def asignar_horario_paralelo(payload: AsignarHorarioParaleloDTO, db: SessionDep):
-    """Asigna un horario a un paralelo."""
-    uc = AsignarHorarioParalelo(hp_repo(db), paralelo_repo(db), horario_repo(db))
-    return await uc.execute(payload)
 
-@router.get("/horarios-paralelos", response_model=Sequence[HorarioParalelo])
-async def listar_horarios_paralelos(
-    db: SessionDep,
-    paralelo_id: int | None = Query(None, description="Filtrar por paralelo"),
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0)
-):
-    """Lista asignaciones de horarios a paralelos."""
-    uc = ListarHorariosParalelos(hp_repo(db))
-    return await uc.execute(paralelo_id=paralelo_id, limit=limit, offset=offset)
 
 # Paralelos-Profesoras
 @router.post("/paralelos-profesoras", response_model=ParaleloProfesora, status_code=status.HTTP_201_CREATED)

@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.kernel.domain.finanzas import CategoriaEgreso
-from app.kernel.domain.finanzas.ports import CategoriaEgresoRepositoryPort
-from app.kernel.domain.finanzas.errors import CategoriaEgresoDuplicada
+from app.kernel.domain.finanzas.ports import ICategoriaEgresoRepository
+from app.kernel.domain.finanzas.errors import CategoriaEgresoYaExisteError
 
 
 @dataclass
@@ -23,7 +23,7 @@ class CrearCategoriaEgresoCommand:
 class CrearCategoriaEgresoUseCase:
     """Caso de uso: Crear categoría de egreso"""
 
-    def __init__(self, categoria_repo: CategoriaEgresoRepositoryPort):
+    def __init__(self, categoria_repo: ICategoriaEgresoRepository):
         self.categoria_repo = categoria_repo
 
     async def execute(self, command: CrearCategoriaEgresoCommand) -> CategoriaEgreso:
@@ -39,7 +39,7 @@ class CrearCategoriaEgresoUseCase:
             nombre=command.nombre
         )
         if existe:
-            raise CategoriaEgresoDuplicada(command.nombre, command.sede_id)
+            raise CategoriaEgresoYaExisteError(command.nombre, command.sede_id)
 
         # Crear entidad
         categoria = CategoriaEgreso(

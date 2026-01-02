@@ -1,0 +1,3 @@
+2025-12-09 08:52:28.769 | INFO     | app.main:lifespan:112 - Iniciando API de Datilera en ambiente: dev
+2025-12-09 08:52:33.163 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: ValueError: password cannot be longer than 72 bytes, truncate manually if necessary (e.g. my_password[:72])
+2025-12-09 08:54:57.066 | INFO     | app.main:lifespan:128 - Cerrando motor de base de datos...

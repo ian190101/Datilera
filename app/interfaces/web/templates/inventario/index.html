@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+            <i class="fas fa-boxes text-[#DD8E0A] mr-3"></i>
+            Gestión de Inventarios
+        </h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Control de productos, familias, stock y movimientos.</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Items</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="kpi-total-productos">-</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                <i class="fas fa-box text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Valor Inventario</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="kpi-valor-total">-</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                <i class="fas fa-dollar-sign text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Stock Bajo</p>
+                <p class="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1" id="kpi-stock-bajo">-</p>
+            </div>
+            <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                <i class="fas fa-exclamation-triangle text-2xl text-orange-600 dark:text-orange-400"></i>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Movimientos Hoy</p>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1" id="kpi-movimientos">-</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+                <i class="fas fa-exchange-alt text-2xl text-purple-600 dark:text-purple-400"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <button data-tab="productos" class="tab-btn active border-[#DD8E0A] text-[#DD8E0A] whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-boxes mr-2"></i> Productos
+        </button>
+        <button data-tab="movimientos" class="tab-btn border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            <i class="fas fa-history mr-2"></i> Movimientos
+        </button>
+        </nav>
+</div>
+
+<div id="tab-productos" class="tab-content active">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="relative w-full md:w-96">
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input type="text" id="inv_buscador" placeholder="Buscar por código, nombre o familia..." 
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-[#DD8E0A] focus:border-[#DD8E0A] block w-full pl-10 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+
+        <div class="flex gap-2">
+            <button onclick="openModal('modal-familia')" class="text-white bg-primary-600 hover:bg-primary-700 font-medium rounded-lg text-sm px-4 py-2 shadow-sm transition-colors">
+                <i class="fas fa-tags mr-1"></i> Nueva Familia
+            </button>
+            <button onclick="openModal('modal-categoria')" class="text-white bg-primary-600 hover:bg-primary-700 font-medium rounded-lg text-sm px-4 py-2 shadow-sm transition-colors">
+                <i class="fas fa-layer-group mr-1"></i> Nueva Categoría
+            </button>
+            <button onclick="openModal('modal-item')" class="text-white bg-primary-600 hover:bg-primary-700 font-medium rounded-lg text-sm px-5 py-2.5 shadow-md transition-colors">
+                <i class="fas fa-plus mr-2"></i> Nuevo Producto
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs">
+                    <tr>
+                        <th class="px-6 py-3">Código</th>
+                        <th class="px-6 py-3">Producto / Atributos</th>
+                        <th class="px-6 py-3">Familia / Categoría</th>
+                        <th class="px-6 py-3 text-right">Precio</th>
+                        <th class="px-6 py-3 text-center">Stock</th>
+                        <th class="px-6 py-3 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-inventario-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="tab-movimientos" class="tab-content hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Historial de Movimientos</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase text-xs">
+                    <tr>
+                        <th class="px-6 py-3">Fecha</th>
+                        <th class="px-6 py-3">Tipo</th>
+                        <th class="px-6 py-3">Producto</th>
+                        <th class="px-6 py-3">Motivo</th>
+                        <th class="px-6 py-3 text-right">Cantidad</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-movimientos-body" class="divide-y divide-gray-200 dark:divide-gray-700">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-familia" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-familia')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form onsubmit="guardarFamilia(event)" class="p-6">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva Familia</h3>
+                    <button type="button" onclick="closeModal('modal-familia')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Familia</label>
+                        <input type="text" name="nombre" required placeholder="Ej: UNIFORMES"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors uppercase">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                        <input type="text" name="descripcion"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors">
+                    </div>
+
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-familia')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                        Guardar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-categoria" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-categoria')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+            
+            <form onsubmit="guardarCategoria(event)" class="p-6">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nueva Categoría</h3>
+                    <button type="button" onclick="closeModal('modal-categoria')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Familia Padre</label>
+                        <select id="cat_familia_id" name="familia_id" required
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors">
+                            </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre Categoría</label>
+                        <input type="text" name="nombre" required placeholder="Ej: POLERAS"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-teal-500 focus:border-teal-500 outline-none transition-colors uppercase">
+                    </div>
+
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-categoria')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                        Guardar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-item" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-item')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full border border-gray-200 dark:border-gray-700">
+            
+            <form onsubmit="guardarItem(event)" class="p-6">
+                
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Nuevo Producto</h3>
+                    <button type="button" onclick="closeModal('modal-item')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Familia</label>
+                        <select id="item_familia" onchange="cargarCategoriasEnItem(this.value)" 
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                            <option value="">Seleccione...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+                        <select name="categoria_id" id="item_categoria" required 
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                            <option value="">Primero seleccione familia</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del Producto</label>
+                        <input type="text" name="nombre" required placeholder="Ej: Polera Piqué Talla 14" 
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unidad de Medida</label>
+                        <div class="flex gap-3">
+                            <select id="prod-unidad" onchange="toggleOtraUnidad(this)" required 
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                                <option value="UNIDAD">Unidad</option>
+                                <option value="PAQUETE">Paquete</option>
+                                <option value="BOLSA">Bolsa</option>
+                                <option value="GRAMO">Gramo</option>
+                                <option value="KILO">Kilo</option>
+                                <option value="LITRO">Litro</option>
+                                <option value="METRO">Metro</option>
+                                <option value="OTRA">Otra (Escribir...)</option>
+                            </select>
+                            
+                            <input type="text" id="prod-unidad-custom" placeholder="Especifique..." 
+                                class="hidden w-1/2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Inicial</label>
+                            <input type="number" id="prod-stock" min="0" step="1" value="0" required 
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Mínimo</label>
+                            <input type="number" id="prod-stock-min" min="1" step="1" value="5" required 
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Precio Unitario (Bs)</label>
+                            <input type="number" name="precio" id="prod-precio" min="0" step="0.01" required 
+                                class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-[#DD8E0A] focus:border-[#DD8E0A] outline-none transition-colors font-bold text-[#DD8E0A]">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="border-t border-gray-100 dark:border-gray-700 pt-4 mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300">Atributos / Variantes</label>
+                        <button type="button" onclick="agregarFilaAtributo()" 
+                            class="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg transition-colors border border-gray-200 dark:border-gray-600 font-medium">
+                            <i class="fas fa-plus mr-1"></i> Agregar
+                        </button>
+                    </div>
+                    <div id="contenedor-atributos" class="space-y-3">
+                        </div>
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-item')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                        Guardar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="modal-movimiento" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity backdrop-blur-sm" onclick="closeModal('modal-movimiento')"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm w-full border border-gray-200 dark:border-gray-700">
+            
+            <form onsubmit="guardarMovimiento(event)" class="p-6">
+                <input type="hidden" name="item_id" id="mov_item_id">
+
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Registrar Movimiento</h3>
+                    <button type="button" onclick="closeModal('modal-movimiento')" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="mb-5">
+                    <p id="mov_nombre_item" class="w-full p-3 bg-blue-50 dark:bg-primary-900/20 text-primary-800 dark:text-primary-300 text-center font-semibold rounded-lg border border-primary-100 dark:border-primary-800 text-sm">
+                        </p>
+                </div>
+
+                <div class="space-y-5">
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo</label>
+                        <select name="tipo" id="mov_tipo" 
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                            <option value="entrada">ENTRADA (Stock +)</option>
+                            <option value="salida">SALIDA (Stock -)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cantidad</label>
+                        <input type="number" name="cantidad" required min="1" placeholder="0"
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo / Detalle</label>
+                        <input type="text" name="motivo" required placeholder="Ej: Compra de stock, Uso interno..."
+                            class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
+                    </div>
+
+                </div>
+
+                <div class="flex justify-end items-center gap-3 pt-6 mt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" onclick="closeModal('modal-movimiento')" 
+                        class="bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                        class="bg-primary-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-primary-700 shadow-md transition-colors">
+                        Registrar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+<script src="/static/js/inventario.js" type="module"></script>
+{% endblock %}

@@ -1,0 +1,6 @@
+2025-12-22 15:34:15.616 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-22 15:46:42.130 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-22 16:28:11.059 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2025-12-22 16:29:14.017 | INFO     | app.main:log_request_middleware:176 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/finanzas/gastos
+2025-12-22 16:29:14.077 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: InvalidRequestError: A transaction is already begun on this Session.
+2025-12-22 16:34:48.127 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

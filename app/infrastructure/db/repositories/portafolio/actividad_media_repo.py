@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.repositories.base import BaseRepository
 from app.infrastructure.db.models.portafolio.actividad_media import (
-    ActividadMedia, TipoMedia
-)  # modelo media [attached_file:19bf95e0-cff4-4cd3-a79f-589585ff54d5]
+    ActividadMedia, TipoMedia, EstadoProcesamientoWatermark
+)  
 
 
 class ActividadMediaRepository(BaseRepository[ActividadMedia]):
@@ -103,3 +103,142 @@ class ActividadMediaRepository(BaseRepository[ActividadMedia]):
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+    
+    # ========================================================================
+    # NUEVOS MÉTODOS PARA PROCESAMIENTO DE MARCA DE AGUA
+    # ========================================================================
+    
+    async def actualizar_estado_procesamiento(
+        self,
+        media_id: int,
+        estado_procesamiento: EstadoProcesamientoWatermark,
+        cola_id: Optional[str] = None,
+        error_procesamiento: Optional[str] = None,
+        url_marcada: Optional[str] = None,
+        procesado_en: Optional[datetime] = None,
+    ) -> None:
+        """
+        Actualiza el estado de procesamiento de marca de agua de un archivo.
+        """
+        valores = {"estado_procesamiento": estado_procesamiento}
+        
+        if cola_id is not None:
+            valores["cola_id"] = cola_id
+        
+        if error_procesamiento is not None:
+            valores["error_procesamiento"] = error_procesamiento
+            # Incrementar intentos solo cuando hay error
+            stmt_intentos = (
+                update(ActividadMedia)
+                .where(ActividadMedia.id == media_id)
+                .values(intentos_procesamiento=ActividadMedia.intentos_procesamiento + 1)
+            )
+            await self.session.execute(stmt_intentos)
+        
+        if url_marcada is not None:
+            valores["url_marcada"] = url_marcada
+        
+        if procesado_en is not None:
+            valores["procesado_en"] = procesado_en
+        
+        stmt = (
+            update(ActividadMedia)
+            .where(ActividadMedia.id == media_id)
+            .values(**valores)
+        )
+        await self.session.execute(stmt)
+    
+    async def listar_por_estado_procesamiento(
+        self,
+        estados: List[EstadoProcesamientoWatermark],
+        limite: int = 50,
+    ) -> List[ActividadMedia]:
+        """
+        Lista archivos por estado(s) de procesamiento.
+        """
+        stmt = (
+            select(ActividadMedia)
+            .where(ActividadMedia.estado_procesamiento.in_(estados))
+            .order_by(ActividadMedia.creado_en)
+            .limit(limite)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+    
+    async def listar_errores_reintentables(
+        self,
+        max_intentos: int = 3,
+    ) -> List[ActividadMedia]:
+        """
+        Lista archivos con error que aún pueden reintentarse.
+        """
+        stmt = select(ActividadMedia).where(
+            and_(
+                ActividadMedia.estado_procesamiento == EstadoProcesamientoWatermark.error,
+                ActividadMedia.intentos_procesamiento < max_intentos,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+    
+    async def resetear_para_reprocesar(
+        self,
+        media_id: int,
+        nueva_cola_id: str,
+    ) -> None:
+        """
+        Resetea el estado de un archivo para reprocesarlo.
+        Incrementa intentos y limpia errores.
+        """
+        stmt = (
+            update(ActividadMedia)
+            .where(ActividadMedia.id == media_id)
+            .values(
+                estado_procesamiento=EstadoProcesamientoWatermark.pendiente,
+                cola_id=nueva_cola_id,
+                error_procesamiento=None,
+                intentos_procesamiento=ActividadMedia.intentos_procesamiento + 1,
+            )
+        )
+        await self.session.execute(stmt)
+    
+    async def obtener_por_cola_id(self, cola_id: str) -> Optional[ActividadMedia]:
+        """
+        Obtiene un archivo multimedia por su ID de cola.
+        Útil para actualizar desde workers de Celery/RQ.
+        """
+        stmt = select(ActividadMedia).where(ActividadMedia.cola_id == cola_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    async def contar_por_estado_procesamiento(self) -> dict[str, int]:
+        """
+        Devuelve conteo de archivos por estado de procesamiento.
+        Útil para dashboard/monitoreo.
+        """
+        stmt = (
+            select(
+                ActividadMedia.estado_procesamiento,
+                func.count(ActividadMedia.id)
+            )
+            .group_by(ActividadMedia.estado_procesamiento)
+        )
+        result = await self.session.execute(stmt)
+        rows = result.all()
+        return {
+            cast(EstadoProcesamientoWatermark, estado).value: count 
+            for estado, count in rows
+        }
+    
+    async def obtener_por_id(self, media_id: int) -> Optional[ActividadMedia]:
+        stmt = select(ActividadMedia).where(ActividadMedia.id == media_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def marcar_como_procesado(self, media_id: int) -> None:
+        stmt = (
+            update(ActividadMedia)
+            .where(ActividadMedia.id == media_id)
+            .values(procesado=True)
+        )
+        await self.session.execute(stmt)

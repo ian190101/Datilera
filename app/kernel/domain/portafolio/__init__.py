@@ -26,6 +26,8 @@ from .errors import (
     MediaNoEncontradaError,
     MediaNoDisponibleError,
     MediaExpiradaError,
+    MediaProcesamientoError,
+    MediaIntentosExcedidosError,
 )
 
 __all__ = [
@@ -52,4 +54,6 @@ __all__ = [
     "MediaNoEncontradaError",
     "MediaNoDisponibleError",
     "MediaExpiradaError",
+    "MediaProcesamientoError",
+    "MediaIntentosExcedidosError",
 ]

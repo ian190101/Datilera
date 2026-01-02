@@ -24,7 +24,7 @@ class AlumnoTutor(Base):
     creado_en = Column(DateTime, default=datetime.utcnow)
     
     # Relaciones
-    alumno = relationship("Alumno")
+    alumno = relationship("Alumno", back_populates="alumnos_tutores")
     tutor = relationship("Tutor", back_populates="alumnos_tutores")
     
     __table_args__ = (

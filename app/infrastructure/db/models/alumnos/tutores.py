@@ -6,6 +6,7 @@ from app.infrastructure.db.base import Base
 from datetime import datetime
 
 
+
 class Tutor(Base):
     __tablename__ = "tutores"
 

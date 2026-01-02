@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from typing import Tuple
-from app.kernel.domain.finanzas.ports import LibroCajaRepositoryPort
+from app.kernel.domain.finanzas.ports import ILibroCajaRepository
 
 @dataclass
 class ObtenerTotalesPeriodoQuery:
@@ -15,7 +15,7 @@ class ObtenerTotalesPeriodoQuery:
     fecha_fin: date
 
 class ObtenerTotalesPeriodoUseCase:
-    def __init__(self, libro_repo: LibroCajaRepositoryPort):
+    def __init__(self, libro_repo: ILibroCajaRepository):
         self.libro_repo = libro_repo
 
     async def execute(self, query: ObtenerTotalesPeriodoQuery) -> Tuple[Decimal, Decimal, Decimal]:

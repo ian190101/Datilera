@@ -1,0 +1,6 @@
+2025-12-26 14:37:25.294 | INFO     | app.main:lifespan:113 - Iniciando API de Datilera en ambiente: dev
+2025-12-26 14:44:00.623 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Alumno' object has no attribute 'nombres'
+2025-12-26 14:44:00.736 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Alumno' object has no attribute 'nombres'
+2025-12-26 14:44:01.775 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Alumno' object has no attribute 'nombres'
+2025-12-26 14:44:03.805 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'Alumno' object has no attribute 'nombres'
+2025-12-26 14:52:12.278 | INFO     | app.main:lifespan:129 - Cerrando motor de base de datos...

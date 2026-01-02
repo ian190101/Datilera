@@ -2,11 +2,16 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from typing import List, Optional
 from app.infrastructure.db.models.alumnos.alumnos import Alumno
 
 class AlumnosRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    def add(self, alumno: Alumno) -> None:
+        """Agrega un alumno a la sesión actual."""
+        self.session.add(alumno)
 
     async def crear(self, data: dict) -> Alumno:
         alumno = Alumno(**data)
@@ -34,3 +39,8 @@ class AlumnosRepository:
             .where(Alumno.tutores.any(id=tutor_id))
         )
         return result.scalars().all()
+
+    async def get_by_codigo_unico(self, codigo: str) -> Optional[Alumno]:
+        stmt = select(Alumno).where(Alumno.codigo_unico == codigo)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()

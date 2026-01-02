@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, Numeric, Date, DateTime, ForeignKey, func, Enum as SQLEnum
 from app.infrastructure.db.base import Base
 import enum
+from sqlalchemy.orm import relationship
 
 class TipoMovimiento(enum.Enum):
     entrada = "entrada"
@@ -21,3 +22,8 @@ class MovimientoStock(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="RESTRICT"), nullable=False, index=True)
     fecha_movimiento = Column(Date, nullable=False, index=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
+
+
+    item = relationship("Item", back_populates="movimientos")
+    sede = relationship("Sede", back_populates="movimientos_stock")
+    usuario = relationship("Usuario", back_populates="movimientos_stock")

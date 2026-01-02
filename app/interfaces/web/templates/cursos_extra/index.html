@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+            <i class="fas fa-swimmer text-teal-600 mr-2"></i>Cursos Extra
+        </h1>
+        <p class="mt-1 text-gray-600 dark:text-gray-400">Gestión de talleres, inscripciones y balance financiero.</p>
+    </div>
+    <button onclick="openModal('modal-nuevo-curso')" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg shadow-lg flex items-center gap-2 transition-transform active:scale-95">
+        <i class="fas fa-plus"></i> Nuevo Curso
+    </button>
+</div>
+
+<div id="grid-cursos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+    <div class="col-span-full text-center py-12 text-gray-500">
+        <i class="fas fa-circle-notch fa-spin mr-2"></i> Cargando cursos...
+    </div>
+</div>
+
+<div id="seccion-detalle-curso" class="hidden bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start bg-gray-50 dark:bg-gray-900/50">
+        <div>
+            <button onclick="cerrarDetalleCurso()" class="text-sm text-gray-500 hover:text-gray-700 mb-2 flex items-center">
+                <i class="fas fa-arrow-left mr-1"></i> Volver al listado
+            </button>
+            <h2 id="detalle-titulo" class="text-2xl font-bold text-gray-900 dark:text-white">Nombre Curso</h2>
+            <p id="detalle-instructor" class="text-teal-600 font-medium">Instructor: -</p>
+        </div>
+        <div class="text-right">
+            <div class="text-sm text-gray-500">Balance Institución</div>
+            <div id="detalle-ganancia" class="text-xl font-bold text-green-600">Bs. 0.00</div>
+        </div>
+    </div>
+
+    <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex -mb-px">
+            <button onclick="switchCursoTab('inscritos')" id="tab-btn-inscritos" class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-teal-500 text-teal-600">
+                <i class="fas fa-users mr-2"></i> Inscritos y Pagos
+            </button>
+            <button onclick="switchCursoTab('finanzas')" id="tab-btn-finanzas" class="w-1/2 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <i class="fas fa-chart-pie mr-2"></i> Gastos y Balance
+            </button>
+        </nav>
+    </div>
+
+    <div class="p-6">
+        <div id="view-inscritos">
+            <div class="flex justify-between mb-4">
+                <input type="text" placeholder="Buscar alumno..." class="border rounded-lg px-3 py-2 text-sm w-64 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <button onclick="openModalInscripcion()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+                    <i class="fas fa-user-plus mr-1"></i> Inscribir Alumno
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alumno</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tutor / Contacto</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pagado</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Saldo</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-inscritos-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-finanzas" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="p-4 bg-green-50 rounded-lg border border-green-100">
+                    <p class="text-sm text-green-600 font-bold">Ingresos Totales</p>
+                    <p id="fin-ingresos" class="text-2xl font-mono text-green-800">Bs. 0.00</p>
+                </div>
+                <div class="p-4 bg-red-50 rounded-lg border border-red-100">
+                    <p class="text-sm text-red-600 font-bold">Gastos Totales</p>
+                    <button onclick="openModalGasto()" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Reg. Gasto</button>
+                    <p id="fin-gastos" class="text-2xl font-mono text-red-800">Bs. 0.00</p>
+                </div>
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-blue-600 font-bold">Ganancia Neta</span>
+                        
+                    </div>
+                    <p id="fin-utilidad" class="text-2xl font-mono text-blue-800 mt-1">Bs. 0.00</p>
+                    <div class="mt-2 text-xs text-blue-500 border-t border-blue-200 pt-2 flex justify-between">
+                        <span>Darilera: <b id="fin-split-inst">0</b></span>
+                        <span>Profesor: <b id="fin-split-prof">0</b></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="modal-gasto" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-sm rounded-xl shadow-2xl">
+        <div class="px-6 py-4 border-b border-red-100 dark:border-gray-700 bg-red-50 dark:bg-red-900/20">
+            <h3 class="font-bold text-lg text-red-800 dark:text-red-300">Registrar Gasto</h3>
+        </div>
+        
+        <form onsubmit="guardarGasto(event)" class="p-6 space-y-4">
+            <input type="hidden" name="curso_id" id="gasto-curso-id">
+
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Categoría</label>
+                <input list="categorias-sugeridas" name="categoria" required placeholder="Ej: Materiales, Publicidad..." 
+                       class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white uppercase text-sm">
+                <datalist id="categorias-sugeridas">
+                    <option value="MATERIALES">
+                    <option value="INSTRUCTOR">
+                    <option value="PUBLICIDAD">
+                    <option value="ALQUILER">
+                    <option value="TRANSPORTE">
+                    <option value="MERIENDA">
+                </datalist>
+                <p class="text-xs text-gray-500 mt-1">Escribe una nueva o selecciona una existente.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Monto (Bs)</label>
+                <input type="number" name="monto" step="0.5" min="0" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white text-lg font-bold text-red-700">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Descripción / Detalle</label>
+                <textarea name="descripcion" rows="2" placeholder="Detalles del gasto..." class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white text-sm"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-gasto')" class="px-4 py-2 border rounded-md dark:border-gray-600 dark:text-white">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Registrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="modal-nuevo-curso" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden">
+        <div class="px-6 py-4 bg-teal-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Crear Curso Extra</h3>
+            <button onclick="closeModal('modal-nuevo-curso')" class="hover:text-gray-200"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <form onsubmit="crearCurso(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Nombre del Curso</label>
+                <input type="text" name="nombre" placeholder="Ej: Natación Avanzada" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-teal-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Instructor</label>
+                    <input type="text" name="instructor" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Inicio</label>
+                    <input type="date" name="fecha_inicio" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Precio Interno (Bs)</label>
+                    <input type="number" name="precio_interno" step="0.5" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Precio Externo (Bs)</label>
+                    <input type="number" name="precio_externo" step="0.5" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 border-t pt-4 dark:border-gray-700">
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Cupo Máximo</label>
+                    <input type="number" name="cupo_maximo" value="20" min="1" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">% Ganancia Inst.</label>
+                    <input type="number" name="porcentaje" value="50" min="0" max="100" class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Fecha Fin (Opcional)</label>
+                <input type="date" name="fecha_fin" class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+            </div>
+
+            <div class="pt-4 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-nuevo-curso')" class="px-4 py-2 border rounded-md hover:bg-gray-50 dark:border-gray-600 dark:text-white dark:hover:bg-gray-700">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="modal-inscripcion" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-md rounded-xl shadow-2xl">
+        <div class="px-6 py-4 border-b dark:border-gray-700">
+            <h3 class="font-bold text-lg dark:text-white">Nueva Inscripción</h3>
+        </div>
+        <form onsubmit="guardarInscripcion(event)" class="p-6">
+            <div class="mb-4 flex justify-center bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button type="button" onclick="toggleTipoAlumno('INTERNO')" id="btn-tipo-interno" class="w-1/2 py-1 rounded-md text-sm font-bold bg-white text-teal-700 shadow">Interno</button>
+                <button type="button" onclick="toggleTipoAlumno('EXTERNO')" id="btn-tipo-externo" class="w-1/2 py-1 rounded-md text-sm font-bold text-gray-500">Externo</button>
+            </div>
+            <input type="hidden" name="tipo_alumno" id="insc-tipo" value="INTERNO">
+
+            <div id="fields-interno" class="space-y-3">
+                <label class="block text-sm font-medium dark:text-gray-300">Buscar Alumno</label>
+                <select id="sel-alumno-interno" class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+
+            <div id="fields-externo" class="hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase">Datos del Niño</label>
+                    <input type="text" name="nombre_completo" placeholder="Nombre Completo" class="mt-1 w-full rounded-md border-gray-300 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="date" name="fecha_nacimiento" class="w-full rounded-md border-gray-300 text-sm">
+                    <input type="number" name="edad" placeholder="Edad" class="w-full rounded-md border-gray-300 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mt-2">Datos del Tutor</label>
+                    <input type="text" name="tutor_nombre" placeholder="Nombre Padre/Madre" class="mt-1 w-full rounded-md border-gray-300 text-sm">
+                    <input type="text" name="tutor_celular" placeholder="Celular" class="mt-2 w-full rounded-md border-gray-300 text-sm">
+                </div>
+            </div>
+
+            <div class="pt-6 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-inscripcion')" class="px-4 py-2 border rounded-md">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Inscribir</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-pago-curso" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 w-full max-w-sm rounded-xl shadow-2xl">
+        <div class="px-6 py-4 border-b border-green-100 dark:border-gray-700 bg-green-50 dark:bg-green-900/20">
+            <h3 class="font-bold text-lg text-green-800 dark:text-green-300">Registrar Pago</h3>
+        </div>
+        <form onsubmit="guardarPagoCurso(event)" class="p-6 space-y-4">
+            <input type="hidden" name="balance_id" id="pago-balance-id">
+            
+            <div class="text-center mb-4">
+                <p class="text-sm text-gray-500">Saldo Pendiente</p>
+                <p id="pago-saldo-display" class="text-2xl font-bold text-gray-800 dark:text-white">Bs. 0.00</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Monto a Pagar</label>
+                <input type="number" name="monto" step="0.5" required class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white text-lg font-bold text-green-700">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1 dark:text-gray-300">Método</label>
+                <select name="metodo" class="w-full rounded-md border-gray-300 dark:bg-gray-700 dark:text-white">
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="QR">QR</option>
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                </select>
+            </div>
+
+            <div class="pt-2 flex justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-pago-curso')" class="px-4 py-2 border rounded-md">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Cobrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/js/cursos_extra.js" type="module"></script>
+{% endblock %}

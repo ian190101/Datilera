@@ -1,59 +1,49 @@
-# app/application/finanzas/pagos/listar_pagos.py
-"""
-CU: Listar pagos por sede, con filtros y paginación.
-"""
-from dataclasses import dataclass
+# app/application/use_cases/finanzas/listar_pagos.py
 from datetime import date
-from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List
 
-from app.kernel.domain.finanzas import Pago, MetodoPago
-from app.kernel.domain.finanzas.ports import PagoRepositoryPort, LibroCajaRepositoryPort
+from app.kernel.domain.finanzas.ports import IPagoRepository
 
 
-@dataclass
-class ListarPagosQuery:
-    sede_id: int
-    fecha_inicio: Optional[date] = None
-    fecha_fin: Optional[date] = None
-    categoria_id: Optional[int] = None
-    metodo: Optional[MetodoPago] = None
-    limit: int = 50
-    offset: int = 0
+class ListarPagosUC:
+    def __init__(self, pago_repo: IPagoRepository) -> None:
+        self._pago_repo = pago_repo
 
-
-@dataclass
-class PagoListadoDTO:
-    pago: Pago
-    anulado: bool
-
-
-class ListarPagosUseCase:
-    """
-    Lista pagos y marca 'anulado' si existe un contramovimiento EGRESO en libro de caja con pago_id igual.
-    Requiere que el repo de libro implemente un verificador por pago_id (p.ej. existe_egreso_por_pago(pago_id)).
-    """
-
-    def __init__(self, pago_repo: PagoRepositoryPort, libro_repo: LibroCajaRepositoryPort):
-        self.pago_repo = pago_repo
-        self.libro_repo = libro_repo
-
-    async def execute(self, q: ListarPagosQuery) -> List[PagoListadoDTO]:
-        pagos = await self.pago_repo.listar_por_sede_y_periodo(
-            sede_id=q.sede_id,
-            fecha_inicio=q.fecha_inicio,
-            fecha_fin=q.fecha_fin
+    async def execute(
+        self,
+        sede_id: int | None = None,
+        alumno_id: int | None = None,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        metodo_pago: str | None = None,
+        incluir_anulados: bool = False,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        # Solo anotamos tipos de salida para evitar Any
+        items: List[Dict[str, Any]] = await self._pago_repo.listar(
+            sede_id=sede_id,
+            alumno_id=alumno_id,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            metodo_pago=metodo_pago,
+            incluir_anulados=incluir_anulados,
+            limit=limit,
+            offset=offset,
         )
-        # filtros adicionales en memoria si el repo aún no los soporta
-        if q.categoria_id is not None:
-            pagos = [p for p in pagos if p.categoria_id == q.categoria_id]
-        if q.metodo is not None:
-            pagos = [p for p in pagos if p.metodo == q.metodo]
-        pagos = pagos[q.offset:q.offset + q.limit]
 
-        result: List[PagoListadoDTO] = []
-        for p in pagos:
-            # se considera anulado cuando existe un egreso en libro_caja con pago_id == p.id
-            anulado = await self.libro_repo.existe_egreso_por_pago(p.id)
-            result.append(PagoListadoDTO(pago=p, anulado=anulado))
-        return result
+        total: int = await self._pago_repo.contar(
+            sede_id=sede_id,
+            alumno_id=alumno_id,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            metodo_pago=metodo_pago,
+            incluir_anulados=incluir_anulados,
+        )
+
+        return {
+            "items": items,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }

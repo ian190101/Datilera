@@ -1,0 +1,381 @@
+<!-- app/interfaces/web/templates/inscripciones/create.html -->
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+    .step {
+        transition: all 0.3s ease;
+    }
+    .step.active {
+        display: block;
+    }
+    .step.inactive {
+        display: none;
+    }
+    .step-indicator.completed {
+        background: #10b981;
+        border-color: #10b981;
+    }
+    .step-indicator.active {
+        background: #f59e0b;
+        border-color: #f59e0b;
+    }
+    .step-indicator.pending {
+        background: #e5e7eb;
+        border-color: #d1d5db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <a href="/inscripciones" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium mb-4 inline-block">
+        <i class="fas fa-arrow-left mr-2"></i>
+        Volver a Inscripciones
+    </a>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Nueva Pre-Inscripción</h1>
+    <p class="mt-2 text-gray-600 dark:text-gray-400">Registra los datos básicos. Los padres completarán el resto desde su portal.</p>
+</div>
+
+<!-- Stepper Indicators (3 pasos) -->
+<div class="mb-8">
+    <div class="flex items-center justify-between max-w-3xl mx-auto">
+        
+        <!-- Paso 1 -->
+        <div class="flex-1 flex items-center">
+            <div class="flex items-center relative">
+                <div id="step-indicator-1" class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold z-10">
+                    1
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Datos del Niño</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Información básica</p>
+                </div>
+            </div>
+            <div class="flex-1 h-1 bg-gray-300 dark:bg-gray-600 mx-4"></div>
+        </div>
+        
+        <!-- Paso 2 -->
+        <div class="flex-1 flex items-center">
+            <div class="flex items-center relative">
+                <div id="step-indicator-2" class="step-indicator pending w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 font-semibold border-2 z-10">
+                    2
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">Tutor Principal</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Contacto principal</p>
+                </div>
+            </div>
+            <div class="flex-1 h-1 bg-gray-300 dark:bg-gray-600 mx-4"></div>
+        </div>
+        
+        <!-- Paso 3 -->
+        <div class="flex items-center">
+            <div id="step-indicator-3" class="step-indicator pending w-10 h-10 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-400 font-semibold border-2 z-10">
+                3
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white">Confirmar</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Generar código</p>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Formulario Principal -->
+<form id="inscripcion-form" class="max-w-3xl mx-auto">
+
+    <!-- ============================================================
+         PASO 1: DATOS DEL NIÑO
+         ============================================================ -->
+    <div id="step-1" class="step active bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+        
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
+            <i class="fas fa-child text-primary-500 mr-2"></i>
+            Datos del Niño/a
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Nombres -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nombres <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       name="nombres" 
+                       id="nombres"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all"
+                       placeholder="Ej: Juan Carlos">
+                <p class="text-xs text-red-500 mt-1 hidden" id="nombres-error"></p>
+            </div>
+            
+            <!-- Apellidos -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Apellidos <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       name="apellidos" 
+                       id="apellidos"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all"
+                       placeholder="Ej: Pérez López">
+                <p class="text-xs text-red-500 mt-1 hidden" id="apellidos-error"></p>
+            </div>
+            
+            <!-- Fecha de Nacimiento -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Fecha de Nacimiento <span class="text-red-500">*</span>
+                </label>
+                <input type="date" 
+                       name="fecha_nacimiento" 
+                       id="fecha_nacimiento"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Edad: <span id="edad-display">--</span></p>
+                <p class="text-xs text-red-500 mt-1 hidden" id="fecha_nacimiento-error"></p>
+            </div>
+            
+            <!-- Género -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Género <span class="text-red-500">*</span>
+                </label>
+                <select name="genero" 
+                        id="genero"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar...</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                </select>
+                <p class="text-xs text-red-500 mt-1 hidden" id="genero-error"></p>
+            </div>
+            
+            <!-- Grupo -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Grupo <span class="text-red-500">*</span>
+                </label>
+                <select name="grupo" 
+                        id="grupo"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar...</option>
+                    <option value="SALA_CUNA">Sala Cuna (0-1 años)</option>
+                    <option value="NIDITO">Nidito (1-2 años)</option>
+                    <option value="MATERNAL">Maternal (2-3 años)</option>
+                    <option value="PREKINDER">Pre-Kinder (3-4 años)</option>
+                    <option value="KINDER">Kinder (4-5 años)</option>
+                </select>
+                <p class="text-xs text-red-500 mt-1 hidden" id="grupo-error"></p>
+            </div>
+            
+        </div>
+        
+        <!-- Botones -->
+        <div class="mt-8 flex justify-end">
+            <button type="button" 
+                    onclick="nextStep(1)"
+                    class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-lg transition-all">
+                Siguiente
+                <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+        
+    </div>
+
+    <!-- ============================================================
+         PASO 2: TUTOR PRINCIPAL
+         ============================================================ -->
+    <div id="step-2" class="step inactive bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+        
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
+            <i class="fas fa-user text-primary-500 mr-2"></i>
+            Tutor Principal
+        </h3>
+        
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <i class="fas fa-info-circle mr-2 text-blue-600 dark:text-blue-400"></i>
+            Solo necesitamos los datos del tutor principal. Podrá agregar un segundo tutor desde su portal con el código que se generará.
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nombres y Apellidos Completos <span class="text-red-500">*</span>
+                </label>
+                <input type="text" 
+                       name="tutor_nombre" 
+                       id="tutor_nombre"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all"
+                       placeholder="Ej: María Elena Rodríguez García">
+                <p class="text-xs text-red-500 mt-1 hidden" id="tutor_nombre-error"></p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Parentesco <span class="text-red-500">*</span>
+                </label>
+                <select name="tutor_parentesco" 
+                        id="tutor_parentesco"
+                        required
+                        class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all">
+                    <option value="">Seleccionar...</option>
+                    <option value="MADRE">Madre</option>
+                    <option value="PADRE">Padre</option>
+                    <option value="ABUELO">Abuelo/a</option>
+                    <option value="TIO">Tío/a</option>
+                    <option value="TUTOR">Tutor Legal</option>
+                </select>
+                <p class="text-xs text-red-500 mt-1 hidden" id="tutor_parentesco-error"></p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Teléfono/Celular <span class="text-red-500">*</span>
+                </label>
+                <input type="tel" 
+                       name="tutor_telefono" 
+                       id="tutor_telefono"
+                       required
+                       class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 transition-all"
+                       placeholder="70123456">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sin el código de país (591)</p>
+                <p class="text-xs text-red-500 mt-1 hidden" id="tutor_telefono-error"></p>
+            </div>
+            
+        </div>
+        
+        <!-- Botones -->
+        <div class="mt-8 flex justify-between">
+            <button type="button" 
+                    onclick="prevStep(2)"
+                    class="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-all">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Anterior
+            </button>
+            <button type="button" 
+                    onclick="nextStep(2)"
+                    class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-lg transition-all">
+                Siguiente
+                <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+        
+    </div>
+
+    <!-- ============================================================
+         PASO 3: CONFIRMACIÓN
+         ============================================================ -->
+    <div id="step-3" class="step inactive bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+        
+        <div id="success-message" class="hidden text-center py-12">
+            <div class="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-check text-4xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                ¡Pre-Inscripción Exitosa!
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+                El código de acceso ha sido generado correctamente.
+            </p>
+            
+            <!-- Código de Tutor -->
+            <div class="max-w-md mx-auto mb-8 p-6 bg-primary-50 dark:bg-primary-900/20 rounded-lg border-2 border-primary-200 dark:border-primary-700">
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Código de Acceso Para Tutor
+                </p>
+                <code id="codigo-tutor-display" class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+                    ------
+                </code>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                    Válido para 2 cuentas (Mamá/Papá)
+                </p>
+            </div>
+            
+            <!-- Botones de Acción -->
+            <div class="flex flex-col items-center justify-center space-y-3">
+                <button type="button" 
+                        id="btn-enviar-whatsapp"
+                        class="w-full max-w-md px-6 py-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all shadow-lg">
+                    <i class="fab fa-whatsapp text-2xl mr-3"></i>
+                    Enviar Código por WhatsApp
+                </button>
+                <button type="button" 
+                        onclick="copiarCodigo()"
+                        class="w-full max-w-md px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-all">
+                    <i class="fas fa-copy mr-2"></i>
+                    Copiar Código
+                </button>
+                <div class="flex space-x-3 mt-4">
+                    <a href="/inscripciones/nueva" 
+                       class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nueva Pre-Inscripción
+                    </a>
+                    <a href="/inscripciones" 
+                       class="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-all">
+                        <i class="fas fa-list mr-2"></i>
+                        Ver Inscripciones
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resumen (antes de confirmar) -->
+        <div id="resumen-inscripcion">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                <i class="fas fa-check-circle text-primary-500 mr-2"></i>
+                Confirmar Pre-Inscripción
+            </h3>
+            
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+                Por favor, revisa los datos antes de generar el código de acceso.
+            </p>
+            
+            <div id="resumen-content" class="space-y-4 mb-8">
+                <!-- El resumen se generará dinámicamente con JS -->
+            </div>
+            
+            <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg mb-6">
+                <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Nota:</strong> Los padres completarán la información faltante (segundo tutor, documentos, datos médicos) desde su portal web usando el código que se generará.
+                </p>
+            </div>
+            
+            <!-- Botones -->
+            <div class="flex justify-between">
+                <button type="button" 
+                        onclick="prevStep(3)"
+                        class="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-all">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Anterior
+                </button>
+                <button type="submit" 
+                        id="btn-finalizar"
+                        class="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg transition-all">
+                    <i class="fas fa-check mr-2"></i>
+                    Generar Código y Finalizar
+                </button>
+            </div>
+        </div>
+        
+    </div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="module" src="/static/js/inscripciones.js"></script>
+{% endblock %}

@@ -26,7 +26,7 @@ from app.kernel.application.comunicaciones.mensajes import (
 
 from app.kernel.domain.comunicaciones import TipoMensaje, TipoAdjunto
 from app.infrastructure.services.storage_service_mock import StorageServiceMock
-from app.infrastructure.services.websocket_service_mock import WebSocketServiceMock
+from app.infrastructure.services.websocket_service import WebSocketService
 # TODO: Importar servicios externos cuando estén implementados
 # from app.infrastructure.services.websocket_service import WebSocketService
 # from app.infrastructure.services.storage_service import StorageService
@@ -58,9 +58,8 @@ def get_adjunto_repo(session: AsyncSession = Depends(get_session)) -> MensajesAd
     return MensajesAdjuntosRepository(session)
 
 
-# TODO: Implementar cuando esté disponible
-# def get_websocket_service() -> WebSocketService:
-#     return WebSocketService()
+def get_websocket_service() -> WebSocketService:
+    return WebSocketService()
 
 # def get_storage_service() -> StorageService:
 #     return StorageService()
@@ -81,29 +80,15 @@ async def enviar_mensaje(
     conversacion_repo: ConversacionesRepository = Depends(get_conversacion_repo),
     participante_repo: ConversacionesParticipantesRepository = Depends(get_participante_repo),
     mensaje_repo: MensajesRepository = Depends(get_mensaje_repo),
-    # websocket_service: WebSocketService = Depends(get_websocket_service),
+    websocket_service: WebSocketService = Depends(get_websocket_service),
 ):
-    """Enviar mensaje en conversación (US-COM-002).
-    
-    Body:
-        - conversacion_id: ID de la conversación
-        - remitente_id: Usuario que envía
-        - contenido: Contenido del mensaje (obligatorio, ≤4000 chars)
-        - tipo: Tipo de mensaje (texto/sistema)
-        - reply_a_id: ID del mensaje al que responde (opcional)
-        - metadatos: Datos adicionales (opcional)
-    """
-    # TODO: Inyectar websocket_service cuando esté implementado
-    
-    websocket_service = WebSocketServiceMock()
-    
     caso = EnviarMensajeUseCase(
         conversacion_repo,
         participante_repo,
         mensaje_repo,
         websocket_service,
     )
-    
+
     mensaje = await caso.ejecutar(
         conversacion_id=conversacion_id,
         remitente_id=remitente_id,
@@ -112,7 +97,7 @@ async def enviar_mensaje(
         reply_a_id=reply_a_id,
         metadatos=metadatos,
     )
-    
+
     return {"data": mensaje.model_dump()}
 
 
@@ -172,22 +157,15 @@ async def marcar_mensaje_leido(
     mensaje_repo: MensajesRepository = Depends(get_mensaje_repo),
     participante_repo: ConversacionesParticipantesRepository = Depends(get_participante_repo),
     lectura_repo: MensajesLecturasRepository = Depends(get_lectura_repo),
-    # websocket_service: WebSocketService = Depends(get_websocket_service),
+    websocket_service: WebSocketService = Depends(get_websocket_service),
 ):
-    """Marcar mensaje como leído (US-COM-003).
-    
-    Idempotente (no falla si ya está leído).
-    """
-    # TODO: Inyectar websocket_service cuando esté implementado
-    websocket_service = WebSocketServiceMock()
-    
     caso = MarcarMensajeLeidoUseCase(
         mensaje_repo,
         participante_repo,
         lectura_repo,
         websocket_service,
     )
-    
+
     await caso.ejecutar(mensaje_id, usuario_id)
     return
 

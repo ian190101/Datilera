@@ -1,0 +1,5 @@
+2025-12-29 12:18:57.580 | INFO     | app.main:lifespan:115 - Iniciando API de Datilera en ambiente: dev
+2025-12-29 12:34:29.374 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: 'NoneType' object has no attribute 'id'
+2025-12-29 12:41:19.925 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/tutores/completar-registro
+2025-12-29 12:44:33.372 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/tutores/completar-registro
+2025-12-29 12:49:28.516 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, func, UniqueConstraint, JSON 
 from app.infrastructure.db.base import Base
+from sqlalchemy.orm import relationship
 
 class Contrato(Base):
     __tablename__ = "contratos"
@@ -18,3 +19,6 @@ class Contrato(Base):
     __table_args__ = (
         UniqueConstraint("sede_id", "numeracion_sede", name="uq_contrato_sede_num"),  # <-- esto es nuevo
     )
+
+    formulario = relationship("FormularioInscripcion", back_populates="contratos")
+    sede = relationship("Sede", back_populates="contratos_inscripcion")
