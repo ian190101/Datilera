@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+        <i class="fas fa-user-cog text-[#DD8E0A] mr-2"></i> Configuración de Perfil
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <div class="md:col-span-1 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
+                
+                <div class="relative w-32 h-32 mx-auto mb-4 group">
+                    <div class="w-full h-full rounded-full overflow-hidden border-4 border-gray-100 dark:border-gray-700 shadow-inner">
+                        {% if current_user.foto_perfil_url %}
+                            <img id="img-perfil-preview" src="{{ current_user.foto_perfil_url }}" 
+                                 class="w-full h-full object-cover" alt="Foto de perfil">
+                        {% else %}
+                            <div id="avatar-iniciales" class="w-full h-full bg-[#DD8E0A] flex items-center justify-center text-white text-4xl font-bold">
+                                {% set parts = current_user.nombre_completo.split() %}
+                                {% if parts %}
+                                    {{ parts[0][0] | upper }}{{ parts[-1][0] | upper if parts|length > 1 else '' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                            <img id="img-perfil-preview" class="hidden w-full h-full object-cover">
+                        {% endif %}
+                    </div>
+                    
+                    <label for="input-foto" class="absolute bottom-0 right-0 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-200 p-2 rounded-full shadow-lg cursor-pointer hover:bg-gray-50 transition-colors border border-gray-200">
+                        <i class="fas fa-camera"></i>
+                        <input type="file" id="input-foto" accept="image/*" class="hidden">
+                    </label>
+                </div>
+
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ current_user.nombre_completo }}</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ current_user.role or 'Usuario' }}</p>
+                
+                <div class="text-left text-sm space-y-2 border-t border-gray-100 dark:border-gray-700 pt-4">
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <i class="fas fa-envelope w-6 text-center mr-2"></i>
+                        <span class="truncate">{{ current_user.email or 'Sin email' }}</span>
+                    </div>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <i class="fas fa-phone w-6 text-center mr-2"></i>
+                        <span>{{ current_user.telefono or 'Sin teléfono' }}</span>
+                    </div>
+                    <div class="flex items-center text-gray-600 dark:text-gray-400">
+                        <i class="fas fa-user-tag w-6 text-center mr-2"></i>
+                        <span>{{ current_user.username }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:col-span-2">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">
+                    <i class="fas fa-lock mr-2 text-primary-500"></i> Seguridad
+                </h3>
+                
+                <form id="form-password" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña Actual</label>
+                        <input type="password" id="pass-actual" required
+                               class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#DD8E0A] focus:border-transparent outline-none">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva Contraseña</label>
+                            <input type="password" id="pass-nueva" required minlength="6"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#DD8E0A] focus:border-transparent outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Nueva</label>
+                            <input type="password" id="pass-confirm" required minlength="6"
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#DD8E0A] focus:border-transparent outline-none">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex justify-end">
+                        <button type="submit" 
+                                class="px-6 py-2 bg-gray-900 hover:bg-black text-white font-medium rounded-lg shadow-lg transition-transform transform hover:scale-[1.02]">
+                            Actualizar Contraseña
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/perfil.js" type="module"></script>
+{% endblock %}

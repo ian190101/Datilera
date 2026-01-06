@@ -34,13 +34,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     initModals();
     initSearchFilters();
     
-    // Cargar destinatarios para el modal de nuevo mensaje (pre-carga)
-    // Nota: Ahora usa la nueva lógica de carga en cache
+   
     loadRecipients();
 
-    // =========================================================================
-    // 👇👇👇 ESTO ES LO QUE TE FALTA AGREGAR AQUÍ 👇👇👇
-    // =========================================================================
+    
     const params = new URLSearchParams(window.location.search);
     
     if (params.get('action') === 'nueva_notificacion') {
@@ -295,14 +292,26 @@ async function loadConversations() {
         const container = document.getElementById('conversations-list');
         
         if (data.items && data.items.length > 0) {
-            container.innerHTML = data.items.map(conv => `
+            container.innerHTML = data.items.map(conv => {
+                
+                // LÓGICA DE AVATAR:
+                // Si hay foto, usamos <img>. Si no, usamos tu diseño original con degradado.
+                const avatarHTML = conv.usuario_avatar
+                    ? `<img src="${conv.usuario_avatar}" 
+                           alt="${conv.usuario_nombre}" 
+                           class="w-12 h-12 rounded-full object-cover mr-3 flex-shrink-0 border border-gray-200 dark:border-gray-600">`
+                    : `<div class="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
+                           ${getInitials(conv.usuario_nombre)}
+                       </div>`;
+
+                return `
                 <div class="conversation-item p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-700 ${conv.id === currentConversationId ? 'bg-primary-50 dark:bg-primary-900/20' : ''}" 
                      data-conversation-id="${conv.id}"
                      onclick="openConversation(${conv.id})">
                     <div class="flex items-start">
-                        <div class="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3 flex-shrink-0">
-                            ${conv.usuario_avatar || getInitials(conv.usuario_nombre)}
-                        </div>
+                        
+                        ${avatarHTML}
+
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between mb-1">
                                 <h4 class="font-semibold text-gray-900 dark:text-white truncate">${conv.usuario_nombre}</h4>
@@ -317,7 +326,7 @@ async function loadConversations() {
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         } else {
             container.innerHTML = `
                 <div class="flex items-center justify-center h-full p-8">
@@ -330,23 +339,58 @@ async function loadConversations() {
         }
     } catch (error) {
         console.error('Error loading conversations:', error);
-        // showToast('Error al cargar conversaciones', 'error');
     }
 }
-
 window.openConversation = async function(conversationId) {
     currentConversationId = conversationId;
     
     try {
+        // 1. Obtener datos de la conversación
         const response = await fetchAPI(`${API_BASE}/comunicaciones/conversaciones/${conversationId}`);
         const data = await response.json();
         
-        document.getElementById('chat-header').classList.remove('hidden');
-        document.getElementById('chat-avatar-initials').textContent = getInitials(data.usuario_nombre);
-        document.getElementById('chat-name').textContent = data.usuario_nombre;
-        document.getElementById('chat-role').textContent = data.usuario_rol || '';
-        document.getElementById('chat-input-container').classList.remove('hidden');
+        // 2. Extraer variables (DEFINIRLAS AQUÍ)
+        const nombreUsuario = data.usuario_nombre || 'Usuario';
+        let avatarUrl = data.usuario_avatar;
+        if (avatarUrl && (avatarUrl.length < 4 || !avatarUrl.includes('/'))) {
+            avatarUrl = null;
+}
+        const rolUsuario = data.usuario_rol || '';
+
+        // 3. Mostrar la interfaz del chat
+        const header = document.getElementById('chat-header');
+        const inputContainer = document.getElementById('chat-input-container');
+        if (header) header.classList.remove('hidden');
+        if (inputContainer) inputContainer.classList.remove('hidden');
         
+        // 4. Actualizar Nombre y Rol
+        const headerName = document.getElementById('chat-name');
+        const headerRole = document.getElementById('chat-role');
+        if (headerName) headerName.textContent = nombreUsuario;
+        if (headerRole) headerRole.textContent = rolUsuario;
+
+        // 5. ACTUALIZAR AVATAR (Usando el Wrapper)
+        const headerWrapper = document.getElementById('chat-header-avatar-wrapper');
+        
+        if (headerWrapper) {
+            if (avatarUrl) {
+                // OPCIÓN A: Tiene Foto -> Ponemos la imagen
+                headerWrapper.innerHTML = `
+                    <img src="${avatarUrl}" 
+                         alt="${nombreUsuario}" 
+                         class="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200 dark:border-gray-600">
+                `;
+            } else {
+                // OPCIÓN B: No tiene foto -> Ponemos Iniciales con degradado
+                headerWrapper.innerHTML = `
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                        <span>${getInitials(nombreUsuario)}</span>
+                    </div>
+                `;
+            }
+        }
+        
+        // 6. Cargar mensajes y actualizar estilo de la lista
         await loadChatMessages(conversationId);
         
         document.querySelectorAll('.conversation-item').forEach(item => {
@@ -356,9 +400,8 @@ window.openConversation = async function(conversationId) {
         
     } catch (error) {
         console.error('Error opening conversation:', error);
-        showToast('Error al abrir conversación', 'error');
     }
-}
+};
 
 async function loadChatMessages(conversationId) {
     try {
@@ -849,17 +892,37 @@ function renderRecipientsList(users, containerId, checkboxClass) {
 
     container.innerHTML = users.map(user => {
         const initials = getInitials(user.nombre_completo || user.nombres);
+        const fotoUrl = user.foto_perfil_url;
+
+        // LÓGICA DE AVATAR (Igual que en la tabla de usuarios)
+        let avatarHTML;
+        
+        // Verificamos si hay URL válida (evitamos "CP" o textos cortos)
+        if (fotoUrl && fotoUrl.length > 4 && fotoUrl.includes('/')) {
+            // CASO 1: Tiene Foto
+            avatarHTML = `<img src="${fotoUrl}" 
+                               alt="${user.username}" 
+                               class="w-8 h-8 rounded-full object-cover mr-3 border border-gray-200 dark:border-gray-600">`;
+        } else {
+            // CASO 2: No tiene Foto -> Iniciales con fondo Naranja suave
+            avatarHTML = `<div class="w-8 h-8 rounded-full bg-[#DD8E0A]/10 text-[#DD8E0A] flex items-center justify-center text-xs font-bold mr-3 border border-transparent">
+                            ${initials}
+                          </div>`;
+        }
+
         return `
-        <label class="recipient-item flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer border-b dark:border-gray-700">
+        <label class="recipient-item flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer border-b dark:border-gray-700 transition-colors">
             <input type="checkbox" value="${user.id}" class="${checkboxClass} mr-3 text-[#DD8E0A] rounded focus:ring-[#DD8E0A]" 
                 onchange="updateCount('${checkboxClass}', '${containerId === 'recipients-list' ? 'selected-count' : 'notif-selected-count'}')">
-            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs mr-3">${initials}</div>
+            
+            ${avatarHTML}
+            
             <div class="flex-1">
-                <div class="flex justify-between">
-                    <span class="text-sm font-semibold dark:text-white">${user.nombre_completo}</span>
-                    <span class="text-xs bg-gray-100 px-2 rounded">${user.rol_nombre}</span>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold dark:text-white truncate pr-2">${user.nombre_completo}</span>
+                    <span class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">${user.rol_nombre || 'Usuario'}</span>
                 </div>
-                <p class="text-xs text-gray-500">@${user.username}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">@${user.username}</p>
             </div>
         </label>
         `;

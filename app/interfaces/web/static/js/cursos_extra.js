@@ -27,7 +27,7 @@ window.loadCursos = async function() {
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 flex flex-col h-full">
                 <div class="p-6 flex-1">
                     <div class="flex justify-between items-start mb-2">
-                        <span class="bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded font-bold uppercase">${c.gestion}</span>
+                        <span class="bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded font-bold uppercase">${c.gestion}</span>
                         <span class="text-xs text-gray-500"><i class="fas fa-user mr-1"></i> ${c.instructor}</span>
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">${c.nombre}</h3>
@@ -47,7 +47,7 @@ window.loadCursos = async function() {
                     </div>
                 </div>
                 <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-xl border-t border-gray-200 dark:border-gray-700">
-                    <button onclick="verDetalleCurso(${c.id}, '${c.nombre}', '${c.instructor}')" class="w-full py-2 text-center text-teal-600 font-medium hover:text-teal-800 text-sm">
+                    <button onclick="verDetalleCurso(${c.id}, '${c.nombre}', '${c.instructor}')" class="w-full py-2 text-center text-primary-600 font-medium hover:text-primary-800 text-sm">
                         Administrar Curso <i class="fas fa-arrow-right ml-1"></i>
                     </button>
                 </div>
@@ -125,13 +125,13 @@ window.switchCursoTab = function(tab) {
     const btnFin = document.getElementById('tab-btn-finanzas');
     
     if(tab === 'inscritos') {
-        btnInsc.className = "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-teal-500 text-teal-600";
-        btnFin.className = "w-1/2 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+        btnInsc.className = "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-primary-500 text-primary-600";
+        btnFin.className = "w-1/2 py-4 px-1 text-center border-b-2 border-transparent text-primary-500 hover:text-primary-700";
         document.getElementById('view-inscritos').classList.remove('hidden');
         document.getElementById('view-finanzas').classList.add('hidden');
     } else {
-        btnFin.className = "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-blue-500 text-blue-600";
-        btnInsc.className = "w-1/2 py-4 px-1 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+        btnFin.className = "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm border-primary-500 text-primary-600";
+        btnInsc.className = "w-1/2 py-4 px-1 text-center border-b-2 border-transparent text-primary-500 hover:text-primary-700";
         document.getElementById('view-finanzas').classList.remove('hidden');
         document.getElementById('view-inscritos').classList.add('hidden');
         loadFinanzasCurso(); // Cargar datos financieros
@@ -159,7 +159,7 @@ async function loadInscritos() {
                 <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${row.nombre}</td>
                 <td class="px-4 py-3 text-xs"><span class="bg-gray-100 px-2 py-1 rounded">${row.tipo}</span></td>
                 <td class="px-4 py-3 text-sm text-gray-500">${row.tutor} <br><span class="text-xs">${row.celular}</span></td>
-                <td class="px-4 py-3 text-right font-mono text-sm">Bs. ${row.deuda_total}</td>
+                <td class="px-4 py-3 text-right font-mono text-sm text-gray-500">Bs. ${row.deuda_total}</td>
                 <td class="px-4 py-3 text-right font-mono text-sm text-green-600">Bs. ${row.pagado}</td>
                 <td class="px-4 py-3 text-right font-mono text-sm text-red-600 font-bold">Bs. ${row.saldo}</td>
                 <td class="px-4 py-3 text-center">
@@ -186,7 +186,6 @@ window.openModalInscripcion = async function() {
             const res = await fetchAPI('/api/v1/alumnos-select/lista'); 
             const data = await res.json();
             
-            // CORRECCIÓN AQUÍ: Usamos 'a.nombre' porque así lo manda el backend
             sel.innerHTML = '<option value="">Seleccione...</option>' + 
                 data.map(a => `<option value="${a.id}">${a.nombre}</option>`).join('');
                 

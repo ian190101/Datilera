@@ -1,0 +1,8 @@
+2026-01-04 09:59:38.808 | INFO     | app.main:lifespan:115 - Iniciando API de Datilera en ambiente: dev
+2026-01-04 10:47:44.724 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/tutores/completar-registro
+2026-01-04 10:51:58.463 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/profesoras/completar-registro
+2026-01-04 11:00:02.050 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: ProgrammingError: (pymysql.err.ProgrammingError) (1146, "Table 'datilera.auditoria_acciones' doesn't exist")
+[SQL: INSERT INTO auditoria_acciones (usuario_id, sede_id, entidad, entidad_id, accion, datos_antes, datos_despues, ip, user_agent, sesion_id, nivel, metodo_http, endpoint, codigo_respuesta, duracion_ms, descripcion, tags, contexto, exitoso, mensaje_error, stack_trace, dispositivo_info, geolocalizacion) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)]
+[parameters: (None, None, 'auth', None, 'login', 'null', '{"resultado": "fallido"}', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36', None, 'info', None, None, None, None, 'Login fallido (credenciales inválidas)', 'null', 'null', 0, None, None, 'null', 'null')]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-01-04 11:12:24.227 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

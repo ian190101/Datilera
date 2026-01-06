@@ -1,9 +1,6 @@
-<!-- app/interfaces/web/templates/components/header.html -->
 <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
     <div class="flex items-center justify-between px-6 py-4">
         
-        
-
         <button id="mobile-menu-button" 
                 class="md:hidden fixed top-4 left-4 z-50 p-3 rounded-lg bg-gray-800/90 backdrop-blur-sm text-white hover:bg-gray-700 focus:outline-none transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -11,17 +8,14 @@
             </svg>
         </button>
         <div class="flex-1"></div>
-        <!-- Right: Actions -->
         <div class="flex items-center space-x-4 ml-6">
             
-            <!-- Theme Toggle -->
             <button id="theme-toggle" 
                     class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
                 <i class="fas fa-moon dark:hidden text-xl"></i>
                 <i class="fas fa-sun hidden dark:block text-xl"></i>
             </button>
             
-            <!-- Notifications -->
             <div class="relative">
                 <button id="notifications-btn" 
                         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors relative">
@@ -33,13 +27,26 @@
                 </button>
             </div>
             
-            <!-- User Profile -->
             {% if current_user %}
             <div class="relative" x-data="{ open: false }">
                 <button @click="open = !open" 
                         class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <div class="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold">
-                        {{ current_user.nombre_completo[0] }}
+                    
+                    <div class="relative w-10 h-10">
+                        <img id="header-avatar-img" 
+                            class="w-full h-full rounded-full object-cover border-2 border-gray-200 dark:border-gray-600 {% if not current_user.foto_perfil_url %}hidden{% endif %}" 
+                            src="{{ current_user.foto_perfil_url or '' }}" 
+                            alt="Avatar">
+
+                        <div id="header-avatar-initials" 
+                            class="w-full h-full rounded-full bg-primary-500 flex items-center justify-center text-white font-semibold shadow-sm {% if current_user.foto_perfil_url %}hidden{% endif %}">
+                            {% set parts = current_user.nombre_completo.split() %}
+                            {% if parts %}
+                                {{ parts[0][0] | upper }}{{ parts[-1][0] | upper if parts|length > 1 else '' }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="hidden md:block text-left">
                         <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ current_user.nombre_completo }}</p>
@@ -48,16 +55,13 @@
                     <i class="fas fa-chevron-down text-gray-400 text-sm"></i>
                 </button>
                 
-                <!-- Dropdown -->
                 <div x-show="open" 
                      @click.away="open = false"
                      x-transition
+                     style="display: none;" 
                      class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
                     <a href="/perfil" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                         <i class="fas fa-user mr-2"></i> Mi Perfil
-                    </a>
-                    <a href="/configuracion" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-cog mr-2"></i> Configuración
                     </a>
                     <hr class="my-2 border-gray-200 dark:border-gray-700">
                     <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -71,5 +75,4 @@
     </div>
 </header>
 
-<!-- Alpine.js (para dropdowns) -->
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

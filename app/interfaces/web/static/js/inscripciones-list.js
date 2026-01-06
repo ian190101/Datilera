@@ -535,3 +535,149 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
+
+
+window.imprimirFichaDetalle = function() {
+    // Helper seguro: si el ID no existe, devuelve vacío en lugar de error
+    const getTextSafe = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.innerText : '';
+    };
+
+    // 1. Obtener datos (Usando los IDs reales de tu HTML)
+    const nombre = getTextSafe('ficha-nombre');
+    // const codigo = getTextSafe('ficha-codigo'); // ELIMINADO: No existe en el HTML
+    const edad = getTextSafe('ficha-edad');
+    const meses = getTextSafe('ficha-meses'); 
+    const nac = getTextSafe('ficha-nacimiento'); // CORREGIDO: coincide con tu HTML
+    
+    // Foto
+    const imgEl = document.getElementById('ficha-foto');
+    const foto = imgEl ? imgEl.src : '/static/img/default-avatar.png';
+    
+    // Datos de contacto
+    const mamaNombre = getTextSafe('ficha-mama-nombre');
+    const mamaCel = getTextSafe('ficha-mama-cel');
+    const papaNombre = getTextSafe('ficha-papa-nombre');
+    const papaCel = getTextSafe('ficha-papa-cel');
+    
+    // Emergencia y Recojo
+    const emergNombre = getTextSafe('ficha-emerg-nombre');
+    const emergTel = getTextSafe('ficha-emerg-tel');
+    const recojoNombre = getTextSafe('ficha-recojo-nombre');
+    const recojoTel = getTextSafe('ficha-recojo-tel');
+
+    // 2. Crear ventana nueva
+    const printWindow = window.open('', '', 'height=800,width=900');
+    
+    // 3. Escribir documento
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Ficha - ${nombre}</title>
+            <style>
+                body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
+                .header { display: flex; align-items: center; border-bottom: 2px solid #DD8E0A; padding-bottom: 20px; margin-bottom: 30px; }
+                .foto { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #f3f4f6; margin-right: 25px; }
+                .titulo h1 { margin: 0; font-size: 24px; color: #111827; text-transform: uppercase; }
+                .titulo p { margin: 5px 0 0; color: #6b7280; font-size: 14px; }
+                
+                .section { margin-bottom: 30px; break-inside: avoid; }
+                .section-title { 
+                    font-size: 14px; font-weight: bold; text-transform: uppercase; 
+                    letter-spacing: 1px; color: #DD8E0A; border-bottom: 1px solid #e5e7eb; 
+                    padding-bottom: 5px; margin-bottom: 15px; 
+                }
+                
+                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                .field { margin-bottom: 5px; }
+                .label { font-weight: 700; font-size: 11px; color: #6b7280; display: block; text-transform: uppercase; margin-bottom: 2px; }
+                .value { font-size: 14px; color: #1f2937; font-weight: 500; }
+                
+                .contacts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                .contacts-table th { text-align: left; background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; color: #374151; font-size: 11px; text-transform: uppercase; }
+                .contacts-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+                
+                .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
+                
+                @media print {
+                    body { -webkit-print-color-adjust: exact; padding: 20px; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="${foto}" class="foto" onerror="this.style.display='none'">
+                <div class="titulo">
+                    <h1>${nombre}</h1>
+                    <p>Edad: ${edad} (${meses} meses)</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Información Personal</div>
+                <div class="grid">
+                    <div class="field">
+                        <span class="label">Fecha de Nacimiento</span>
+                        <span class="value">${nac}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Padres / Tutores</div>
+                <div class="grid">
+                    <div class="field">
+                        <span class="label">Madre / Tutor 1</span>
+                        <span class="value">${mamaNombre || '-'} <br> ${mamaCel ? '📞 ' + mamaCel : ''}</span>
+                    </div>
+                    <div class="field">
+                        <span class="label">Padre / Tutor 2</span>
+                        <span class="value">${papaNombre || '-'} <br> ${papaCel ? '📞 ' + papaCel : ''}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Contactos de Emergencia & Recojo</div>
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Nombre</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Emergencia</strong></td>
+                            <td>${emergNombre}</td>
+                            <td>${emergTel}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Autorizado Recojo</strong></td>
+                            <td>${recojoNombre}</td>
+                            <td>${recojoTel}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer">
+                Documento generado el ${new Date().toLocaleDateString()} a las ${new Date().toLocaleTimeString()}
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+        printWindow.focus();
+        // Pequeño delay para asegurar que la imagen (si hay) cargue
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+};

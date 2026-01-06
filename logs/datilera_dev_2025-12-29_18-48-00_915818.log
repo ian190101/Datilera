@@ -11,3 +11,7 @@
 2025-12-30 14:59:49.736 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/finanzas/gastos
 2025-12-30 18:05:17.903 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/academico/actividades
 2025-12-30 18:07:07.806 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/ingresos/cobrar
+2026-01-02 13:43:00.425 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://specialized-earliest-lung-pair.trycloudflare.com/api/v1/finanzas/gastos
+2026-01-02 13:43:23.430 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://specialized-earliest-lung-pair.trycloudflare.com/api/v1/finanzas/gastos
+2026-01-02 13:50:09.075 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://specialized-earliest-lung-pair.trycloudflare.com/api/v1/profesoras/completar-registro
+2026-01-02 14:00:08.290 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://specialized-earliest-lung-pair.trycloudflare.com/api/v1/tutores/completar-registro

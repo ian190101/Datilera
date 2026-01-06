@@ -1,0 +1,6 @@
+2026-01-06 09:42:06.767 | INFO     | app.main:lifespan:115 - Iniciando API de Datilera en ambiente: dev
+2026-01-06 09:42:16.004 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'ParaleloProfesora' has no attribute 'paralelo'
+2026-01-06 09:42:16.099 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'ParaleloProfesora' has no attribute 'paralelo'
+2026-01-06 09:42:17.164 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'ParaleloProfesora' has no attribute 'paralelo'
+2026-01-06 09:42:19.197 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: AttributeError: type object 'ParaleloProfesora' has no attribute 'paralelo'
+2026-01-06 09:46:58.105 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

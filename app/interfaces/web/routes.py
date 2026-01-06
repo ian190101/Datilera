@@ -69,6 +69,7 @@ from app.infrastructure.db.models.comunicaciones.mensajes import Mensaje, TipoMe
 from app.infrastructure.db.models.comunicaciones.mensajes_lecturas import MensajeLeido
 from app.infrastructure.db.models.comunicaciones.notificaciones import Notificacion, CanalNotificacion, PrioridadNotificacion
 from app.infrastructure.db.models.comunicaciones.notificacion_vistas import NotificacionVista
+from app.infrastructure.db.models.academico.paralelos_profesoras import ParaleloProfesora
 from app.kernel.application.services.ia_chat_service import IAChatService
 from app.kernel.application.services.finanzas_service import FinanzasService
 from app.kernel.application.services.ingresos_service import IngresosService
@@ -462,6 +463,23 @@ async def completar_registro_tutor(
             )
             db.add(nuevo_usuario)
             await db.flush() # Obtener ID
+
+
+            # Buscamos el ID del rol "TUTOR" (usamos ilike para ignorar mayúsculas)
+            rol_tutor = await db.scalar(select(Rol).where(Rol.nombre.ilike("TUTOR")))
+            
+            if rol_tutor:
+                # Creamos la relación en la tabla intermedia
+                usuario_rol_rel = UsuarioRol(
+                    usuario_id=nuevo_usuario.id,
+                    rol_id=rol_tutor.id
+                )
+                db.add(usuario_rol_rel)
+            else:
+                # Fallback por si no existe el rol en la BD (opcional: lanzar error)
+                print("⚠️ ALERTA: No se encontró el rol 'TUTOR' en la base de datos.")
+            # =================================================================
+
 
             # 4. Crear TUTOR 1 (Principal)
             tutor1 = Tutor(
@@ -1925,14 +1943,22 @@ async def listar_conversaciones_real(
     for conv in conversaciones:
         # Determinar Nombre e Imagen
         titulo = conv.titulo
+        foto_url = None
         # avatar = None # (Implementar si tienes campo avatar)
         
         if conv.tipo == TipoConversacion.directo:
             otro = next((p.usuario for p in conv.participantes if p.usuario_id != user.id), None)
             if otro:
                 titulo = f"{otro.nombres} {otro.apellidos or ''}".strip()
+                foto_url = otro.foto_perfil_url
             else:
                 titulo = "Chat Personal"
+                foto_url = user.foto_perfil_url
+        
+        # --- NUEVA VALIDACIÓN DE SEGURIDAD (BACKEND) ---
+        # Si la "foto" son solo iniciales (ej: "CP") o texto corto sin formato de ruta, lo descartamos.
+        if foto_url and (len(foto_url) < 5 or "/" not in foto_url):
+            foto_url = None
         
         # Último mensaje
         ultimo_msg = "Sin mensajes"
@@ -1951,7 +1977,7 @@ async def listar_conversaciones_real(
         items.append({
             "id": conv.id,
             "usuario_nombre": titulo,
-            "usuario_avatar": get_initials(titulo),
+            "usuario_avatar": foto_url,
             "usuario_rol": "Participante", 
             "ultimo_mensaje": ultimo_msg[:50],
             "ultimo_mensaje_fecha": fecha_msg.isoformat(),
@@ -2048,13 +2074,30 @@ async def get_conversacion_detalle(
         raise HTTPException(403, "No perteneces a este chat")
 
     titulo = conv.titulo
+    foto_url = None
     if conv.tipo == TipoConversacion.directo:
+        # Buscamos al "otro" participante
         otro = next((p.usuario for p in conv.participantes if p.usuario_id != user.id), None)
-        titulo = f"{otro.nombres} {otro.apellidos or ''}".strip() if otro else "Chat"
+        
+        if otro:
+            # CASO 1: Chat con otra persona
+            titulo = f"{otro.nombres} {otro.apellidos or ''}".strip()
+            foto_url = otro.foto_perfil_url
+        else:
+            # CASO 2: Chat Personal (conmigo mismo)
+            # Aquí 'otro' es None, por eso fallaba antes al intentar leer otro.nombres
+            titulo = f"{user.nombres} {user.apellidos or ''} (Tú)".strip()
+            foto_url = user.foto_perfil_url
+
+    # Validación de seguridad (Igual que en la lista)
+    if foto_url and (len(foto_url) < 5 or "/" not in foto_url):
+        foto_url = None
+
 
     return {
         "id": conv.id,
         "usuario_nombre": titulo,
+        "usuario_avatar": foto_url,
         "usuario_rol": "Miembro" if conv.tipo == TipoConversacion.grupo else "",
         "tipo": conv.tipo.value
     }
@@ -3367,6 +3410,7 @@ async def get_usuarios_endpoint(
             "nombre_completo": f"{u.nombres} {u.apellidos or ''}".strip(), 
             "email": u.email,
             "telefono": u.telefono,
+            "foto_perfil_url": u.foto_perfil_url,
             "rol_nombre": rol_nombre,
             "activo": u.activo,
             "creado_en": u.creado_en.isoformat() if u.creado_en else None
@@ -6220,5 +6264,338 @@ async def academico_tutor_page(request: Request, user=Depends(get_current_user_o
 
     return templates.TemplateResponse(
         "academico/tutor_index.html",
-        {"request": request, "currentuser": user, "pagetitle": "Académico - Tutor", "activemenu": "academico"},
+        {"request": request, "current_user": user, "pagetitle": "Académico - Tutor", "activemenu": "academico"},
     )
+
+#Asignacion
+
+# =============================================================================
+#  ENDPOINT 1: PROFESORAS DISPONIBLES (Corregido: profesora_id)
+# =============================================================================
+@web_router.get("/api/v1/profesoras/disponibles")
+async def get_profesoras_disponibles(db: AsyncSession = Depends(get_session)):
+    """
+    Retorna usuarios con rol PROFESORA/DOCENTE que NO están asignados en la tabla intermedia.
+    """
+    # 1. Buscar IDs ocupados en la tabla intermedia
+    # CORRECCIÓN: Usamos 'profesora_id' en lugar de 'profesor_id'
+    stmt_ocupadas = select(ParaleloProfesora.profesora_id)
+    result_ocupadas = await db.execute(stmt_ocupadas)
+    ids_ocupados = result_ocupadas.scalars().all()
+    
+    # 2. Buscar usuarios PROFESORA excluyendo los ocupados
+    stmt = (
+        select(Usuario)
+        .join(UsuarioRol)
+        .join(Rol)
+        .where(
+            or_(
+                Rol.nombre.ilike("%PROFESORA%"),
+                Rol.nombre.ilike("%DOCENTE%")
+            )
+        )
+        .where(Usuario.activo == True)
+    )
+
+    if ids_ocupados:
+        stmt = stmt.where(Usuario.id.not_in(ids_ocupados))
+    
+    result = await db.execute(stmt)
+    profes = result.scalars().all()
+    
+    return [
+        {"id": p.id, "nombre_completo": f"{p.nombres} {p.apellidos or ''}".strip()} 
+        for p in profes
+    ]
+
+# =============================================================================
+#  ENDPOINT 2: ARBOL DE GRUPOS (Corregido: p.letra)
+# =============================================================================
+@web_router.get("/api/v1/academico/grupos-paralelos-tree")
+async def get_grupos_paralelos_tree(db: AsyncSession = Depends(get_session)):
+    """
+    Retorna árbol de Grupos -> Paralelos
+    CORRECCIÓN: Se usa 'p.letra' porque Paralelo no tiene 'nombre'.
+    """
+    # Usamos orden por nombre de grupo
+    stmt = select(Grupo).options(selectinload(Grupo.paralelos)).order_by(Grupo.nombre)
+    result = await db.execute(stmt)
+    grupos = result.scalars().all()
+    
+    # Obtener paralelos ya asignados
+    stmt_ocupados = select(ParaleloProfesora.paralelo_id)
+    res_ocupados = await db.execute(stmt_ocupados)
+    paralelos_ocupados_ids = res_ocupados.scalars().all()
+
+    data = []
+    for g in grupos:
+        paralelos_list = []
+        if g.paralelos:
+            for p in g.paralelos:
+                # Verificar si el paralelo ya tiene profe asignado
+                if p.id not in paralelos_ocupados_ids:
+                    # CORRECCIÓN: Usamos p.letra
+                    nombre_paralelo = f"{p.letra}" 
+                    paralelos_list.append({"id": p.id, "nombre": nombre_paralelo})
+        
+        data.append({
+            "id": g.id,
+            "nombre": g.nombre, 
+            "paralelos": paralelos_list
+        })
+    return data
+
+# =============================================================================
+#  ENDPOINT 3: ASIGNAR (Corregido: Insert)
+# =============================================================================
+@web_router.post("/api/v1/asignar-profesor-paralelo")
+async def asignar_profesor_paralelo(
+    request: Request,
+    db: AsyncSession = Depends(get_session)
+):
+    """
+    Guarda la asignación en la tabla intermedia ParaleloProfesora
+    """
+    data = await request.json()
+    profesor_id_req = data.get("profesor_id") # Variable del request
+    paralelo_id_req = data.get("paralelo_id")
+    
+    if not profesor_id_req or not paralelo_id_req:
+        raise HTTPException(status_code=400, detail="Faltan datos")
+        
+    async with db.begin():
+        # Verificar duplicados
+        stmt_check = select(ParaleloProfesora).where(
+            and_(
+                ParaleloProfesora.paralelo_id == paralelo_id_req,
+                # CORRECCIÓN: Campo del modelo es profesora_id
+                ParaleloProfesora.profesora_id == profesor_id_req 
+            )
+        )
+        existing = (await db.execute(stmt_check)).first()
+        
+        if existing:
+            return {"success": True, "message": "Esta profesora ya estaba asignada a este paralelo"}
+
+        # Insertar en tabla intermedia
+        nueva_asignacion = ParaleloProfesora(
+            paralelo_id=paralelo_id_req,
+            profesora_id=profesor_id_req, # CORRECCIÓN: Campo modelo = profesora_id
+            gestion=datetime.now().year,  # Tu modelo requiere 'gestion', usamos el año actual
+            es_titular=True               # Valor por defecto
+        )
+        db.add(nueva_asignacion)
+        
+    return {"success": True, "message": "Profesora asignada correctamente"}
+
+
+# --- 1. RUTA PARA LA VISTA HTML ---
+@web_router.get("/usuarios/asignaciones", response_class=HTMLResponse)
+async def pagina_asignaciones(request: Request, user=Depends(get_current_user_optional)):
+    redirect = check_auth_redirect(user)
+    if redirect: return redirect
+    
+    return templates.TemplateResponse(
+        "usuarios/asignaciones.html", # Crearemos este archivo abajo
+        {"request": request, "current_user": user, "page_title": "Asignaciones Profesora-Aula"}
+    )
+
+@web_router.get("/api/v1/asignaciones/lista")
+async def get_lista_asignaciones(db: AsyncSession = Depends(get_session)):
+    """Retorna la lista de asignaciones actuales usando JOINs explícitos"""
+    
+    # Consulta uniendo tablas manualmente para no depender de relaciones faltantes
+    stmt = (
+        select(ParaleloProfesora, Usuario, Paralelo, Grupo)
+        .join(Usuario, ParaleloProfesora.profesora_id == Usuario.id)
+        .join(Paralelo, ParaleloProfesora.paralelo_id == Paralelo.id)
+        .outerjoin(Grupo, Paralelo.grupo_id == Grupo.id)
+        .order_by(desc(ParaleloProfesora.creado_en))
+    )
+    
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    data = []
+    # Desempaquetamos los 4 objetos de cada fila
+    for asignacion, profe, par, grp in rows:
+        nombre_profe = f"{profe.nombres} {profe.apellidos or ''}".strip()
+        
+        grupo_nombre = "Sin Grupo"
+        if grp:
+            grupo_nombre = grp.nombre
+
+        paralelo_letra = par.letra if par else "?"
+
+        data.append({
+            "id": asignacion.id,
+            "profesora_id": asignacion.profesora_id,
+            "profesora_nombre": nombre_profe,
+            "grupo_nombre": grupo_nombre,
+            "paralelo_letra": paralelo_letra,
+            "paralelo_id": asignacion.paralelo_id,
+            "gestion": asignacion.gestion,
+            "es_titular": asignacion.es_titular
+        })
+    return data
+
+@web_router.get("/api/v1/profesoras/disponibles")
+async def get_profesoras_disponibles(
+    include_id: Optional[int] = Query(None), # <--- Nuevo parámetro
+    db: AsyncSession = Depends(get_session)
+):
+    """
+    Retorna profesoras disponibles. 
+    Si se envía include_id, esa profesora también se incluye (para edición).
+    """
+    # 1. Buscar IDs ocupados
+    stmt_ocupadas = select(ParaleloProfesora.profesora_id)
+    result_ocupadas = await db.execute(stmt_ocupadas)
+    ids_ocupados = result_ocupadas.scalars().all()
+    
+    # Si tenemos un ID para incluir (edición), lo sacamos de la lista de "ocupados"
+    if include_id and include_id in ids_ocupados:
+        # Convertimos a lista mutable para remover
+        ids_ocupados = [id for id in ids_ocupados if id != include_id]
+    
+    # 2. Query normal
+    stmt = (
+        select(Usuario)
+        .join(UsuarioRol)
+        .join(Rol)
+        .where(
+            or_(
+                Rol.nombre.ilike("%PROFESORA%"),
+                Rol.nombre.ilike("%DOCENTE%")
+            )
+        )
+        .where(Usuario.activo == True)
+    )
+
+    if ids_ocupados:
+        stmt = stmt.where(Usuario.id.not_in(ids_ocupados))
+    
+    result = await db.execute(stmt)
+    profes = result.scalars().all()
+    
+    return [
+        {"id": p.id, "nombre_completo": f"{p.nombres} {p.apellidos or ''}".strip()} 
+        for p in profes
+    ]
+
+# --- AGREGAR AL FINAL DE routes.py ---
+
+@web_router.delete("/api/v1/asignaciones/{asignacion_id}", tags=["Academico"])
+async def eliminar_asignacion_endpoint(
+    asignacion_id: int,
+    user = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session)
+):
+    """Elimina la asignación de una profesora a un paralelo, liberándola."""
+    if not user: raise HTTPException(401)
+    
+    # 1. Buscar la asignación
+    asignacion = await db.get(ParaleloProfesora, asignacion_id)
+    if not asignacion:
+        raise HTTPException(404, "Asignación no encontrada")
+        
+    # (Opcional) Verificar permisos si es necesario
+    # if user.rol.nombre != 'ADMINISTRADOR': ...
+
+    try:
+        await db.delete(asignacion)
+        await db.commit()
+        return {"success": True, "mensaje": "Asignación eliminada correctamente"}
+    except Exception as e:
+        await db.rollback()
+        print(f"Error eliminando asignación: {e}")
+        raise HTTPException(500, "No se pudo eliminar la asignación")
+
+
+# --- AGREGAR EN routes.py ---
+
+# 1. Ruta para mostrar la página HTML
+@web_router.get("/perfil", response_class=HTMLResponse)
+async def pagina_perfil(request: Request, user=Depends(get_current_user_optional)):
+    redirect = check_auth_redirect(user)
+    if redirect: return redirect
+    
+    return templates.TemplateResponse(
+        "/usuarios/perfil.html",
+        {"request": request, "current_user": user, "page_title": "Mi Perfil"}
+    )
+
+#Actulizar foto
+@web_router.post("/api/v1/perfil/foto")
+async def update_perfil_foto(
+    file: UploadFile = File(...),
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session)
+):
+    if not user: raise HTTPException(401)
+    
+    # Validar extensión de imagen
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(400, "El archivo debe ser una imagen")
+
+    try:
+        # 1. Obtener configuración (ruta absoluta del env)
+        settings = get_settings()
+        
+        # 2. Generar nombre seguro único
+        timestamp = int(datetime.now().timestamp())
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+        safe_filename = f"profile_{user.id}_{timestamp}.{ext}"
+        
+        # 3. Definir Rutas
+        # RUTA FÍSICA: C:/Users/Ian/Desktop/datilera_media/perfiles/archivo.jpg
+        # Usamos Path para manejar las barras / o \ automáticamente en Windows
+        ruta_base = Path(settings.MEDIA_DIR)
+        directorio_destino = ruta_base / "perfiles"
+        archivo_destino = directorio_destino / safe_filename
+        
+        # Crear carpeta si no existe
+        directorio_destino.mkdir(parents=True, exist_ok=True)
+        
+        # 4. Guardar el archivo físicamente
+        with open(archivo_destino, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # 5. Actualizar BD con la URL relativa (para el navegador)
+        # El navegador pide: http://localhost:8000/media/perfiles/foto.jpg
+        ruta_web = f"/media/perfiles/{safe_filename}"
+        
+        user.foto_perfil_url = ruta_web
+        await db.commit()
+        
+        return {"success": True, "foto_url": ruta_web}
+        
+    except Exception as e:
+        await db.rollback()
+        print(f"❌ Error subiendo foto: {e}")
+        # Tip: Imprime la ruta intentada para depurar
+        print(f"   Intentando guardar en: {settings.MEDIA_DIR}/perfiles") 
+        raise HTTPException(500, f"Error al guardar la imagen: {str(e)}")
+
+# 3. API para cambiar Contraseña
+@web_router.post("/api/v1/perfil/password")
+async def update_perfil_password(
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session)
+):
+    if not user: raise HTTPException(401)
+    
+    data = await request.json()
+    actual = data.get('password_actual')
+    nueva = data.get('password_nueva')
+    
+    # Validar contraseña actual
+    if not hasher.verify_password(actual, user.hash_password):
+        raise HTTPException(400, "La contraseña actual es incorrecta")
+        
+    # Guardar nueva
+    user.hash_password = hasher.hash_password(nueva)
+    await db.commit()
+    
+    return {"success": True, "mensaje": "Contraseña actualizada correctamente"}

@@ -9,6 +9,7 @@ let currentFilters = {
   rol: '',
   activo: '',
 };
+let cacheGruposParalelos = [];
 
 /* =========================
    INIT
@@ -95,6 +96,10 @@ function initEvents() {
   });
   document.getElementById('btn-copiar-codigo-prof')?.addEventListener('click', copiarCodigoProfesora);
   document.getElementById('btn-whatsapp-prof')?.addEventListener('click', enviarWhatsAppProfesora);
+
+  document.getElementById('btn-asignar-modal')?.addEventListener('click', () => {
+    abrirModalAsignacion();
+  });
 }
 
 /* =========================
@@ -156,8 +161,8 @@ function renderUsuarios(usuarios) {
   if (!usuarios || usuarios.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" class="px-6 py-10 text-center text-gray-500">
-          <i class="fas fa-inbox text-5xl mb-3"></i>
+        <td colspan="6" class="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+          <i class="fas fa-inbox text-5xl mb-3 opacity-50"></i>
           <p>No se encontraron usuarios.</p>
         </td>
       </tr>
@@ -167,7 +172,7 @@ function renderUsuarios(usuarios) {
 
   tbody.innerHTML = usuarios
     .map(u => {
-      const rol = u.rol || u.role || '-';
+      const rol = u.rol_nombre || u.rol || u.role || 'Sin Rol';
       const activo = u.activo ?? u.is_active ?? true;
       const nombres = u.nombres || u.first_name || '';
       const apellidos = u.apellidos || u.last_name || '';
@@ -175,18 +180,28 @@ function renderUsuarios(usuarios) {
       const telefono = u.telefono || u.phone || '';
       const email = u.email || '';
       const username = u.username || u.nombre_usuario || '';
+      const fotoUrl = u.foto_perfil_url; // <--- Asegúrate que el backend envíe este campo
 
       const estadoBadge = activo
         ? '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Activo</span>'
         : '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Inactivo</span>';
 
+      // LÓGICA DE FOTO VS INICIALES
+      let avatarHTML;
+      if (fotoUrl) {
+          avatarHTML = `<img src="${fotoUrl}" alt="${username}" class="w-9 h-9 rounded-full object-cover mr-3 border border-gray-200 dark:border-gray-600">`;
+      } else {
+          avatarHTML = `
+            <div class="w-9 h-9 rounded-full bg-[#DD8E0A]/10 text-[#DD8E0A] flex items-center justify-center font-semibold mr-3">
+              ${getInitials(nombreCompleto || username)}
+            </div>`;
+      }
+
       return `
-        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           <td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
             <div class="flex items-center">
-              <div class="w-9 h-9 rounded-full bg-[#DD8E0A]/10 text-[#DD8E0A] flex items-center justify-center font-semibold mr-3">
-                ${getInitials(nombreCompleto || username)}
-              </div>
+              ${avatarHTML}
               <div>
                 <p class="font-medium">${username}</p>
               </div>
@@ -200,18 +215,10 @@ function renderUsuarios(usuarios) {
           </td>
           <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
             ${email ? `<p>${email}</p>` : ''}
-            ${telefono ? `<p class="text-xs text-gray-500">+591 ${telefono}</p>` : ''}
+            ${telefono ? `<p class="text-xs text-gray-500 dark:text-gray-400">+591 ${telefono}</p>` : ''}
           </td>
           <td class="px-6 py-4 text-sm">
             ${estadoBadge}
-          </td>
-          <td class="px-6 py-4 text-sm text-right">
-            <div class="flex items-center justify-end gap-2">
-              <button class="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                      title="Ver detalle">
-                <i class="fas fa-eye"></i>
-              </button>
-            </div>
           </td>
         </tr>
       `;
@@ -438,8 +445,9 @@ function getInitials(name) {
 }
 
 function formatRol(rol) {
-  if (!rol) return '-';
-  if (rol === 'ADMINISTRADOR' || rol === 'DUENO') return 'Admin / Dueño';
+  if (!rol) return 'Sin Rol';
+  if (rol === 'ADMINISTRADOR') return 'Admin';
+  if (rol === 'DUENO') return 'Dueño'
   if (rol === 'PROFESORA') return 'Profesora';
   if (rol === 'TUTOR') return 'Tutor';
   return rol;
@@ -451,4 +459,178 @@ function debounce(fn, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(() => fn(...args), wait);
   };
+}
+
+
+/* ==========================================
+   NUEVA LÓGICA: ASIGNACIÓN DE AULA
+   ========================================== */
+
+// Se hacen globales (window) para que funcionen con los onclick="..." del HTML si es necesario
+// o simplemente se llaman desde el listener que acabamos de agregar.
+
+window.abrirModalAsignacion = async function() {
+  const modal = document.getElementById('modal-asignacion-profesora');
+  if (!modal) return;
+  
+  modal.classList.remove('hidden');
+  
+  // Animación suave de entrada (opcional)
+  const content = modal.querySelector('div');
+  if(content) {
+      content.classList.remove('scale-95', 'opacity-0');
+      content.classList.add('scale-100', 'opacity-100');
+  }
+
+  // Cargar datos en paralelo
+  await Promise.all([cargarProfesoresDisponibles(), cargarGruposYParalelos()]);
+}
+
+window.cerrarModalAsignacion = function() {
+  const modal = document.getElementById('modal-asignacion-profesora');
+  if (!modal) return;
+
+  modal.classList.add('hidden');
+  
+  // Limpiar selects visualmente para la próxima vez
+  const selectProf = document.getElementById('select-profesora-asignar');
+  if(selectProf) selectProf.innerHTML = '<option value="">Cargando...</option>';
+  
+  const selectParalelo = document.getElementById('select-paralelo-asignar');
+  if(selectParalelo) {
+    selectParalelo.innerHTML = '<option value="">Esperando grupo...</option>';
+    selectParalelo.disabled = true;
+    selectParalelo.className = "w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-500 dark:text-gray-300 cursor-not-allowed";
+  }
+
+  const msgError = document.getElementById('msg-no-paralelos');
+  if(msgError) msgError.classList.add('hidden');
+}
+
+async function cargarProfesoresDisponibles() {
+  const select = document.getElementById('select-profesora-asignar');
+  if(!select) return;
+
+  try {
+      // Usa tu función fetchAPI de main.js
+      const res = await fetchAPI(`${API_BASE}/profesoras/disponibles`);
+      const data = await res.json();
+      
+      select.innerHTML = '<option value="">Seleccione una profesora...</option>';
+      
+      if (data.length === 0) {
+          select.innerHTML += '<option disabled>No hay profesoras libres</option>';
+      }
+
+      data.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.nombre_completo;
+          select.appendChild(opt);
+      });
+  } catch (e) {
+      console.error(e);
+      showToast('Error al cargar profesoras disponibles', 'error');
+  }
+}
+
+async function cargarGruposYParalelos() {
+  try {
+      const res = await fetchAPI(`${API_BASE}/academico/grupos-paralelos-tree`);
+      cacheGruposParalelos = await res.json();
+      
+      const selectGrupo = document.getElementById('select-grupo-asignar');
+      if(selectGrupo) {
+        selectGrupo.innerHTML = '<option value="">Seleccione Grupo...</option>';
+        cacheGruposParalelos.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.nombre; 
+            selectGrupo.appendChild(opt);
+        });
+      }
+  } catch (e) {
+      console.error("Error cargando grupos", e);
+      showToast('Error cargando estructura académica', 'error');
+  }
+}
+
+window.cargarParalelosDelGrupo = function() {
+  const grupoId = parseInt(document.getElementById('select-grupo-asignar').value);
+  const selectParalelo = document.getElementById('select-paralelo-asignar');
+  const msgError = document.getElementById('msg-no-paralelos');
+  
+  // Resetear estado del select paralelo
+  if(selectParalelo) {
+      selectParalelo.innerHTML = '<option value="">Seleccione Paralelo...</option>';
+      selectParalelo.disabled = true;
+      selectParalelo.className = "w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg text-gray-500 dark:text-gray-300 cursor-not-allowed";
+  }
+  if(msgError) msgError.classList.add('hidden');
+
+  if (!grupoId) return;
+
+  // Buscar en caché
+  const grupo = cacheGruposParalelos.find(g => g.id === grupoId);
+  
+  if (grupo && grupo.paralelos && grupo.paralelos.length > 0) {
+      // Habilitar Select
+      selectParalelo.disabled = false;
+      selectParalelo.className = "w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500";
+
+      grupo.paralelos.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.nombre;
+          selectParalelo.appendChild(opt);
+      });
+  } else {
+      // Mostrar alerta
+      showToast('Este grupo no tiene paralelos disponibles. Cree uno en Académico.', 'warning');
+      if(msgError) msgError.classList.remove('hidden'); 
+  }
+}
+
+window.guardarAsignacion = async function() {
+  const profesorId = document.getElementById('select-profesora-asignar').value;
+  const paraleloId = document.getElementById('select-paralelo-asignar').value;
+
+  if (!profesorId || !paraleloId) {
+      showToast('Debe seleccionar Profesora y Paralelo', 'warning');
+      return;
+  }
+
+  const btnGuardar = document.querySelector('#modal-asignacion-profesora button:last-child');
+  const originalText = btnGuardar ? btnGuardar.innerHTML : 'Guardar';
+  
+  if(btnGuardar) {
+      btnGuardar.disabled = true;
+      btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+  }
+
+  try {
+      const res = await fetchAPI(`${API_BASE}/asignar-profesor-paralelo`, {
+          method: 'POST',
+          body: JSON.stringify({ profesor_id: profesorId, paralelo_id: paraleloId })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+          showToast('Profesora asignada correctamente', 'success');
+          cerrarModalAsignacion();
+          // Recargar tabla de usuarios si la función existe
+          if (typeof loadUsuarios === 'function') loadUsuarios(currentPage);
+      } else {
+          showToast(data.detail || data.message || 'Error al guardar', 'error');
+      }
+  } catch (e) {
+      console.error(e);
+      showToast('Error de conexión con el servidor', 'error');
+  } finally {
+      if(btnGuardar) {
+          btnGuardar.disabled = false;
+          btnGuardar.innerHTML = originalText;
+      }
+  }
 }

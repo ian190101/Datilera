@@ -65,9 +65,22 @@
             <div id="chat-header" class="hidden p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
-                            <span id="chat-avatar-initials">TU</span>
+    
+                        <div id="chat-header-avatar-wrapper">
+                            {% if current_user.foto_perfil_url %}
+                                <img src="{{ current_user.foto_perfil_url }}" 
+                                    alt="Avatar" 
+                                    class="w-10 h-10 rounded-full object-cover mr-3 border border-gray-200 dark:border-gray-600">
+                            {% else %}
+                                <div class="w-10 h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                    <span>
+                                        {% set parts = current_user.nombre_completo.split() %}
+                                        {{ parts[0][0] | upper }}{{ parts[-1][0] | upper if parts|length > 1 else '' }}
+                                    </span>
+                                </div>
+                            {% endif %}
                         </div>
+
                         <div>
                             <h3 id="chat-name" class="font-semibold text-gray-900 dark:text-white">Selecciona una conversación</h3>
                             <p id="chat-role" class="text-xs text-gray-500 dark:text-gray-400">-</p>
