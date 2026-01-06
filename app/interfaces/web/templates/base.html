@@ -60,6 +60,25 @@
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="/static/css/styles.css">
+
+    <script>
+        // Este script se ejecuta ANTES de que el cuerpo de la página se muestre.
+        // Verifica si hay una preferencia guardada o si el sistema operativo es oscuro.
+        (function() {
+            try {
+                const localTheme = localStorage.getItem('theme');
+                const sysTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (localTheme === 'dark' || (!localTheme && sysTheme)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {
+                console.error("Error aplicando tema inicial", e);
+            }
+        })();
+    </script>
     
     {% block extra_head %}{% endblock %}
 </head>

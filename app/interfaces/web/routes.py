@@ -20,6 +20,9 @@ import uuid
 from decimal import Decimal
 import calendar
 from typing import List, Dict, Any, Optional
+from typing import Literal
+from pydantic import BaseModel
+from sqlalchemy.orm.attributes import flag_modified # Importante para actualizar JSONs
 
 
 
@@ -100,6 +103,7 @@ from app.infrastructure.db.models.cursos_extra.pagos_curso_extra import PagoCurs
 from app.infrastructure.db.models.cursos_extra.ingresos_curso_extra import IngresoCursoExtra
 from app.infrastructure.db.models.cursos_extra.costos_curso_extra import CostoCursoExtra
 from app.infrastructure.db.models.cursos_extra.categorias_costo_curso_extra import CategoriaCostoCursoExtra
+from app.infrastructure.db.models.seguridad.preferencias_usuario import PreferenciaUsuario
 
 
 from app.infrastructure.ws.events import (
@@ -6599,3 +6603,53 @@ async def update_perfil_password(
     await db.commit()
     
     return {"success": True, "mensaje": "Contraseña actualizada correctamente"}
+
+# --- ESQUEMA DE DATOS ---
+class UserPreferencesRequest(BaseModel):
+    # El frontend sigue enviando "light" o "dark"
+    theme: Literal["dark", "light"]
+
+# --- RUTA PATCH MODIFICADA ---
+@web_router.patch("/api/v1/usuarios/me/preferencias", tags=["Usuarios"])
+async def update_user_preferences(
+    prefs: UserPreferencesRequest,
+    user = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session)
+):
+    """
+    Recibe 'light'/'dark', lo traduce a 'claro'/'oscuro' y lo guarda.
+    """
+    if not user:
+        raise HTTPException(status_code=401, detail="No autenticado")
+
+    try:
+        # 1. TRADUCCIÓN: Frontend (Inglés) -> Dominio/BD (Español)
+        tema_a_guardar = "claro" if prefs.theme == "light" else "oscuro"
+
+        # 2. Buscar si existe
+        stmt = select(PreferenciaUsuario).where(PreferenciaUsuario.usuario_id == user.id)
+        result = await db.execute(stmt)
+        db_prefs = result.scalars().first()
+
+        if db_prefs:
+            # Actualizamos con el valor en ESPAÑOL
+            db_prefs.tema = tema_a_guardar
+        else:
+            # Creamos con el valor en ESPAÑOL
+            new_prefs = PreferenciaUsuario(
+                usuario_id=user.id,
+                tema=tema_a_guardar,
+                notificaciones_push=True,
+                notificaciones_email=False
+            )
+            db.add(new_prefs)
+
+        await db.commit()
+        
+        # Retornamos lo que el frontend espera (puedes devolver el mismo 'prefs.theme')
+        return {"status": "ok", "theme": prefs.theme}
+
+    except Exception as e:
+        await db.rollback()
+        print(f"❌ Error guardando preferencias: {e}")
+        raise HTTPException(status_code=500, detail="Error interno")

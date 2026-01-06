@@ -34,7 +34,7 @@ class UsuariosRepository(BaseRepository[UsuarioModel]):
             prefs = PreferenciasUsuario(
                 tema=prefs_db.tema, 
                 notificaciones=prefs_db.notificaciones_push, 
-                idioma=cast(str, prefs_db.idioma)
+                idioma = getattr(prefs_db, "idioma", "es")
             )
         else:
             prefs = PreferenciasUsuario()
