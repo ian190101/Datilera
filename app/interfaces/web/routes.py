@@ -4287,7 +4287,7 @@ async def get_detalle_diario_alumno(
     
     lista = []
     for act in actividades:
-        creador = f"{act.profesora.nombres}{" "}{act.profesora.apellidos}" if act.profesora else "Staff"
+        creador = f"{act.profesora.nombres} {act.profesora.apellidos}" if act.profesora else "Staff"
         
         # Obtener URL del archivo si existe
         media_url = None
