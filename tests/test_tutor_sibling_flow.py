@@ -5,7 +5,6 @@ from app.kernel.application.services.tutor_existing_registration import (
     actualizar_perfil_tutor_existente,
 )
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
