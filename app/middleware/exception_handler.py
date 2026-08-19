@@ -1,20 +1,29 @@
-from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from fastapi import HTTPException as FastAPIHTTPException
+from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import JSONResponse
 from loguru import logger
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.kernel.domain.common.excepciones import BaseDominioError
-from app.kernel.domain.seguridad.errors import (
-    CredencialesInvalidas, UsuarioInactivo, UsuarioNoEncontrado,
-    TokenInvalido, TokenExpirado, RolNoEncontrado, PermisoDenegado
-)
 from app.kernel.domain.inventario.errors import (
-    FamiliaNoEncontrada, CategoriaNoEncontrada, ItemNoEncontrado,
-    CodigoItemDuplicado, CategoriaDuplicada,
-    StockInsuficiente, MovimientoNoSoportado,
-    PrestamoNoEncontrado, PrestamoYaDevuelto,
+    CategoriaDuplicada,
+    CategoriaNoEncontrada,
+    CodigoItemDuplicado,
+    FamiliaNoEncontrada,
+    ItemNoEncontrado,
+    MovimientoNoSoportado,
+    PrestamoNoEncontrado,
+    PrestamoYaDevuelto,
+    StockInsuficiente,
+)
+from app.kernel.domain.seguridad.errors import (
+    CredencialesInvalidas,
+    PermisoDenegado,
+    RolNoEncontrado,
+    TokenExpirado,
+    TokenInvalido,
+    UsuarioInactivo,
 )
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.session import get_session
@@ -110,7 +110,7 @@ async def crear_alumno(
 ):
     uc = CrearAlumnoCU(alumnos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO creación alumno"}
+    raise HTTPException(status_code=501, detail="Creación de alumno disponible mediante el flujo de Inscripciones")
 
 
 @router.get("/{alumno_id}")
@@ -179,7 +179,7 @@ async def crear_tutor(
 ):
     uc = CrearTutorCU(tutores_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO creación tutor"}
+    raise HTTPException(status_code=501, detail="Creación de tutor disponible mediante el flujo de Inscripciones")
 
 
 @router.get("/tutores/{tutor_id}")
@@ -228,7 +228,7 @@ async def asignar_tutor_alumno(
 ):
     uc = AsignarTutorAlumnoCU(alumnos_repo(db), tutores_repo(db), rel_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO asignar tutor"}
+    raise HTTPException(status_code=501, detail="Asignación de tutor disponible mediante el flujo de Inscripciones")
 
 
 @router.get("/{alumno_id}/tutores")
@@ -266,7 +266,7 @@ async def registrar_hermano(
 ):
     uc = RegistrarHermanoCU(alumnos_repo(db), hermanos_repo(db))
     # return await uc.ejecutar(alumno_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO registrar hermano"}
+    raise HTTPException(status_code=501, detail="Registro de hermanos no disponible en esta API")
 
 
 @router.get("/{alumno_id}/hermanos")
@@ -304,7 +304,7 @@ async def crear_autorizacion_retiro(
 ):
     uc = CrearAutorizacionRetiroCU(alumnos_repo(db), aut_repo(db))
     # return await uc.ejecutar(alumno_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO crear autorización retiro"}
+    raise HTTPException(status_code=501, detail="Autorización de retiro no disponible en esta API")
 
 
 @router.get("/{alumno_id}/autorizaciones-retiro")
@@ -348,7 +348,7 @@ async def registrar_entrada_alumno(
 ):
     uc = RegistrarEntradaAlumnoCU(asis_alum_repo(db))
     # return await uc.ejecutar(alumno_id=alumno_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO registrar entrada alumno"}
+    raise HTTPException(status_code=501, detail="Registro de entrada no disponible en esta API")
 
 
 @router.post("/{alumno_id}/asistencia/salida", status_code=status.HTTP_201_CREATED)
@@ -359,7 +359,7 @@ async def registrar_salida_alumno(
 ):
     uc = RegistrarSalidaAlumnoCU(asis_alum_repo(db))
     # return await uc.ejecutar(alumno_id=alumno_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO registrar salida alumno"}
+    raise HTTPException(status_code=501, detail="Registro de salida no disponible en esta API")
 
 
 @router.get("/{alumno_id}/asistencia")
@@ -395,7 +395,7 @@ async def registrar_entrada_personal(
 ):
     uc = RegistrarEntradaPersonalCU(asis_pers_repo(db))
     # return await uc.ejecutar(personal_id=personal_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO registrar entrada personal"}
+    raise HTTPException(status_code=501, detail="Registro de entrada de personal no disponible en esta API")
 
 
 @router.post("/personal/{personal_id}/asistencia/salida", status_code=status.HTTP_201_CREATED)
@@ -406,7 +406,7 @@ async def registrar_salida_personal(
 ):
     uc = RegistrarSalidaPersonalCU(asis_pers_repo(db))
     # return await uc.ejecutar(personal_id=personal_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO registrar salida personal"}
+    raise HTTPException(status_code=501, detail="Registro de salida de personal no disponible en esta API")
 
 
 @router.get("/sede/{sede_id}/asistencia-personal")
@@ -440,7 +440,7 @@ async def solicitar_permiso(
 ):
     uc = SolicitarPermisoCU(permisos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO solicitar permiso"}
+    raise HTTPException(status_code=501, detail="Solicitud de permiso no disponible en esta API")
 
 
 @router.put("/permisos-personal/{permiso_id}/aprobar", status_code=status.HTTP_204_NO_CONTENT)
@@ -492,7 +492,7 @@ async def crear_o_actualizar_consentimientos(
 ):
     uc = CrearConsentimientosCU(cons_repo(db))
     # return await uc.ejecutar(alumno_id, **payload.model_dump())
-    return {"detail": "TODO implementar DTO consentimientos"}
+    raise HTTPException(status_code=501, detail="Registro de consentimientos no disponible en esta API")
 
 
 @router.get("/{alumno_id}/consentimientos")
@@ -522,7 +522,7 @@ async def asignar_alumno_paralelo(
 ):
     uc = AsignarAlumnoParaleloCU(alumnos_repo(db), paralelos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO asignación paralelo"}
+    raise HTTPException(status_code=501, detail="Asignación de paralelo disponible mediante el flujo de Inscripciones")
 
 
 @router.get("/paralelos/{paralelo_id}/alumnos")

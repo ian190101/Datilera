@@ -14,7 +14,7 @@ class RolesRepository(BaseRepository[RolModel]):
         super().__init__(session, RolModel)
 
     def _to_domain(self, m: RolModel) -> Rol:
-        perms = [Permiso(recurso=p.vista, accion=Accion(p.accion)) for p in getattr(m, "permisos", [])]
+        perms = [Permiso(vista=p.vista, accion=Accion(p.accion)) for p in getattr(m, "permisos", [])]
         return Rol(id=m.id, nombre=m.nombre, descripcion=m.descripcion, permisos=perms)
 
     async def get_by_id(self, rol_id: int) -> Optional[Rol]:

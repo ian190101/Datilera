@@ -35,6 +35,7 @@ from .academico import (
     Grupo,
     Paralelo,
     ParaleloProfesora,
+    Horario,
 )
 
 # Alumnos - CORREGIDO: quitar los enums que no existen
@@ -84,6 +85,7 @@ from .finanzas import (
     Turno,  
     PrecioTurno,
     Pago,
+    PagoCuota,
     Comprobante,
     Conciliacion,
     PlanPago,
@@ -149,7 +151,7 @@ __all__ = [
     # Acceso
     "CodigoAcceso", "CodigoAccesoUso", "EstadoCodigo",
     # Académico
-    "Grupo", "Paralelo", "ParaleloProfesora",
+    "Grupo", "Paralelo", "ParaleloProfesora", "Horario",
     # Alumnos - CORREGIDO
     "Alumno", "Tutor", "AlumnoTutor", "AlumnoHermano", "AutorizacionRetiro",
     "AlumnoParalelo",
@@ -166,7 +168,7 @@ __all__ = [
     "Exportacion",
     # Finanzas
     "CategoriaPago", "Turno", "PrecioTurno",
-    "Pago", "Comprobante", "Conciliacion",
+    "Pago", "PagoCuota", "Comprobante", "Conciliacion",
     "PlanPago", "PlanCuota",
     "EstadoCuentaNino", "LibroCaja",
     "Arqueo", "CategoriaEgreso",

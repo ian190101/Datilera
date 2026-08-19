@@ -1,2 +1,30 @@
+# Entornos y cachés de Python
 .venv/
-*.pyc
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.tools/
+node_modules/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Datos generados en ejecución
+logs/
+media/
+pdfs/
+*.log
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

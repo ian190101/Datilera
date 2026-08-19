@@ -2,6 +2,13 @@
 
 {% block content %}
 
+{% set permisos_ui = namespace(es_tutor=false) %}
+{% for rol in current_user.roles or [] %}
+    {% if rol.nombre | upper == 'TUTOR' %}
+        {% set permisos_ui.es_tutor = true %}
+    {% endif %}
+{% endfor %}
+
 <!-- Header -->
 <div class="mb-6 flex items-center justify-between">
     <div>
@@ -16,10 +23,12 @@
             <i class="fas fa-plus mr-2"></i>
             Nuevo Mensaje
         </button>
-        <button onclick="openNewNotificaacionModal()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow transition-all flex items-center">
-            <i class="fas fa-plus mr-2"></i>
-            Nueva Notificación
-        </button>
+        {% if not permisos_ui.es_tutor %}
+            <button onclick="openNewNotificaacionModal()" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow transition-all flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Nueva Notificación
+            </button>
+        {% endif %}
     </div>
 </div>
 
@@ -215,6 +224,7 @@
     </div>
 </div>
 
+{% if not permisos_ui.es_tutor %}
 <div id="new-notificacion-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
         <div class="fixed inset-0 bg-black opacity-50" onclick="closeNewNotificacionModal()"></div>
@@ -307,9 +317,10 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% endblock %}
 
 {% block extra_scripts %}
-<script type="module" src="/static/js/comunicaciones.js"></script>
+<script type="module" src="/static/js/comunicaciones.js?v=2026071503"></script>
 {% endblock %}

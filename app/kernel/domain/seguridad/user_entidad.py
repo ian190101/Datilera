@@ -1,13 +1,12 @@
 # app/kernel/domain/seguridad/user_entidad.py
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
-from .rol_entidad import Rol, Accion
 from .preferencias_usuario_entidad import PreferenciasUsuario
+from .rol_entidad import Accion, Rol
 
 
 class Usuario(BaseModel):
@@ -15,27 +14,29 @@ class Usuario(BaseModel):
 
     id: int
     nombre_usuario: str
-    nombres: str 
+    nombres: str
     apellidos: str
-    email: Optional[str] = None
+    email: str | None = None
+    telefono: str | None = None
     contrasena: str
-    roles: List[Rol] = []
+    roles: list[Rol] = Field(default_factory=list)
     sede_id: int
     sede_nombre: str = "Principal"
     activo: bool = True
-    foto_perfil: Optional[str] = None
+    debe_cambiar_password: bool = False
+    foto_perfil: str | None = None
 
-    fecha_creacion: AwareDatetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    ultimo_login: Optional[AwareDatetime] = None
+    fecha_creacion: AwareDatetime = Field(default_factory=lambda: datetime.now(UTC))
+    ultimo_login: AwareDatetime | None = None
 
     preferencias: PreferenciasUsuario = Field(default_factory=PreferenciasUsuario)
 
     @property
     def nombre_completo(self) -> str:
         return f"{self.nombres} {self.apellidos}"
-    
+
     @property
-    def lista_permisos(self) -> List[str]:
+    def lista_permisos(self) -> list[str]:
         """Devuelve una lista plana de permisos ej: ['Inscripcion:Ver']"""
         permisos_set = set()
         for rol in self.roles:
@@ -46,7 +47,7 @@ class Usuario(BaseModel):
 
     @field_validator("foto_perfil")
     @classmethod
-    def _ext_imagen(cls, v: Optional[str]) -> Optional[str]:
+    def _ext_imagen(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if not v.lower().endswith((".jpg", ".jpeg", ".png")):

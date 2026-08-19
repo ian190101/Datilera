@@ -1,0 +1,29 @@
+name: Calidad
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      ENVIRONMENT: dev
+      DATABASE_URL: mysql+aiomysql://test:test@localhost:3306/datilera_test
+      REDIS_URL: redis://localhost:6379/15
+      MEDIA_DIR: /tmp/datilera-media
+      PDF_DIR: /tmp/datilera-pdfs
+      STATIC_DIR: app/interfaces/web/static
+      TEMPLATES_DIR: app/interfaces/web/templates
+      GEMINI_API_KEY: test
+      JWT_SECRET: test-secret-with-at-least-thirty-two-characters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - run: python -m compileall -q app
+      - run: ruff check tests app/middleware app/infrastructure/services/secure_storage.py
+      - run: pytest

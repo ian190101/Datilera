@@ -12,8 +12,9 @@ from app.kernel.domain.seguridad.ports import (
     AbstractHasher,
     AbstractTokenService,
 )
-from app.kernel.domain.auditoria.ports import AuditoriaAccionRepositoryPort
+
 from app.kernel.domain.seguridad.user_entidad import Usuario
+import uuid
 
 
 class IRateLimiter(Protocol):
@@ -53,7 +54,6 @@ class Login:
         sesiones: ISesionRepository,
         limiter: IRateLimiter,
         refresh_ttl_min: int = 60 * 24 * 30,
-        auditoria: Optional[AuditoriaAccionRepositoryPort] = None,
     ):
         self.usuarios = usuarios
         self.hasher = hasher
@@ -61,11 +61,10 @@ class Login:
         self.sesiones = sesiones
         self.limiter = limiter
         self.refresh_ttl_min = refresh_ttl_min
-        self.auditoria = auditoria
 
     async def execute(self, req: LoginRequest) -> LoginResponse:
         username = req.username.strip()
-        key = f"login:{username}"
+        key = f"login:{username}:{req.ip or 'unknown'}"
 
         wait = await self.limiter.check(key)
         if wait:
@@ -82,49 +81,22 @@ class Login:
         if (not user) or (not hashed) or (not self.hasher.verify_password(req.password, hashed)):
             await self.limiter.hit(key)
 
-            if self.auditoria:
-                await self.auditoria.registrar(
-                    usuario_id=None,
-                    sede_id=None,
-                    entidad="auth",
-                    accion="login",
-                    entidad_id=None,
-                    ip=req.ip,
-                    user_agent=req.user_agent,
-                    datos_despues={"resultado": "fallido"},
-                    exitoso=False,
-                    descripcion="Login fallido (credenciales inválidas)",
-                )
-
             raise CredencialesInvalidas()
 
         if not user.activo:
             await self.limiter.reset(key)
-
-            if self.auditoria:
-                await self.auditoria.registrar(
-                    usuario_id=user.id,
-                    sede_id=user.sede_id,
-                    entidad="auth",
-                    accion="login",
-                    entidad_id=str(user.id),
-                    ip=req.ip,
-                    user_agent=req.user_agent,
-                    datos_despues={"resultado": "usuario_inactivo"},
-                    exitoso=False,
-                    descripcion="Login fallido (usuario inactivo)",
-                )
 
             raise UsuarioInactivo()
 
         # permisos efectivos (recurso:accion)
         permisos = {p.nombre_completo for r in user.roles for p in r.permisos}
 
-        jti = f"{user.id}:{int(datetime.now(timezone.utc).timestamp())}"
+        jti = str(uuid.uuid4())
         access = self.tokens.create_access_token(
             user_id=user.id,
             sede_id=user.sede_id,
             permisos=list(permisos),
+            roles=[rol.nombre for rol in user.roles],
         )
         refresh = self.tokens.create_refresh_token(user_id=user.id, jti=jti)
 

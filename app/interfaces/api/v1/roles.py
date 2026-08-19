@@ -12,7 +12,7 @@ from app.kernel.application.seguridad.rol.obtener_rol import ObtenerRol
 from app.kernel.application.seguridad.rol.desactivar_rol import DesactivarRol
 from app.kernel.application.seguridad.rol.listar_roles import ListarRoles, ListarRolesDTO
 
-router = APIRouter(prefix="/api/v1/seguridad/roles", tags=["Roles"])
+router = APIRouter(prefix="/seguridad/roles", tags=["Roles"])
 
 
 def get_repo(session: AsyncSession = Depends(get_session)) -> RolesRepository:

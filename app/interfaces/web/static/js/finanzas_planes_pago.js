@@ -48,7 +48,7 @@ window.cargarPlanPagoAlumno = async function () {
   tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-gray-400">Cargando plan...</td></tr>`;
 
   try {
-    const res = await fetchAPI(`${API_BASE}/finanzas/planes-pago/alumno/${alumnoId}`);
+    const res = await fetchAPI(`${API_BASE}/finanzas/planes-pago/gestion/alumno/${alumnoId}`);
     const data = await res.json();
 
     if (!data.tiene_plan) {
@@ -62,7 +62,7 @@ window.cargarPlanPagoAlumno = async function () {
     cuotas.forEach((c) => {
       // Definir colores según estado
       let badgeColor = 'bg-gray-100 text-gray-800';
-      if (c.estado === 'PAGADO') badgeColor = 'bg-green-100 text-green-800';
+      if (c.estado === 'PAGADA') badgeColor = 'bg-green-100 text-green-800';
       if (c.estado === 'PENDIENTE') badgeColor = 'bg-yellow-100 text-yellow-800';
       if (c.estado === 'MORA') badgeColor = 'bg-red-100 text-red-800 font-bold';
 

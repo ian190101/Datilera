@@ -2,3 +2,65 @@
 2026-01-06 14:51:35.175 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/perfil/foto
 2026-01-06 14:52:53.475 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/academico/actividades
 2026-01-06 14:57:02.101 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST http://localhost:8000/api/v1/perfil/foto
+2026-01-06 16:31:52.920 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: Exception: Error proveedor IA: 403 Your API key was reported as leaked. Please use another API key.
+2026-01-06 16:39:06.681 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://sunset-lighter-cubic-cats.trycloudflare.com/api/v1/ingresos/cobrar
+2026-01-06 16:40:35.451 | INFO     | app.main:log_request_middleware:180 - 📁 Subida de Archivo: POST https://sunset-lighter-cubic-cats.trycloudflare.com/api/v1/perfil/foto
+2026-01-06 17:11:07.188 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:07.192 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:07.507 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:07.512 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:08.564 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:08.589 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:09.466 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:09.484 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:10.484 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:10.503 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:11.530 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:11.545 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:12.488 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:12.504 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:13.455 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:13.493 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:14.468 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:14.511 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:15.485 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:15.518 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:16.486 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:16.493 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:17.464 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:17.511 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:18.497 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:18.511 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:19.532 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:19.540 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:20.512 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:20.541 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:21.507 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:21.517 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:22.526 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:22.538 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:23.527 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:23.529 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:24.504 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:24.547 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:25.667 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:25.676 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:26.652 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:26.680 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:27.916 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:27.937 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:29.144 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:29.169 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:30.153 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:30.163 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:31.170 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:11:31.195 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:20:13.432 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:20:13.525 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:20:14.657 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:20:14.671 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:25:58.777 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:25:58.783 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:25:59.707 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-06 17:25:59.741 | ERROR    | app.middleware.exception_handler:global_exception_handler:37 - Error 500 No Controlado: TypeError: Object of type bytes is not JSON serializable
+2026-01-07 08:10:34.403 | INFO     | app.main:lifespan:131 - Cerrando motor de base de datos...

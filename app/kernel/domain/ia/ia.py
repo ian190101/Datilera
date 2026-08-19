@@ -10,7 +10,7 @@ class IAMessage(BaseModel):
 
 class IARequest(BaseModel):
     prompt: str
-    messages: List[IAMessage] = []  # Historial de chat
+    messages: List[IAMessage] = Field(default_factory=list)  # Historial de chat
     system_instruction: Optional[str] = None  # Instrucción "MCP" (rol del sistema)
     contexto: Optional[Dict[str, Any]] = None  # Datos extra (JSON) para RAG o contexto
     temperature: float = 0.7

@@ -21,6 +21,7 @@ class Pago(Base):
 
 
     cuotas = relationship("CuotaPlanPago", back_populates="pago")
+    asignaciones_cuotas = relationship("PagoCuota", back_populates="pago")
     alumno = relationship("Alumno", back_populates="pagos")
     categoria = relationship("CategoriaPago", back_populates="pagos", foreign_keys=[categoria_pago_id])
     usuario_registro = relationship("Usuario", back_populates="pagos_registrados", foreign_keys="[Pago.registrado_por]")

@@ -20,8 +20,9 @@ from app.infrastructure.db.repositories.seguridad.roles_repo import RolesReposit
 from app.infrastructure.db.repositories.seguridad.usuarios_roles_repo import UsuarioRolRepository
 from app.infrastructure.db.repositories.seguridad.sesiones_repo import SesionesRepository
 from app.infrastructure.db.repositories.seguridad.tokens_revocados_repo import TokensRevocadosRepository
-from app.infrastructure.db.repositories.auditoria.auditoria_acciones_repo import AuditoriaAccionesRepository
-from app.infrastructure.messaging.whatsapp_stub import WhatsappStubService
+from app.infrastructure.db.uow import UnitOfWork, get_uow
+from app.infrastructure.db.session import AsyncSessionLocal
+
 
 @lru_cache
 def _cached_settings() -> Settings:
@@ -34,8 +35,14 @@ async def get_session() -> AsyncIterator[AsyncSession]:
     async with AsyncSessionLocal() as session:
         yield session
 
-async def get_uow_dep(session: AsyncSession = Depends(get_session)) -> AsyncIterator[UnitOfWork]:
-    async with UnitOfWork(session) as uow:
+async def get_uow_dep() -> AsyncIterator[UnitOfWork]:
+    """
+    Un UnitOfWork por request usando AsyncSessionLocal como fábrica.
+    """
+    # Usamos el helper get_uow del propio uow.py
+    from app.infrastructure.db.uow import get_uow
+
+    async for uow in get_uow(AsyncSessionLocal):
         yield uow
 
 # Adapters para puertos del dominio
@@ -61,8 +68,4 @@ def get_sesiones_repo(session: AsyncSession = Depends(get_session)) -> SesionesR
 def get_revocados_repo(session: AsyncSession = Depends(get_session)) -> TokensRevocadosRepository:
     return TokensRevocadosRepository(session)
 
-def get_auditoria_repo(session: AsyncSession = Depends(get_session)) -> AuditoriaAccionesRepository:
-    return AuditoriaAccionesRepository(session)
 
-def get_whatsapp_sender() -> WhatsappStubService:
-    return WhatsappStubService()

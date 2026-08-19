@@ -118,8 +118,8 @@ async function handleFinalSubmit(e) {
     if(pass !== confirm) {
         return Swal.fire({ icon: 'error', title: 'Error', text: 'Las contraseñas no coinciden', confirmButtonColor: '#DD8E0A' });
     }
-    if(pass.length < 6) {
-        return Swal.fire({ icon: 'warning', title: 'Seguridad', text: 'La contraseña debe tener al menos 6 caracteres', confirmButtonColor: '#DD8E0A' });
+    if(pass.length < 12) {
+        return Swal.fire({ icon: 'warning', title: 'Seguridad', text: 'La contraseña debe tener al menos 12 caracteres', confirmButtonColor: '#DD8E0A' });
     }
 
     // Enviar

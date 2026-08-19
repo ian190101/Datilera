@@ -1,5 +1,70 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<style>
+    :root { --ficha-width: 210mm; --ficha-height: 297mm; --ficha-gold: #b96d00; }
+    #modal-ficha { overscroll-behavior: contain; }
+    .ficha-modal-panel { width: min(100%, 232mm); }
+    .ficha-document { width: var(--ficha-width); max-width: 100%; margin: 0 auto; color: #1f2937; font-family: Arial, Helvetica, sans-serif; }
+    .ficha-page { box-sizing: border-box; position: relative; display: flex; flex-direction: column; width: var(--ficha-width); min-height: var(--ficha-height); margin: 0 auto 20px; padding: 12mm 12mm 11mm; overflow: hidden; background: #fff; color: #1f2937; box-shadow: 0 12px 32px rgba(15, 23, 42, .26); }
+    .ficha-page-header { display: grid; grid-template-columns: 30mm minmax(0, 1fr) 30mm; align-items: center; min-height: 30mm; margin-bottom: 6mm; border: 1px solid #374151; border-bottom: 3px solid var(--ficha-gold); background: #fff; break-inside: avoid; }
+    .ficha-page-logo { display: flex; align-items: center; justify-content: center; align-self: stretch; padding: 3mm; border-right: 1px solid #d1d5db; }
+    .ficha-page-logo img { display: block; width: auto; max-width: 23mm; max-height: 23mm; object-fit: contain; }
+    .ficha-page-heading { min-width: 0; padding: 3mm 5mm; text-align: center; }
+    .ficha-page-title { margin: 0; color: #111827; font-size: 17pt; font-weight: 800; line-height: 1.05; letter-spacing: .08em; text-transform: uppercase; }
+    .ficha-page-subtitle { margin: 2mm 0 0; color: var(--ficha-gold); font-size: 8.5pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .ficha-student-name { display: block; margin-top: 1.5mm; overflow-wrap: anywhere; color: #374151; font-size: 8pt; line-height: 1.2; text-transform: uppercase; }
+    .ficha-student-photo { display: block; width: 18mm; height: 18mm; max-width: 18mm; max-height: 18mm; border: 1px solid #9ca3af; border-radius: 2mm; background: #fff; object-fit: cover; }
+    .ficha-page-meta { align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1mm; padding: 2mm; border-left: 1px solid #d1d5db; color: #6b7280; font-size: 7.5pt; line-height: 1.25; text-align: center; }
+    .ficha-page-number { color: #374151; font-size: 9pt; font-weight: 800; }
+    .ficha-page-body { flex: 1 1 auto; min-height: 0; }
+    .ficha-page-footer { display: flex; justify-content: space-between; gap: 5mm; margin-top: 5mm; padding-top: 2.5mm; border-top: 1px solid #d1d5db; color: #6b7280; font-size: 7.5pt; }
+    .ficha-brand { display: grid; grid-template-columns: 30mm minmax(0, 1fr) 30mm; align-items: center; }
+    .ficha-logo { display: block; width: auto; max-width: 23mm; max-height: 23mm; object-fit: contain; }
+    .ficha-heading { min-width: 0; padding: 3mm 5mm; text-align: center; }
+    .ficha-photo-wrap { display: flex; align-items: center; justify-content: center; min-height: 26mm; }
+    .ficha-photo { width: 24mm; height: 24mm; border: 1px solid #9ca3af; border-radius: 2mm; background: #fff; object-fit: cover; }
+    .ficha-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #9ca3af; border-left: 1px solid #9ca3af; }
+    .ficha-section { margin-bottom: 4mm; break-inside: avoid; }
+    .ficha-section-title { margin: 0 0 2mm; padding: 2mm 3mm; border-left: 4px solid var(--ficha-gold); background: #fff4d6; color: #713f12; font-size: 9pt; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .ficha-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #9ca3af; border-left: 1px solid #9ca3af; }
+    .ficha-field { min-width: 0; padding: 2.2mm 3mm; border-right: 1px solid #9ca3af; border-bottom: 1px solid #9ca3af; break-inside: avoid; }
+    .ficha-field-wide { grid-column: 1 / -1; }
+    .ficha-field--wide { grid-column: 1 / -1; }
+    .ficha-field-label { display: block; margin-bottom: 1mm; color: #6b7280; font-size: 7.5pt; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
+    .ficha-field-value { display: block; overflow-wrap: anywhere; color: #111827; font-size: 9pt; line-height: 1.35; white-space: pre-wrap; }
+    .ficha-subsection { margin-bottom: 3mm; break-inside: avoid; }
+    .ficha-subsection > h3 { margin: 0; padding: 2mm 3mm; background: #f3f4f6; color: #374151; font-size: 8.5pt; font-weight: 800; text-transform: uppercase; }
+    .ficha-security-note { margin: 4mm 0 0; padding: 2.5mm 3mm; border: 1px solid #fcd34d; background: #fffbeb; color: #78350f; font-size: 8pt; }
+    .ficha-loading, .ficha-error, .ficha-empty { padding: 8mm; border: 1px dashed #9ca3af; background: #fff; color: #6b7280; font-size: 9pt; text-align: center; }
+    .ficha-error { border-color: #fca5a5; background: #fef2f2; color: #b91c1c; }
+    .ficha-empty { margin: 0; padding: 4mm; }
+    .ficha-empty-state { display: flex; min-height: var(--ficha-height); align-items: center; justify-content: center; background: #fff; color: #6b7280; font-size: 10pt; text-align: center; }
+
+    @media (max-width: 900px) {
+        .ficha-document, .ficha-page { width: 100%; }
+        .ficha-page { min-height: auto; margin-bottom: 12px; padding: 16px; }
+        .ficha-page-header { grid-template-columns: 72px minmax(0, 1fr); }
+        .ficha-page-meta { grid-column: 1 / -1; flex-direction: row; min-height: 30px; border-top: 1px solid #d1d5db; border-left: 0; }
+        .ficha-page-title { font-size: 14pt; }
+        .ficha-grid, .ficha-fields { grid-template-columns: 1fr; }
+        .ficha-field-wide, .ficha-field--wide { grid-column: auto; }
+    }
+
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+        html, body { width: var(--ficha-width) !important; min-width: var(--ficha-width) !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+        body.ficha-print-mode * { visibility: hidden !important; }
+        body.ficha-print-mode #ficha-document, body.ficha-print-mode #ficha-document * { visibility: visible !important; }
+        body.ficha-print-mode #ficha-document { position: absolute !important; top: 0 !important; left: 0 !important; width: var(--ficha-width) !important; max-width: none !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+        body.ficha-print-mode .ficha-page { width: var(--ficha-width) !important; height: var(--ficha-height) !important; min-height: var(--ficha-height) !important; margin: 0 !important; padding: 12mm 12mm 11mm !important; overflow: hidden !important; box-shadow: none !important; break-after: page; page-break-after: always; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        body.ficha-print-mode .ficha-page:last-child { break-after: auto; page-break-after: auto; }
+        body.ficha-print-mode .ficha-section, body.ficha-print-mode .ficha-field, body.ficha-print-mode .ficha-page-header { break-inside: avoid; page-break-inside: avoid; }
+        body.ficha-print-mode #ficha-controls, body.ficha-print-mode #ficha-page-template { display: none !important; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 
 <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -298,6 +363,117 @@
     </div>
 </div>
 
+<div id="modal-tutor-existente" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-900 bg-opacity-70 px-4 py-8 backdrop-blur-sm">
+    <div class="mx-auto w-full max-w-2xl rounded-xl bg-white shadow-xl dark:bg-gray-800">
+        <form id="form-tutor-existente" class="p-6">
+            <input type="hidden" id="tutor-existente-alumno-id">
+            <input type="hidden" id="tutor-existente-id">
+            <div class="mb-5 flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Asignar tutor existente</h3>
+                    <p id="tutor-existente-alumno-nombre" class="mt-1 text-sm text-gray-500 dark:text-gray-400"></p>
+                    <p class="mt-2 text-xs text-emerald-700 dark:text-emerald-400">La misma cuenta podrá consultar a todos sus hijos o apoderados vinculados.</p>
+                </div>
+                <button type="button" onclick="closeModal('modal-tutor-existente')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+
+            <label for="buscar-tutor-existente" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Buscar por nombre, CI, celular o correo</label>
+            <div class="relative mb-3">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <input id="buscar-tutor-existente" type="search" autocomplete="off" class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Ej: María Pérez o 70123456">
+            </div>
+            <div id="resultados-tutores-existentes" class="mb-5 max-h-64 space-y-2 overflow-y-auto rounded-lg border border-gray-200 p-2 dark:border-gray-700"></div>
+
+            <details class="mb-5 rounded-lg border border-gray-200 dark:border-gray-700">
+                <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-200">¿Inscribir hermanos o varios apoderados al mismo tiempo?</summary>
+                <div class="border-t border-gray-200 p-3 dark:border-gray-700">
+                    <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">Selecciona otros alumnos para vincularlos a la misma cuenta en esta operación.</p>
+                    <div id="otros-alumnos-tutor" class="max-h-48 space-y-2 overflow-y-auto"></div>
+                </div>
+            </details>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Parentesco</label>
+                    <select name="tipo_relacion" required class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <option value="MADRE">Madre</option>
+                        <option value="PADRE">Padre</option>
+                        <option value="ABUELO">Abuelo/a</option>
+                        <option value="TIO">Tío/a</option>
+                        <option value="TUTOR">Tutor legal</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+                <div class="space-y-2 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/60">
+                    <label class="flex items-center gap-2"><input type="checkbox" name="es_principal" checked class="rounded text-emerald-600"> Tutor principal</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="tiene_custodia" checked class="rounded text-emerald-600"> Tiene custodia</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="recibe_notificaciones" checked class="rounded text-emerald-600"> Recibe notificaciones</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="autorizado_retirar" checked class="rounded text-emerald-600"> Puede retirar al alumno</label>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <button type="button" onclick="closeModal('modal-tutor-existente')" class="rounded-lg px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Cancelar</button>
+                <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white shadow hover:bg-emerald-700"><i class="fas fa-link mr-2"></i>Vincular tutor</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-preinscribir-hermano" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-900 bg-opacity-70 px-4 py-8 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="titulo-preinscribir-hermano">
+    <div class="mx-auto w-full max-w-xl overflow-hidden rounded-xl bg-white shadow-xl dark:bg-gray-800">
+        <div class="bg-primary-600 px-6 py-5 text-white">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white/20"><i class="fas fa-children text-xl"></i></span>
+                    <div>
+                        <h3 id="titulo-preinscribir-hermano" class="text-xl font-bold">Preinscribir hermano</h3>
+                        <p class="mt-1 text-sm text-white/85">Se utilizará la cuenta del tutor que ya tiene el alumno.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModal('modal-preinscribir-hermano')" class="rounded-lg p-2 text-white/80 hover:bg-white/15 hover:text-white" aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
+        <form id="form-preinscribir-hermano" class="p-6">
+            <input type="hidden" id="hermano-alumno-origen-id">
+            <div class="mb-5 rounded-lg border border-primary-200 bg-primary-50 p-4 text-sm text-gray-700 dark:border-primary-800 dark:bg-primary-900/20 dark:text-gray-200">
+                <p><span class="font-semibold">Hermano de:</span> <span id="hermano-alumno-origen-nombre"></span></p>
+                <p class="mt-1"><span class="font-semibold">Cuenta del tutor:</span> <span id="hermano-tutor-nombre"></span></p>
+                <p class="mt-3 text-xs text-primary-700 dark:text-primary-300"><i class="fas fa-bell mr-1"></i>Al guardar, el tutor recibirá una notificación para completar los 10 pasos, sin volver a crear su cuenta.</p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label for="hermano-nombres" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Nombres *</label>
+                    <input id="hermano-nombres" name="nombres" required maxlength="100" autocomplete="off" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label for="hermano-apellidos" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Apellidos *</label>
+                    <input id="hermano-apellidos" name="apellidos" required maxlength="200" autocomplete="off" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label for="hermano-fecha-nacimiento" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de nacimiento *</label>
+                    <input id="hermano-fecha-nacimiento" name="fecha_nacimiento" type="date" required class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                </div>
+                <div>
+                    <label for="hermano-genero" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Género *</label>
+                    <select id="hermano-genero" name="genero" required class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <option value="">Seleccionar...</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <button type="button" onclick="closeModal('modal-preinscribir-hermano')" class="rounded-lg px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">Cancelar</button>
+                <button type="submit" class="rounded-lg bg-primary-600 px-4 py-2 font-semibold text-white shadow hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60"><i class="fas fa-user-plus mr-2"></i>Preinscribir hermano</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div id="modal-foto" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-70 flex items-center justify-center backdrop-blur-sm">
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm mx-4 p-6">
         <h3 class="text-lg font-bold mb-4 dark:text-white">Subir Fotografía</h3>
@@ -321,130 +497,53 @@
     </div>
 </div>
 
-<div id="modal-ficha" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-90 flex items-center justify-center backdrop-blur-sm overflow-y-auto py-4">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl mx-4 my-auto border border-gray-200 dark:border-gray-700">
-        
-        <div class="flex flex-col md:flex-row border-b-4 border-yellow-600">
-            <div class="bg-gray-800 p-4 flex items-center justify-center w-full md:w-48">
-                <div class="text-center">
-                    <i class="fas fa-home text-yellow-500 text-4xl"></i>
-                    <h2 class="text-yellow-500 font-bold text-sm mt-1">Datilera</h2>
-                </div>
+
+<div id="modal-ficha" class="fixed inset-0 z-50 hidden overflow-y-auto bg-gray-950/90 px-2 py-4 backdrop-blur-sm sm:px-4" role="dialog" aria-modal="true" aria-labelledby="ficha-modal-title">
+    <div class="ficha-modal-panel mx-auto">
+        <div id="ficha-controls" class="sticky top-2 z-20 mb-4 flex flex-col gap-3 rounded-xl border border-gray-700 bg-gray-900/95 p-3 text-white shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 id="ficha-modal-title" class="truncate text-base font-bold">File personal del alumno</h2>
+                <p class="text-xs text-gray-300">La vista impresa conservará exactamente estas páginas.</p>
             </div>
-            <div class="flex-1 bg-yellow-700 p-4 flex flex-col justify-center text-center">
-                <h1 class="text-3xl font-bold text-white uppercase tracking-wider">FILE PERSONAL</h1>
-                <p class="text-yellow-100 text-sm mt-1">CENTRO INFANTIL DE DESARROLLO INTEGRAL</p>
-            </div>
-            <div class="w-full md:w-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center p-2 relative">
-                <img id="ficha-foto" src="" alt="Foto" class="h-32 w-32 object-cover rounded shadow-md bg-white">
-                <span class="absolute bottom-1 right-2 text-xs text-gray-500 font-mono">FOTO</span>
+            <div class="flex shrink-0 justify-end gap-2">
+                <button type="button" onclick="closeModal('modal-ficha')" class="rounded-lg border border-gray-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    <i class="fas fa-times mr-2" aria-hidden="true"></i>Cerrar
+                </button>
+                <button type="button" onclick="imprimirFichaDetalle()" class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400">
+                    <i class="fas fa-print mr-2" aria-hidden="true"></i>Imprimir ficha
+                </button>
             </div>
         </div>
 
-        <div class="p-6 space-y-6 text-sm">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border border-gray-400">
-                <div class="md:col-span-2 bg-gray-800 text-white p-2 font-bold flex items-center">Nombre Niñ@</div>
-                <div class="md:col-span-10 p-2 font-bold text-lg uppercase bg-gray-100 dark:bg-gray-700 dark:text-white" id="ficha-nombre">--</div>
-                
-                <div class="md:col-span-2 bg-gray-800 text-white p-2 font-bold">Fecha Nac.</div>
-                <div class="md:col-span-4 p-2 border-r border-gray-400 dark:text-white" id="ficha-nacimiento">--</div>
-                
-                <div class="md:col-span-1 bg-gray-800 text-white p-2 font-bold text-center">EDAD</div>
-                <div class="md:col-span-3 p-2 border-r border-gray-400 dark:text-white" id="ficha-edad">--</div>
-                <div class="md:col-span-2 p-2 text-right dark:text-white"><span id="ficha-meses">0</span> meses</div>
+        <div id="ficha-document" class="ficha-document" aria-live="polite" aria-busy="false">
+            <div class="ficha-empty-state">
+                <div><i class="fas fa-file-alt mb-3 text-3xl text-amber-600" aria-hidden="true"></i><p>Cargando ficha del alumno…</p></div>
             </div>
-
-            <div>
-                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Datos Familiares</div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border-l border-r border-b border-gray-400 bg-white dark:bg-gray-800">
-                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold uppercase">Nombre de Mamá</div>
-                    <div class="md:col-span-5 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-nombre">--</div>
-                    <div class="md:col-span-2 bg-gray-700 text-white p-2 text-xs font-bold">C.I.</div>
-                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-mama-ci">--</div>
-
-                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold">Correo / Celular</div>
-                    <div class="md:col-span-9 p-2 border-t border-gray-300 dark:text-white">
-                        <span id="ficha-mama-email" class="mr-4">--</span> | <span id="ficha-mama-cel" class="ml-4 font-bold">--</span>
-                    </div>
-
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Profesión</div>
-                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-prof">--</div>
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Lugar Trabajo</div>
-                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-mama-lugar">--</div>
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Dirección Trab.</div>
-                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-mama-dir">--</div>
-                </div>
-
-                <div class="h-2 bg-gray-100 dark:bg-gray-900 border-l border-r border-gray-400"></div>
-
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-0 border-l border-r border-b border-gray-400 bg-white dark:bg-gray-800">
-                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold uppercase">Nombre de Papá</div>
-                    <div class="md:col-span-5 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-nombre">--</div>
-                    <div class="md:col-span-2 bg-gray-700 text-white p-2 text-xs font-bold">C.I.</div>
-                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-papa-ci">--</div>
-
-                    <div class="md:col-span-3 bg-gray-700 text-white p-2 text-xs font-bold">Correo / Celular</div>
-                    <div class="md:col-span-9 p-2 border-t border-gray-300 dark:text-white">
-                        <span id="ficha-papa-email" class="mr-4">--</span> | <span id="ficha-papa-cel" class="ml-4 font-bold">--</span>
-                    </div>
-
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Profesión</div>
-                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-prof">--</div>
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Lugar Trabajo</div>
-                    <div class="md:col-span-2 p-2 border-r border-gray-300 dark:text-white" id="ficha-papa-lugar">--</div>
-                    <div class="md:col-span-2 bg-gray-800 text-white p-2 text-xs text-center">Dirección Trab.</div>
-                    <div class="md:col-span-2 p-2 dark:text-white" id="ficha-papa-dir">--</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border border-gray-400">
-                <div class="bg-gray-800 text-white p-2 font-bold text-center">DIRECCIÓN FAMILIAR</div>
-                <div class="p-2 dark:text-white" id="ficha-direccion">--</div>
-                <div class="bg-gray-800 text-white p-2 font-bold text-center border-t border-gray-500">CELULARES</div>
-                <div class="p-2 border-t border-gray-400 dark:text-white" id="ficha-celulares">--</div>
-            </div>
-
-            <div>
-                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Persona a la que se avisa en caso de necesidad</div>
-                <div class="grid grid-cols-3 bg-gray-800 text-white text-xs text-center py-1">
-                    <div>NOMBRE</div>
-                    <div>PARENTESCO</div>
-                    <div>TELÉFONO</div>
-                </div>
-                <div class="grid grid-cols-3 border border-gray-400 text-center py-2 dark:text-white">
-                    <div id="ficha-emerg-nombre">--</div>
-                    <div id="ficha-emerg-paren">--</div>
-                    <div id="ficha-emerg-tel">--</div>
-                </div>
-            </div>
-
-             <div>
-                <div class="bg-yellow-700 text-white text-center font-bold p-1 uppercase">Familiares autorizados a recoger al niño(a)</div>
-                <div class="grid grid-cols-3 bg-gray-800 text-white text-xs text-center py-1">
-                    <div>NOMBRE</div>
-                    <div>PARENTESCO</div>
-                    <div>TELÉFONO</div>
-                </div>
-                <div class="grid grid-cols-3 border border-gray-400 text-center py-2 dark:text-white">
-                    <div id="ficha-recojo-nombre">--</div>
-                    <div id="ficha-recojo-paren">--</div>
-                    <div id="ficha-recojo-tel">--</div>
-                </div>
-            </div>
-
-        </div>
-        
-        <div class="bg-gray-100 dark:bg-gray-900 p-4 flex justify-center border-t border-gray-200 dark:border-gray-700">
-            <button onclick="closeModal('modal-ficha')" class="px-6 py-2 bg-gray-800 text-white rounded shadow hover:bg-gray-700">Cerrar Ficha</button>
-            <button onclick="imprimirFichaDetalle()" class="ml-4 px-6 py-2 bg-primary-600 text-white rounded shadow hover:bg-primary-700"><i class="fas fa-print mr-2"></i> Imprimir</button>
         </div>
     </div>
+
+    <template id="ficha-page-template">
+        <article class="ficha-page">
+            <header class="ficha-page-header">
+                <div class="ficha-page-logo"><img src="/static/img/logo.png" alt="Datilera"></div>
+                <div class="ficha-page-heading">
+                    <h1 class="ficha-page-title">File personal</h1>
+                    <p class="ficha-page-subtitle">Centro Infantil de Desarrollo Integral</p>
+                </div>
+                <div class="ficha-page-meta">
+                    <span class="ficha-page-number">Página <span data-page-number>1</span> de <span data-page-total>1</span></span>
+                    <span data-student-code></span>
+                </div>
+            </header>
+            <div class="ficha-page-body"></div>
+            <footer class="ficha-page-footer"><span>Datilera · File personal del alumno</span><span data-generated-date></span></footer>
+        </article>
+    </template>
 </div>
 
 
 {% endblock %}
 
 {% block extra_scripts %}
-<script type="module" src="/static/js/inscripciones-list.js"></script>
+<script type="module" src="/static/js/inscripciones-list.js?v=20260715-7"></script>
 {% endblock %}

@@ -1,5 +1,5 @@
 import { fetchAPI, showToast } from './main.js'; // Ajusta la ruta si no usas carpetas
-const API_BASE = '/api/v1';
+const API_BASE = '/api/v1/academico';
 
 document.addEventListener('DOMContentLoaded', () => {
     loadData();

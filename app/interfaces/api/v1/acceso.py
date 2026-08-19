@@ -1,14 +1,18 @@
 # app/interfaces/api/v1/acceso/acceso.py
 from __future__ import annotations
 
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 # DI genérica
-from app.interfaces.api.v1.deps import get_session, get_auditoria_repo
+from app.interfaces.api.v1.deps import get_session
+
 
 # Adaptador UoW simple para Acceso sobre la sesión, si ya tienes uno propio impórtalo
 from app.infrastructure.db.uow import UnitOfWork as DbUoW
+
 
 # Casos de uso
 from app.kernel.application.acceso.generar_codigo import GenerarCodigo, GenerarCodigoRequest, GenerarCodigoResponse
@@ -28,9 +32,11 @@ from app.kernel.application.acceso.marcar_envio_whatsapp import (
     MarcarEnvioWhatsapp, MarcarEnvioWhatsappRequest
 )
 
+
 from app.kernel.application.acceso.enviar_codigo_whatsapp import (
     EnviarCodigoWhatsapp, EnviarCodigoWhatsappRequest, EnviarCodigoWhatsappResponse
 )
+
 
 
 # Errores de dominio
@@ -42,29 +48,31 @@ from app.kernel.domain.acceso.errors import (
     CodigoInvalido,
 )
 
+
 router = APIRouter(prefix="/acceso/codigos", tags=["Acceso"])
+
 
 def _uow(session: AsyncSession) -> DbUoW:
     return DbUoW(session)
+
 
 @router.post("/generar", response_model=GenerarCodigoResponse, status_code=status.HTTP_201_CREATED)
 async def generar(
     body: GenerarCodigoRequest,
     request: Request,
     session: AsyncSession = Depends(get_session),
-    auditoria = Depends(get_auditoria_repo),
 ):
-    cu = GenerarCodigo(_uow(session), auditoria=auditoria)
+    cu = GenerarCodigo(_uow(session))
     return await cu.execute(body)
+
 
 @router.post("/consumir", status_code=status.HTTP_204_NO_CONTENT)
 async def consumir(
     body: ConsumirCodigoRequest,
     request: Request,
     session: AsyncSession = Depends(get_session),
-    auditoria = Depends(get_auditoria_repo),
 ):
-    cu = ConsumirCodigo(_uow(session), auditoria=auditoria)
+    cu = ConsumirCodigo(_uow(session))
     try:
         await cu.execute(body)
     except (CodigoNoEncontrado, CodigoExpirado, CodigoRevocado, CodigoAgotado) as e:
@@ -72,17 +80,18 @@ async def consumir(
         code = 404 if isinstance(e, CodigoNoEncontrado) else 409
         raise HTTPException(status_code=code, detail=str(e) or e.__class__.__name__)
 
+
 @router.post("/revocar", status_code=status.HTTP_204_NO_CONTENT)
 async def revocar(
     body: RevocarCodigoRequest,
     session: AsyncSession = Depends(get_session),
-    auditoria = Depends(get_auditoria_repo),
 ):
-    cu = RevocarCodigo(_uow(session), auditoria=auditoria)
+    cu = RevocarCodigo(_uow(session))
     try:
         await cu.execute(body)
     except CodigoNoEncontrado as e:
         raise HTTPException(status_code=404, detail=str(e) or "Código no encontrado")
+
 
 @router.post("/reactivar", status_code=status.HTTP_204_NO_CONTENT)
 async def reactivar(
@@ -95,6 +104,7 @@ async def reactivar(
     except CodigoNoEncontrado as e:
         raise HTTPException(status_code=404, detail=str(e) or "Código no encontrado")
 
+
 @router.get("/valor/{valor}", response_model=ObtenerCodigoPorValorResponse)
 async def obtener_por_valor(
     valor: str,
@@ -105,6 +115,7 @@ async def obtener_por_valor(
         return await cu.execute(ObtenerCodigoPorValorRequest(valor=valor))
     except (CodigoNoEncontrado, CodigoInvalido) as e:
         raise HTTPException(status_code=404 if isinstance(e, CodigoNoEncontrado) else 422, detail=str(e) or e.__class__.__name__)
+
 
 @router.get("/sede/{sede_id}", response_model=ListarCodigosPorSedeResponse)
 async def listar_por_sede(
@@ -117,6 +128,7 @@ async def listar_por_sede(
     req = ListarCodigosPorSedeRequest(sede_id=sede_id, limit=limit, offset=offset)
     return await cu.execute(req)
 
+
 @router.get("/disponible/{valor}", response_model=DisponibilidadCodigoResponse)
 async def disponible(
     valor: str,
@@ -125,14 +137,5 @@ async def disponible(
     cu = DisponibilidadCodigo(_uow(session))
     return await cu.execute(DisponibilidadCodigoRequest(valor=valor))
 
-@router.post("/enviar/whatsapp", response_model=EnviarCodigoWhatsappResponse, status_code=status.HTTP_200_OK)
-async def enviar_whatsapp(
-    body: EnviarCodigoWhatsappRequest,
-    session: AsyncSession = Depends(get_session),
-    auditoria = Depends(get_auditoria_repo),
-):
-    cu = EnviarCodigoWhatsapp(_uow(session), auditoria=auditoria)
-    try:
-        return await cu.execute(body)
-    except CodigoNoEncontrado as e:
-        raise HTTPException(status_code=404, detail=str(e) or "Código no encontrado")
+
+

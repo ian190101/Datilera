@@ -218,7 +218,7 @@ window.cargarParalelosDelGrupo = function() {
     
     if (grupo && grupo.paralelos && grupo.paralelos.length > 0) {
         selectParalelo.disabled = false;
-        selectParalelo.className = "w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500";
+        selectParalelo.className = "w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-[#DD8E0A] focus:border-[#DD8E0A]";
 
         grupo.paralelos.forEach(p => {
             const opt = document.createElement('option');

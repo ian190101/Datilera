@@ -18,6 +18,7 @@ let currentMensajesPage = 1;
 let isTyping = false;
 let typingTimeout = null;
 let usersCache = []; // Cache para el buscador de destinatarios
+let notificationContext = null;
 
 /* ============================================================
    INICIALIZACIÓN
@@ -35,47 +36,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSearchFilters();
     
    
-    loadRecipients();
+    await loadRecipients();
 
     
     const params = new URLSearchParams(window.location.search);
     
     if (params.get('action') === 'nueva_notificacion') {
-        // Damos un pequeño tiempo (800ms) para asegurar que el HTML y listas de usuarios carguen
-        setTimeout(() => {
-            // 1. Abrir el modal de notificación
-            // Asegúrate que esta función exista abajo (ya la tienes definida como window.openNewNotificaacionModal)
-            if (typeof openNewNotificaacionModal === 'function') {
-                openNewNotificaacionModal();
-            } else {
-                // Fallback por si acaso
-                document.getElementById('new-notificacion-modal')?.classList.remove('hidden');
-            }
-
-            // 2. Si viene por tema de deuda, pre-llenamos los textos
-            if (params.get('context') === 'deuda') {
-                const tituloInput = document.getElementById('notif-titulo');
-                const mensajeInput = document.getElementById('notif-mensaje');
-                const prioridadSelect = document.getElementById('notif-prioridad');
-                const tipoSelect = document.getElementById('notif-tipo');
-
-                if (tituloInput) tituloInput.value = "Recordatorio de Pago de Mensualidad";
-                if (mensajeInput) mensajeInput.value = "Estimado padre de familia/tutor, le recordamos amablemente pasar por administración para regularizar las cuotas pendientes.";
-                
-                if (prioridadSelect) prioridadSelect.value = "ALTA"; 
-                
-                // Intenta poner PAGOS, si no existe en tu select, pone RECORDATORIO
-                if (tipoSelect) {
-                    const tienePagos = [...tipoSelect.options].some(o => o.value === 'PAGOS');
-                    tipoSelect.value = tienePagos ? "PAGOS" : "RECORDATORIO";
-                }
-                
-                showToast('Complete el destinatario manualmente', 'info');
-            }
-
-            // 3. Limpiar la URL para que no se abra de nuevo al recargar la página
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }, 800); 
+        openNewNotificaacionModal();
+        if (params.get('context') === 'deuda') {
+            configurarNotificacionDeuda(params);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
     
 });
@@ -827,7 +798,12 @@ window.closeNewMessageModal = function() {
 
 // --- MODAL NOTIFICACIÓN (NUEVO) ---
 window.openNewNotificaacionModal = function() {
-    document.getElementById('new-notificacion-modal').classList.remove('hidden');
+    const modal = document.getElementById('new-notificacion-modal');
+    if (!modal) {
+        showToast('Tu rol no puede crear notificaciones', 'warning');
+        return;
+    }
+    modal.classList.remove('hidden');
     // Usamos la función genérica indicando los IDs específicos de este modal
     renderRecipientsList(usersCache, 'notif-recipients-list', 'notif-checkbox'); 
     
@@ -841,9 +817,63 @@ window.openNewNotificaacionModal = function() {
 }
 
 window.closeNewNotificacionModal = function() {
-    document.getElementById('new-notificacion-modal').classList.add('hidden');
-    document.getElementById('new-notificacion-form').reset();
-    document.getElementById('notif-selected-count').textContent = '0';
+    document.getElementById('new-notificacion-modal')?.classList.add('hidden');
+    document.getElementById('new-notificacion-form')?.reset();
+    const count = document.getElementById('notif-selected-count');
+    if (count) count.textContent = '0';
+    notificationContext = null;
+    const tipo = document.getElementById('notif-tipo');
+    if (tipo) tipo.disabled = false;
+    const buscador = document.getElementById('notif-recipient-search');
+    if (buscador) buscador.disabled = false;
+    document.getElementById('btn-notif-select-all')?.classList.remove('hidden');
+}
+
+function configurarNotificacionDeuda(params) {
+    const tutorUsuarioId = Number(params.get('tutor_usuario_id'));
+    const alumnoId = Number(params.get('alumno_id'));
+    const cuotaNumero = Number(params.get('cuota_numero'));
+    const diasAtraso = Number(params.get('dias_atraso') || 0);
+    const tutor = usersCache.find(user => Number(user.id) === tutorUsuarioId);
+
+    if (!tutor || !alumnoId || !cuotaNumero) {
+        showToast('No se pudo identificar al tutor de este alumno', 'error');
+        closeNewNotificacionModal();
+        return;
+    }
+
+    notificationContext = {
+        tipo: 'deuda',
+        alumno_id: alumnoId,
+        cuota_numero: cuotaNumero,
+    };
+
+    renderRecipientsList([tutor], 'notif-recipients-list', 'notif-checkbox');
+    const checkbox = document.querySelector('.notif-checkbox');
+    if (checkbox) {
+        checkbox.checked = true;
+        checkbox.disabled = true;
+    }
+    const contador = document.getElementById('notif-selected-count');
+    if (contador) contador.textContent = '1';
+
+    const buscador = document.getElementById('notif-recipient-search');
+    if (buscador) {
+        buscador.value = tutor.nombre_completo || tutor.nombres || '';
+        buscador.disabled = true;
+    }
+    document.getElementById('btn-notif-select-all')?.classList.add('hidden');
+
+    document.getElementById('notif-titulo').value = 'Recordatorio de Pago de Mensualidad';
+    document.getElementById('notif-mensaje').value =
+        `Le recordamos que la cuota #${cuotaNumero} se encuentra vencida. Por favor, pase por administración para regularizar el pago.`;
+
+    const tipo = document.getElementById('notif-tipo');
+    tipo.value = 'PAGO';
+    tipo.disabled = true;
+
+    const prioridad = document.getElementById('notif-prioridad');
+    prioridad.value = diasAtraso >= 30 ? 'alta' : (diasAtraso >= 8 ? 'media' : 'baja');
 }
 /* --- FUNCIÓN CLAVE: CARGAR USUARIOS EN EL DIV --- */
 async function loadRecipients() {
@@ -853,26 +883,39 @@ async function loadRecipients() {
     listContainer.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-circle-notch fa-spin mr-2"></i>Cargando directorio...</div>';
 
     try {
-        // Pedimos 1000 usuarios activos para tenerlos en cache
-        const response = await fetchAPI(`${API_BASE}/usuarios?per_page=1000&activo=1`);
+        // La API limita cada página a 100 elementos para proteger la base de datos.
+        const response = await fetchAPI(`${API_BASE}/comunicaciones/destinatarios?limite=100`);
         
-        if (!response.ok) throw new Error("Error al cargar usuarios");
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+                `Error al cargar usuarios (${response.status}): ${errorData.detail || 'respuesta inválida'}`
+            );
+        }
         
         const data = await response.json();
         usersCache = data.items || [];
         
-        renderRecipientsList(usersCache);
+        renderRecipientsList(usersCache, 'recipients-list', 'recipient-checkbox');
         
         // Activar el buscador
         const searchInput = document.getElementById('recipient-search');
         if(searchInput) {
-            searchInput.oninput = (e) => filterRecipients(e.target.value);
+            searchInput.oninput = (e) => filterRecipients(
+                e.target.value,
+                'recipients-list',
+                'recipient-checkbox'
+            );
         }
 
         // Activar botón "Seleccionar Todos"
         const btnSelectAll = document.getElementById('btn-select-all');
         if(btnSelectAll) {
-            btnSelectAll.onclick = () => toggleSelectAll();
+            btnSelectAll.onclick = () => toggleSelectAll(
+                'recipient-checkbox',
+                'selected-count',
+                'btn-select-all'
+            );
         }
 
     } catch (error) {
@@ -920,7 +963,7 @@ function renderRecipientsList(users, containerId, checkboxClass) {
             <div class="flex-1">
                 <div class="flex justify-between items-center">
                     <span class="text-sm font-semibold dark:text-white truncate pr-2">${user.nombre_completo}</span>
-                    <span class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">${user.rol_nombre || 'Usuario'}</span>
+                    <span class="text-[10px] bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">${user.rol || user.rol_nombre || 'Usuario'}</span>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">@${user.username}</p>
             </div>
@@ -933,7 +976,7 @@ function filterRecipients(query, containerId, checkboxClass) {
     const lower = query.toLowerCase();
     const filtered = usersCache.filter(u => 
         (u.nombre_completo || "").toLowerCase().includes(lower) || 
-        (u.rol_nombre || "").toLowerCase().includes(lower)
+        (u.rol || u.rol_nombre || "").toLowerCase().includes(lower)
     );
     renderRecipientsList(filtered, containerId, checkboxClass);
 }
@@ -1009,7 +1052,14 @@ async function handleNewNotificacion(e) {
     try {
         const res = await fetchAPI(`${API_BASE}/notificaciones/enviar`, {
             method: 'POST', 
-            body: JSON.stringify({ destinatarios: recipients, titulo, mensaje, tipo, prioridad })
+            body: JSON.stringify({
+                destinatarios: recipients,
+                titulo,
+                mensaje,
+                tipo,
+                prioridad,
+                contexto: notificationContext,
+            })
         });
         
         if (res.ok) {

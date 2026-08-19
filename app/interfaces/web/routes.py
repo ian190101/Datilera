@@ -5,11 +5,12 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 import random
 import json
+import re
 import string
 from datetime import datetime, timedelta, date
 from sqlalchemy import select, or_, desc, func, update, case, exists, extract, distinct, and_
 from contextlib import asynccontextmanager
-from sqlalchemy.orm import selectinload, aliased
+from sqlalchemy.orm import selectinload, aliased, joinedload
 import shutil
 from pathlib import Path
 from fastapi.responses import StreamingResponse
@@ -17,7 +18,7 @@ import csv
 import io
 import os
 import uuid
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import calendar
 from typing import List, Dict, Any, Optional
 from typing import Literal
@@ -52,6 +53,8 @@ from app.infrastructure.db.models.alumnos.tutores import Tutor
 from app.infrastructure.db.models.seguridad.usuarios import Usuario
 from app.infrastructure.db.models.acceso.codigos_acceso import EstadoCodigo, CodigoAcceso
 from app.infrastructure.db.models.alumnos.alumnos_tutores import AlumnoTutor
+from app.infrastructure.db.models.alumnos.alumnos_hermanos import AlumnoHermano
+from app.interfaces.web.preinscripcion import extraer_datos_tutor_preinscripcion
 from app.infrastructure.auth.auth_utils import PasslibHasher
 from app.infrastructure.db.models.seguridad.usuarios_roles import UsuarioRol
 from app.infrastructure.db.models.alumnos.alumnos_paralelos import AlumnoParalelo
@@ -81,6 +84,9 @@ from app.kernel.application.services.categoria_service import CategoriasService
 from fastapi.responses import StreamingResponse
 from app.kernel.application.services.recibo_service import ReciboService
 from app.infrastructure.db.models.finanzas.pagos import Pago
+from app.infrastructure.db.models.finanzas.pagos_cuotas import PagoCuota
+from app.infrastructure.db.models.finanzas.comprobantes import Comprobante
+from app.infrastructure.db.models.finanzas.prorrateo import Prorrateo
 from app.kernel.application.services.deudas_service import DeudasService
 from app.infrastructure.db.models.finanzas.cuota_plan_pago import CuotaPlanPago
 from app.infrastructure.db.models.finanzas.plan_pago_personalizado import PlanPagoPersonalizado
@@ -104,6 +110,15 @@ from app.infrastructure.db.models.cursos_extra.ingresos_curso_extra import Ingre
 from app.infrastructure.db.models.cursos_extra.costos_curso_extra import CostoCursoExtra
 from app.infrastructure.db.models.cursos_extra.categorias_costo_curso_extra import CategoriaCostoCursoExtra
 from app.infrastructure.db.models.seguridad.preferencias_usuario import PreferenciaUsuario
+from app.infrastructure.services.secure_storage import SecureStorageService
+from app.kernel.domain.finanzas.calculos_mensualidad import (
+    calcular_prorrateo_mensualidad,
+    fecha_vencimiento_primera_cuota,
+)
+from app.kernel.application.services.tutor_existing_registration import (
+    actualizar_ficha_alumno,
+    actualizar_perfil_tutor_existente,
+)
 
 
 from app.infrastructure.ws.events import (
@@ -119,6 +134,7 @@ from app.infrastructure.ws.manager import ws_manager, ConnectionInfo
 
 settings = get_settings()
 hasher = PasslibHasher()
+secure_storage = SecureStorageService(settings.MEDIA_DIR)
 
 # Router principal del frontend
 web_router = APIRouter(tags=["Frontend Web"])
@@ -145,10 +161,10 @@ async def get_current_user_optional(
     request: Request,
     db: AsyncSession = Depends(get_session),
 ) -> Optional[Usuario]:
-    print("\n🔍 --- DEBUG AUTH START ---")
+
 
     # 1) Cookie / Header
-    print(f"🍪 Cookies recibidas: {request.cookies}")
+    
     token = request.cookies.get("accesstoken") or request.cookies.get("access_token")
 
 
@@ -159,54 +175,52 @@ async def get_current_user_optional(
             token = auth_header.split(" ")[1] if "Bearer" in auth_header else None
 
     if not token:
-        print("❌ FALLO: No hay token en cookie ni en header.")
-        print("🔍 --- DEBUG AUTH END ---\n")
+        
         return None
 
     try:
         # 2) Decode JWT
-        print(f"🔑 Token encontrado (primeros 10 chars): {token[:10]}...")
+       
         token_service = PyJWTTokenService()
         payload = token_service.decode_token(token)
         user_id = int(payload.get("sub"))
-        print(f"👤 ID en token: {user_id}")
+        
 
-        # 3) Cargar usuario SQLAlchemy + roles + permisos + sede
+        # 3) Cargar usuario SQLAlchemy + roles + permisos + sede (OPTIMIZADO)
+        # Usamos joinedload para hacer UNA sola consulta SQL con JOINS
         stmt = (
             select(Usuario)
             .options(
-                selectinload(Usuario.roles).selectinload(Rol.permisos),  # necesario por lazy="noload" [file:24]
-                selectinload(Usuario.sede),  # para sede_nombre en sidebar [file:2]
+                joinedload(Usuario.roles).joinedload(Rol.permisos),
+                joinedload(Usuario.sede),
             )
             .where(Usuario.id == user_id)
-            .limit(1)
         )
+        
         res = await db.execute(stmt)
-        user = res.scalars().first()
+        
+        
+        user = res.unique().scalars().first()
+        
 
         if not user:
             print("❌ FALLO: Usuario no encontrado en BD.")
             print("🔍 --- DEBUG AUTH END ---\n")
             return None
 
-        # 4) Debug útil
-        print(f"✅ ÉXITO: Usuario autenticado: {user.username}")
-        print("Roles:", [r.nombre for r in (user.roles or [])])
-        # lista_permisos ya sale de tu @property en Usuario [file:25]
-        print("Permisos (vista+accion):", user.lista_permisos)
-        print("Sede:", user.sede_nombre)
-
-        print("🔍 --- DEBUG AUTH END ---\n")
+        
         return user
 
     except Exception as e:
         print(f"❌ ERROR EXCEPCIÓN: {e}")
-        print("🔍 --- DEBUG AUTH END ---\n")
+        
         return None
 
 
 
 def get_home_url_for_user(user) -> str:
+    if getattr(user, "debe_cambiar_password", False):
+        return "/cambiar-contrasena"
     roles = [r.nombre.upper() for r in (user.roles or [])]
 
     if any(r in {"ADMINISTRADOR","ADMIN","DIRECTORA","SISTEMAS","SUPERADMIN"} for r in roles):
@@ -251,7 +265,21 @@ async def login_page(request: Request, user = Depends(get_current_user_optional)
     return templates.TemplateResponse("auth/login.html", {
         "request": request,
         "page_title": f"Iniciar Sesión - {settings.app_name}",
-        "ENV": settings.environment
+        "ENV": settings.environment,
+        "current_year": datetime.now().year,
+    })
+
+
+@web_router.get("/cambiar-contrasena", response_class=HTMLResponse, name="cambiar_password_obligatorio_page")
+async def cambiar_password_obligatorio_page(request: Request, user=Depends(get_current_user_optional)):
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    if not user.debe_cambiar_password:
+        return RedirectResponse(url=get_home_url_for_user(user), status_code=303)
+    return templates.TemplateResponse("auth/cambiar_password_obligatorio.html", {
+        "request": request,
+        "page_title": f"Cambiar contraseña - {settings.app_name}",
+        "current_year": datetime.now().year,
     })
 
 @web_router.get("/logout", response_class=RedirectResponse, name="logout")
@@ -259,7 +287,8 @@ async def logout():
     """Cierra la sesión eliminando la cookie"""
     response = RedirectResponse(url="/login", status_code=303)
     
-    # Eliminamos la cookie 'access_token'
+    # El login oficial usa "accesstoken"; se elimina también el alias histórico.
+    response.delete_cookie(key="accesstoken", path="/")
     response.delete_cookie(key="access_token", path="/")
     response.delete_cookie(key="refresh_token", path="/api/v1/auth/refresh")
 
@@ -272,13 +301,93 @@ async def logout():
 # ENDPOINTS - PORTAL DE TUTORES
 # ============================================================
 
-@web_router.get("/registro", response_class=HTMLResponse, name="registro_tutores")
+@web_router.get("/registro", response_class=HTMLResponse, name="registro_portal")
+async def registro_portal_page(request: Request):
+    return templates.TemplateResponse("registro/index.html", {
+        "request": request,
+        "page_title": f"Portal de registro - {settings.app_name}",
+        "current_year": datetime.now().year,
+    })
+
+
+@web_router.get("/registro/tutor", response_class=HTMLResponse, name="registro_tutores")
 async def registro_tutores_page(request: Request):
     """Página pública de registro de tutores (sin autenticación)"""
     return templates.TemplateResponse("tutores/registro.html", {
         "request": request,
-        "page_title": f"Registro de Tutores - {settings.app_name}"
+        "page_title": f"Registro de Tutores - {settings.app_name}",
+        "current_year": datetime.now().year,
+        "modo_tutor_existente": False,
+        "registro_contexto": {},
     })
+
+
+def _usuario_tiene_rol_tutor(user: Usuario) -> bool:
+    roles = {str(rol.nombre).strip().upper() for rol in (user.roles or [])}
+    return bool(roles & {"TUTOR", "PADRE", "MADRE", "FAMILIAR"})
+
+
+@web_router.get(
+    "/tutor/inscripciones/{alumno_id}/completar",
+    response_class=HTMLResponse,
+    name="completar_inscripcion_hermano",
+)
+async def completar_inscripcion_hermano_page(
+    alumno_id: int,
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Abre la ficha del hermano únicamente para su tutor autenticado."""
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    if not _usuario_tiene_rol_tutor(user):
+        raise HTTPException(status_code=403, detail="Esta ficha corresponde al portal de tutores")
+
+    fila = (
+        await db.execute(
+            select(Alumno, Tutor, AlumnoTutor)
+            .join(AlumnoTutor, AlumnoTutor.alumno_id == Alumno.id)
+            .join(Tutor, Tutor.id == AlumnoTutor.tutor_id)
+            .where(
+                Alumno.id == alumno_id,
+                Alumno.sede_id == user.sede_id,
+                Tutor.usuario_id == user.id,
+            )
+        )
+    ).first()
+    if not fila:
+        raise HTTPException(status_code=404, detail="Inscripción pendiente no encontrada")
+    alumno, tutor, relacion = fila
+    if alumno.estado != "preinscrito":
+        return RedirectResponse(url="/dashboard", status_code=303)
+
+    contexto = {
+        "modo_tutor_existente": True,
+        "alumno_id": alumno.id,
+        "alumno_nombre": alumno.nombres_completos
+        or f"{alumno.nombre} {alumno.apellido_paterno}",
+        "genero": alumno.genero,
+        "tutor_nombre": f"{tutor.nombres or ''} {tutor.apellidos or ''}".strip(),
+        "tutor_parentesco": relacion.tipo_relacion,
+        "tutor_ci": tutor.ci_numero,
+        "tutor_expedido": tutor.ci_expedido,
+        "tutor_profesion": tutor.profesion,
+        "tutor_lugar_trabajo": tutor.lugar_trabajo,
+        "tutor_direccion_trabajo": tutor.direccion_trabajo,
+        "tutor_celular": tutor.celular,
+        "tutor_email": tutor.email,
+    }
+    return templates.TemplateResponse(
+        "tutores/registro.html",
+        {
+            "request": request,
+            "page_title": f"Completar inscripción - {settings.app_name}",
+            "current_year": datetime.now().year,
+            "modo_tutor_existente": True,
+            "registro_contexto": contexto,
+        },
+    )
 
 
 # ============================================================
@@ -301,19 +410,32 @@ async def validar_codigo_tutor(
     
     if not codigo_obj:
         return {"valido": False, "mensaje": "Código no encontrado"}
+    rol_codigo = await db.scalar(select(Rol.nombre).where(Rol.id == codigo_obj.rol_id))
+    if str(rol_codigo or '').upper() != "TUTOR" or not codigo_obj.alumno_id:
+        return {"valido": False, "mensaje": "Este código no corresponde al portal de tutores"}
+    if codigo_obj.expira_en and codigo_obj.expira_en < date.today():
+        return {"valido": False, "mensaje": "El código ha expirado"}
     if codigo_obj.estado in [EstadoCodigo.revocado, EstadoCodigo.expirado]:
         return {"valido": False, "mensaje": "El código ha expirado"}
     if codigo_obj.cuentas_creadas >= codigo_obj.max_cuentas:
         return {"valido": False, "mensaje": "Este código ya alcanzó su límite de uso"}
 
     alumno = codigo_obj.alumno
+    tutor_preinscrito = extraer_datos_tutor_preinscripcion(
+        entregado_a=codigo_obj.entregado_a,
+        whatsapp_numero=codigo_obj.whatsapp_numero,
+        observaciones=codigo_obj.observaciones,
+    )
     return {
         "valido": True,
         "mensaje": "Código válido",
         "preinscripcion": {
             "id": alumno.id,
             "nombres": alumno.nombre,
-            "apellidos": f"{alumno.apellido_paterno} {alumno.apellido_materno or ''}".strip()
+            "apellidos": f"{alumno.apellido_paterno} {alumno.apellido_materno or ''}".strip(),
+            "tutor_nombre": tutor_preinscrito["nombre"],
+            "tutor_parentesco": tutor_preinscrito["parentesco"],
+            "tutor_telefono": tutor_preinscrito["telefono"],
         }
     }
 
@@ -326,36 +448,38 @@ async def completar_registro_tutor(
     """Procesa el formulario gigante de inscripción."""
     form = await request.form()
     codigo_str = form.get('codigo_validado')
+    password = str(form.get('password') or '')
+    password_confirm = str(form.get('password_confirm') or '')
+    username = str(form.get('nombre_usuario') or '').strip()
+    if len(password) < 12:
+        raise HTTPException(422, "La contraseña debe tener al menos 12 caracteres")
+    if password != password_confirm:
+        raise HTTPException(422, "Las contraseñas no coinciden")
+    if not username:
+        raise HTTPException(422, "El nombre de usuario es obligatorio")
     
     # --- Helper para guardar archivos en C:/Users/... ---
     async def guardar_archivo(upload_file, subcarpeta):
         if not upload_file or isinstance(upload_file, str) or upload_file.filename == '': 
             return None
         try:
-            # Limpiar nombre
-            safe_filename = f"{datetime.now().timestamp()}_{upload_file.filename.replace(' ', '_')}"
-            
-            # Usar ruta absoluta definida en .env (MEDIA_DIR)
-            # Ej: C:/Users/Ian/Desktop/datilera_media/documentos
-            ruta_destino = Path(settings.MEDIA_DIR) / subcarpeta
-            ruta_destino.mkdir(parents=True, exist_ok=True)
-            
-            file_path = ruta_destino / safe_filename
-            
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(upload_file.file, buffer)
-                
-            # Retornar URL relativa para la BD (/media/documentos/foto.jpg)
-            return f"/media/{subcarpeta}/{safe_filename}"
+            stored = await secure_storage.save_upload(
+                upload_file,
+                subcarpeta,
+                max_bytes=15 * 1024 * 1024,
+            )
+            return stored.public_url
         except Exception as e:
             print(f"❌ Error guardando archivo {upload_file.filename}: {e}")
             return None
 
     # Helpers de conversión
     def get_bool(key): return form.get(key) == 'SI'
-    def get_int(key): 
-        v = form.get(key)
-        return int(v) if v and v.isdigit() else None
+    def get_int(key):
+        """Acepta tanto ``6`` como textos habituales del formulario: ``6 meses``."""
+        v = str(form.get(key) or "").strip()
+        match = re.search(r"-?\d+", v)
+        return int(match.group()) if match else None
     def get_float(key):
         try: return float(form.get(key))
         except: return None
@@ -369,6 +493,13 @@ async def completar_registro_tutor(
             
             if not codigo_db or codigo_db.cuentas_creadas >= codigo_db.max_cuentas:
                 raise HTTPException(400, "El código no es válido o ya fue usado.")
+            rol_codigo = await db.scalar(select(Rol.nombre).where(Rol.id == codigo_db.rol_id))
+            if str(rol_codigo or '').upper() != "TUTOR" or not codigo_db.alumno_id:
+                raise HTTPException(400, "El código no corresponde al registro de tutores")
+            if codigo_db.expira_en and codigo_db.expira_en < date.today():
+                raise HTTPException(400, "El código ha expirado")
+            if await db.scalar(select(Usuario.id).where(func.lower(Usuario.username) == username.lower())):
+                raise HTTPException(409, "El nombre de usuario ya está registrado")
 
             # Recuperar al Alumno
             stmt_alu = select(Alumno).where(Alumno.id == codigo_db.alumno_id)
@@ -378,6 +509,8 @@ async def completar_registro_tutor(
             # 2. Actualizar Datos del Alumno (FICHA COMPLETA)
             alumno.lugar_nacimiento = form.get('lugar_nacimiento')
             alumno.direccion_domicilio = form.get('direccion_familiar') # Dirección del niño
+            alumno.genero = form.get('genero') or alumno.genero
+            alumno.aseguradora = form.get('aseguradora')
             alumno.estado = 'inscrito' 
             
             # Nacimiento
@@ -389,12 +522,15 @@ async def completar_registro_tutor(
             alumno.parto_complicaciones = form.get('parto_complicaciones')
             
             # Salud
+            alumno.enfermedades_previas = form.get('enfermedades_previas')
             alumno.tiene_alergias = get_bool('tiene_alergias')
             alumno.alergias_detalle = form.get('alergias')
             alumno.medicacion_actual = form.get('medicacion')
-            # Checkboxes múltiples se reciben como lista si usas getlist, aquí asumimos string concatenado o ajustamos en JS
-            # Para simplificar, guardamos lo que llegue en el campo de texto
-            alumno.problemas_salud = form.get('problemas_salud_otros') 
+            problemas_salud = [valor.strip() for valor in form.getlist('problemas_salud') if valor.strip()]
+            problemas_salud_otros = str(form.get('problemas_salud_otros') or '').strip()
+            if problemas_salud_otros:
+                problemas_salud.append(problemas_salud_otros)
+            alumno.problemas_salud = ', '.join(problemas_salud) or None
             alumno.traumatismos_caidas = form.get('traumatismos')
             
             # Sueño
@@ -414,6 +550,11 @@ async def completar_registro_tutor(
             alumno.lactancia_materna_meses = get_int('lactancia_meses')
             alumno.uso_biberon_desde_meses = get_int('biberon_desde')
             alumno.problemas_succion_masticacion = form.get('problemas_comer')
+            dieta_actual = [valor.strip() for valor in form.getlist('dieta_actual') if valor.strip()]
+            dieta_otros = str(form.get('dieta_otros') or '').strip()
+            if dieta_otros:
+                dieta_actual.append(dieta_otros)
+            alumno.dieta_actual = ', '.join(dieta_actual) or None
             alumno.alimentos_en_pure = (form.get('tipo_comida') == 'PURE')
             alumno.alimentos_rechaza = form.get('alimentos_rechaza')
             alumno.alimentos_prefiere = form.get('alimentos_prefiere')
@@ -426,6 +567,7 @@ async def completar_registro_tutor(
             alumno.edad_gatear_meses = get_int('edad_gatear')
             alumno.edad_levantarse_meses = get_int('edad_pararse')
             alumno.edad_caminar_meses = get_int('edad_caminar')
+            alumno.edad_balbuceo_meses = get_int('edad_balbuceo')
             alumno.edad_primeras_palabras_meses = get_int('edad_palabras')
             alumno.edad_primeros_dientes_meses = get_int('edad_dientes')
             alumno.sintomas_denticion = form.get('sintomas_dientes')
@@ -434,6 +576,7 @@ async def completar_registro_tutor(
             # Social / Familiar
             alumno.quien_atiende = form.get('quien_atiende')
             alumno.familiares_en_casa = form.get('quien_vive_casa')
+            alumno.familiar_mas_apego = form.get('familiar_apego')
             alumno.actividades_con_padres = form.get('actividades_padres')
             alumno.sentimientos_mas_expresados = form.get('emociones')
             alumno.llora_habitualmente = get_bool('llora_mucho')
@@ -454,11 +597,13 @@ async def completar_registro_tutor(
             url_vac = await guardar_archivo(form.get('doc_carnet_vacunas'), "documentos_alumnos")
             if url_vac: alumno.libreta_vacunas_url = url_vac
 
+            url_ci_tutor1 = await guardar_archivo(form.get('doc_ci_tutor1'), "documentos_tutores")
+
             # 3. Crear USUARIO (Login)
             nuevo_usuario = Usuario(
                 sede_id=codigo_db.sede_id,
-                username=form.get('nombre_usuario'),
-                hash_password=hasher.hash_password(form.get('password')),
+                username=username,
+                hash_password=hasher.hash_password(password),
                 nombres=form.get('tutor1_nombres'),
                 apellidos="", # Se guarda completo en nombres por ahora
                 email=form.get('tutor1_email'),
@@ -497,6 +642,7 @@ async def completar_registro_tutor(
                 direccion=form.get('tutor1_direccion'), # Dirección trabajo
                 lugar_trabajo=form.get('tutor1_lugar_trabajo'),
                 profesion=form.get('tutor1_profesion'),
+                ci_documento_url=url_ci_tutor1,
                 codigo_acceso=codigo_str,
                 codigo_usado=True
             )
@@ -509,7 +655,7 @@ async def completar_registro_tutor(
             relacion_tutor = AlumnoTutor(
                 alumno_id=alumno.id,
                 tutor_id=tutor1.id,
-                tipo_relacion="MADRE/PADRE",  # O lo que venga del form: form.get('tutor1_relacion')
+                tipo_relacion=form.get('tutor1_relacion') or "TUTOR",
                 tiene_custodia=True,          # El 1er '1' que tenías
                 es_principal=True,            # El 2do '1' que tenías (asumiendo que era para principal)
                 #vive_con_alumno=True,         # Puedes agregar más campos explícitos si quieres
@@ -536,7 +682,7 @@ async def completar_registro_tutor(
                 relacion2 = AlumnoTutor(
                     alumno_id=alumno.id,
                     tutor_id=tutor2.id,
-                    tipo_relacion="PADRE/MADRE",  # o form.get('tutor2_relacion')
+                    tipo_relacion=form.get('tutor2_relacion') or "TUTOR",
                     es_principal=False,
                     autorizado_retirar=True,
                     # completa los demás flags si tu modelo los requiere
@@ -555,6 +701,8 @@ async def completar_registro_tutor(
             "usuario": form.get('nombre_usuario')
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error Registro: {e}")
         raise HTTPException(status_code=500, detail=f"Error al guardar: {str(e)}")
@@ -562,16 +710,171 @@ async def completar_registro_tutor(
 
 
 # ============================================================
+@web_router.get("/api/v1/tutor/inscripciones-pendientes", tags=["Tutores"])
+async def listar_inscripciones_pendientes_tutor(
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Lista únicamente las fichas pendientes vinculadas a la cuenta actual."""
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    if not _usuario_tiene_rol_tutor(user):
+        return {"items": []}
+
+    alumnos = (
+        await db.execute(
+            select(Alumno)
+            .join(AlumnoTutor, AlumnoTutor.alumno_id == Alumno.id)
+            .join(Tutor, Tutor.id == AlumnoTutor.tutor_id)
+            .where(
+                Tutor.usuario_id == user.id,
+                Alumno.sede_id == user.sede_id,
+                Alumno.estado == "preinscrito",
+            )
+            .order_by(desc(Alumno.creado_en))
+        )
+    ).scalars().unique().all()
+    return {
+        "items": [
+            {
+                "alumno_id": alumno.id,
+                "nombre": alumno.nombres_completos
+                or f"{alumno.nombre} {alumno.apellido_paterno}",
+                "codigo": alumno.codigo_unico,
+                "accion_url": f"/tutor/inscripciones/{alumno.id}/completar",
+            }
+            for alumno in alumnos
+        ]
+    }
+
+
+@web_router.post(
+    "/api/v1/tutores/completar-inscripcion-existente/{alumno_id}",
+    tags=["Tutores"],
+)
+async def completar_inscripcion_tutor_existente(
+    alumno_id: int,
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Completa la ficha del hermano sin crear ni modificar credenciales."""
+    if not user or not _usuario_tiene_rol_tutor(user):
+        raise HTTPException(status_code=403, detail="Operación exclusiva del tutor")
+
+    fila = (
+        await db.execute(
+            select(Alumno, Tutor, AlumnoTutor)
+            .join(AlumnoTutor, AlumnoTutor.alumno_id == Alumno.id)
+            .join(Tutor, Tutor.id == AlumnoTutor.tutor_id)
+            .where(
+                Alumno.id == alumno_id,
+                Alumno.sede_id == user.sede_id,
+                Tutor.usuario_id == user.id,
+            )
+            .with_for_update()
+        )
+    ).first()
+    if not fila:
+        raise HTTPException(status_code=404, detail="Inscripción pendiente no encontrada")
+    alumno, tutor, relacion = fila
+    if alumno.estado != "preinscrito":
+        raise HTTPException(status_code=409, detail="Esta inscripción ya fue completada")
+
+    form = await request.form()
+    certificado = form.get("doc_certificado_nacimiento")
+    vacunas = form.get("doc_carnet_vacunas")
+    if not getattr(certificado, "filename", "") or not getattr(vacunas, "filename", ""):
+        raise HTTPException(status_code=422, detail="Adjunta el certificado y el carnet de vacunas")
+
+    try:
+        certificado_guardado = await secure_storage.save_upload(
+            certificado, "documentos_alumnos", max_bytes=15 * 1024 * 1024
+        )
+        vacunas_guardado = await secure_storage.save_upload(
+            vacunas, "documentos_alumnos", max_bytes=15 * 1024 * 1024
+        )
+        actualizar_ficha_alumno(alumno, form)
+        actualizar_perfil_tutor_existente(tutor, form)
+        relacion.tipo_relacion = str(
+            form.get("tutor1_relacion") or relacion.tipo_relacion
+        ).upper()
+        alumno.certificado_nacimiento_url = certificado_guardado.public_url
+        alumno.libreta_vacunas_url = vacunas_guardado.public_url
+        alumno.estado = "inscrito"
+        alumno.fecha_inscripcion = date.today()
+
+        nombre_tutor_secundario = str(form.get("tutor2_nombres") or "").strip()
+        if nombre_tutor_secundario:
+            tutor_secundario = Tutor(
+                nombres=nombre_tutor_secundario,
+                apellidos="",
+                ci_numero=str(form.get("tutor2_ci") or "S/N"),
+                celular=str(form.get("tutor2_celular") or "S/N"),
+                profesion=form.get("tutor2_profesion"),
+                lugar_trabajo=form.get("tutor2_lugar_trabajo"),
+                email=form.get("tutor2_email"),
+            )
+            db.add(tutor_secundario)
+            await db.flush()
+            db.add(
+                AlumnoTutor(
+                    alumno_id=alumno.id,
+                    tutor_id=tutor_secundario.id,
+                    tipo_relacion=str(
+                        form.get("tutor2_relacion") or "TUTOR"
+                    ).upper(),
+                    es_principal=False,
+                    autorizado_retirar=True,
+                )
+            )
+
+        notificaciones = (
+            await db.execute(
+                select(Notificacion).where(
+                    Notificacion.usuario_id == user.id,
+                    Notificacion.tipo == "completar_inscripcion_hermano",
+                    Notificacion.relacionado_id == alumno.id,
+                    Notificacion.leido_en.is_(None),
+                )
+            )
+        ).scalars().all()
+        for notificacion in notificaciones:
+            notificacion.leido_en = datetime.now()
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo completar la inscripción",
+        ) from exc
+
+    return {
+        "success": True,
+        "mensaje": "Inscripción completada sin crear otra cuenta",
+        "redirect_url": "/dashboard",
+    }
+
+
 # REGISTRO DE PROFESORAS
 # ============================================================
 
-@web_router.get("/registro-profesoras", response_class=HTMLResponse, name="registro_profesoras")
+@web_router.get("/registro/profesor", response_class=HTMLResponse, name="registro_profesoras")
 async def registro_profesoras_page(request: Request):
     """Página pública de registro de profesoras"""
     return templates.TemplateResponse("profesoras/registro.html", {
         "request": request,
-        "page_title": f"Registro de Personal - {settings.app_name}"
+        "page_title": f"Registro de Personal - {settings.app_name}",
+        "current_year": datetime.now().year,
     })
+
+
+@web_router.get("/registro-profesoras", response_class=RedirectResponse, include_in_schema=False)
+async def registro_profesoras_legacy():
+    return RedirectResponse(url="/registro/profesor", status_code=308)
 
 @web_router.post("/api/v1/profesoras/validar-codigo", tags=["Profesores"])
 async def validar_codigo_profesora(
@@ -588,6 +891,11 @@ async def validar_codigo_profesora(
     
     if not codigo_obj:
         return {"valido": False, "mensaje": "Código no encontrado"}
+    rol_codigo = await db.scalar(select(Rol.nombre).where(Rol.id == codigo_obj.rol_id))
+    if str(rol_codigo or '').upper() not in {"PROFESORA", "DOCENTE", "PROFESOR"}:
+        return {"valido": False, "mensaje": "Este código no corresponde al portal docente"}
+    if codigo_obj.expira_en and codigo_obj.expira_en < date.today():
+        return {"valido": False, "mensaje": "El código ha expirado"}
     
     # Validar que sea un código destinado a STAFF/PROFESORA (opcional, si manejas roles en códigos)
     # if codigo_obj.rol_id != ID_ROL_PROFESORA: ...
@@ -607,6 +915,23 @@ async def completar_registro_profesora(
 ):
     form = await request.form()
     codigo_str = form.get('codigo_validado')
+    password = str(form.get('password') or '')
+    password_confirm = str(form.get('password_confirm') or '')
+    username = str(form.get('nombre_usuario') or '').strip()
+    requeridos = {
+        "nombre completo": form.get('nombres_completos'),
+        "C.I.": form.get('ci'),
+        "celular": form.get('celular'),
+        "dirección": form.get('direccion'),
+        "usuario": username,
+    }
+    faltantes = [nombre for nombre, valor in requeridos.items() if not str(valor or '').strip()]
+    if faltantes:
+        raise HTTPException(422, f"Campos obligatorios faltantes: {', '.join(faltantes)}")
+    if len(password) < 12:
+        raise HTTPException(422, "La contraseña debe tener al menos 12 caracteres")
+    if password != password_confirm:
+        raise HTTPException(422, "Las contraseñas no coinciden")
     
     try:
         async with db.begin():
@@ -617,15 +942,22 @@ async def completar_registro_profesora(
             
             if not codigo_db or codigo_db.estado == EstadoCodigo.consumido:
                 raise HTTPException(400, "Código inválido o ya usado")
+            rol_codigo = await db.scalar(select(Rol.nombre).where(Rol.id == codigo_db.rol_id))
+            if str(rol_codigo or '').upper() not in {"PROFESORA", "DOCENTE", "PROFESOR"}:
+                raise HTTPException(400, "El código no corresponde al registro docente")
+            if codigo_db.expira_en and codigo_db.expira_en < date.today():
+                raise HTTPException(400, "El código ha expirado")
+            if await db.scalar(select(Usuario.id).where(func.lower(Usuario.username) == username.lower())):
+                raise HTTPException(409, "El nombre de usuario ya está registrado")
 
             # 2. Crear USUARIO
             nuevo_usuario = Usuario(
                 sede_id=codigo_db.sede_id,
-                username=form.get('nombre_usuario'),
-                hash_password=hasher.hash_password(form.get('password')),
+                username=username,
+                hash_password=hasher.hash_password(password),
                 nombres=form.get('nombres_completos'),
                 apellidos="", 
-                email=None,   
+                email=str(form.get('email') or '').strip() or None,
                 telefono=form.get('celular'),
                 ci_numero=form.get('ci'),
                 direccion=form.get('direccion'),
@@ -659,6 +991,8 @@ async def completar_registro_profesora(
             "usuario": form.get('nombre_usuario')
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error Registro Profesora: {e}")
         raise HTTPException(status_code=500, detail=f"Error al guardar: {str(e)}")
@@ -694,82 +1028,248 @@ DIAS = {
 }
 
 
+def _sumar_meses(fecha: date, desplazamiento: int) -> date:
+    """Desplaza meses sin aproximarlos a bloques de 30 días."""
+    indice = fecha.year * 12 + fecha.month - 1 + desplazamiento
+    return date(indice // 12, indice % 12 + 1, 1)
+
+
+def _periodo_dashboard(periodo: str, hoy: date) -> tuple[date, list[tuple[str, date, date]]]:
+    """Devuelve el inicio del KPI y segmentos [inicio, fin) para los gráficos."""
+    if periodo == "week":
+        inicio = hoy - timedelta(days=hoy.weekday())
+        segmentos = [
+            (f"{DIAS[(inicio + timedelta(days=i)).weekday()]} {(inicio + timedelta(days=i)).day}",
+             inicio + timedelta(days=i), inicio + timedelta(days=i + 1))
+            for i in range(7)
+        ]
+        return inicio, segmentos
+
+    if periodo == "year":
+        inicio = date(hoy.year, 1, 1)
+        segmentos = []
+        for desplazamiento in range(-11, 1):
+            desde = _sumar_meses(hoy.replace(day=1), desplazamiento)
+            segmentos.append((MESES[desde.month], desde, _sumar_meses(desde, 1)))
+        return inicio, segmentos
+
+    inicio = date(hoy.year, hoy.month, 1)
+    fin_mes = _sumar_meses(inicio, 1)
+    segmentos = []
+    cursor = inicio
+    numero = 1
+    while cursor < fin_mes:
+        siguiente = min(cursor + timedelta(days=7), fin_mes)
+        segmentos.append((f"Sem {numero}", cursor, siguiente))
+        cursor = siguiente
+        numero += 1
+    return inicio, segmentos
+
+
+async def _metricas_dashboard(db: AsyncSession, sede_id: int, inicio: date, hoy: date) -> dict:
+    stmt_alumnos = select(
+        func.sum(case((Alumno.estado == "inscrito", 1), else_=0)).label("total_inscritos"),
+        func.sum(case((Alumno.creado_en >= inicio, 1), else_=0)).label("nuevos_total"),
+    ).where(Alumno.sede_id == sede_id)
+    alumnos = (await db.execute(stmt_alumnos)).one()
+
+    ingresos_sq = (
+        select(func.coalesce(func.sum(LibroCaja.monto), 0.0))
+        .where(
+            LibroCaja.sede_id == sede_id,
+            LibroCaja.tipo == TipoMovimientoEnum.INGRESO,
+            LibroCaja.fecha >= inicio,
+        )
+        .scalar_subquery()
+    )
+    mora_count_sq = (
+        select(func.count(CuotaPlanPago.id))
+        .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
+        .join(Alumno, PlanPagoPersonalizado.alumno_id == Alumno.id)
+        .where(
+            Alumno.sede_id == sede_id,
+            CuotaPlanPago.estado.in_(["pendiente", "vencida"]),
+            CuotaPlanPago.fecha_vencimiento < hoy,
+        )
+        .scalar_subquery()
+    )
+    mora_sum_sq = (
+        select(func.coalesce(func.sum(CuotaPlanPago.monto_cuota + CuotaPlanPago.mora - CuotaPlanPago.monto_pagado), 0.0))
+        .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
+        .join(Alumno, PlanPagoPersonalizado.alumno_id == Alumno.id)
+        .where(
+            Alumno.sede_id == sede_id,
+            CuotaPlanPago.estado.in_(["pendiente", "vencida"]),
+            CuotaPlanPago.fecha_vencimiento < hoy,
+        )
+        .scalar_subquery()
+    )
+    finanzas = (
+        await db.execute(select(
+            ingresos_sq.label("ingresos_total"),
+            mora_count_sq.label("pagos_pendientes_cantidad"),
+            mora_sum_sq.label("pagos_pendientes_monto"),
+        ))
+    ).one()
+    return {
+        "total_inscritos": int(alumnos.total_inscritos or 0),
+        "inscritos_cambio_porcentaje": 0,
+        "ingresos_total": float(finanzas.ingresos_total or 0),
+        "pagos_pendientes_cantidad": int(finanzas.pagos_pendientes_cantidad or 0),
+        "pagos_pendientes_monto": float(finanzas.pagos_pendientes_monto or 0),
+        "nuevos_total": int(alumnos.nuevos_total or 0),
+    }
+
+
+async def _serie_dashboard(
+    db: AsyncSession,
+    sede_id: int,
+    segmentos: list[tuple[str, date, date]],
+    *,
+    ingresos: bool,
+) -> dict:
+    expresiones = []
+    for indice, (_, desde, hasta) in enumerate(segmentos):
+        condicion = and_(
+            (LibroCaja.sede_id == sede_id) if ingresos else (Alumno.sede_id == sede_id),
+            (LibroCaja.fecha >= desde) if ingresos else (Alumno.creado_en >= desde),
+            (LibroCaja.fecha < hasta) if ingresos else (Alumno.creado_en < hasta),
+        )
+        if ingresos:
+            condicion = and_(condicion, LibroCaja.tipo == TipoMovimientoEnum.INGRESO)
+            expresion = func.coalesce(
+                func.sum(case((condicion, LibroCaja.monto), else_=0)), 0
+            )
+        else:
+            expresion = func.sum(case((condicion, 1), else_=0))
+        expresiones.append(expresion.label(f"valor_{indice}"))
+
+    fila = (await db.execute(select(*expresiones))).one()
+    return {
+        "labels": [etiqueta for etiqueta, _, _ in segmentos],
+        "valores": [float(fila[indice] or 0) for indice in range(len(segmentos))],
+    }
+
+
+@web_router.get("/api/v1/reportes/dashboard/resumen", tags=["Dashboard"])
+async def get_dashboard_summary(
+    period: Literal["week", "month", "year"] = "month",
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Entrega todo el panel en una llamada para reducir latencia y carga en BD."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Autenticación requerida")
+    hoy = datetime.now().date()
+    inicio, segmentos = _periodo_dashboard(period, hoy)
+    metricas = await _metricas_dashboard(db, user.sede_id, inicio, hoy)
+    inscripciones = await _serie_dashboard(db, user.sede_id, segmentos, ingresos=False)
+    ingresos = await _serie_dashboard(db, user.sede_id, segmentos, ingresos=True)
+    return {
+        "periodo": period,
+        "actualizado_en": datetime.now().isoformat(timespec="seconds"),
+        "metricas": metricas,
+        "inscripciones": inscripciones,
+        "ingresos": ingresos,
+    }
+
+
 # ============================================================
 # 📊 DASHBOARD REAL (CON FILTROS DINÁMICOS)
 # ============================================================
 
+from datetime import datetime, timedelta, date
+from sqlalchemy import select, func, case
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+
 @web_router.get("/api/v1/reportes/dashboard/metricas", tags=["Dashboard"])
 async def get_dashboard_metrics(
-    period: str = "month",  # week, month, year
+    period: str = "month",
     user = Depends(get_current_user_optional),
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
 ):
-    """Calcula métricas filtradas por el periodo seleccionado."""
-    if not user: return {}
-    
-    # Imports locales
+    if not user:
+        return {}
+
+    from app.infrastructure.db.models.alumnos.alumnos import Alumno
     from app.infrastructure.db.models.finanzas.libro_caja import LibroCaja, TipoMovimientoEnum
     from app.infrastructure.db.models.finanzas.cuota_plan_pago import CuotaPlanPago
     from app.infrastructure.db.models.finanzas.plan_pago_personalizado import PlanPagoPersonalizado
-    
+
     hoy = datetime.now().date()
-    start_date = hoy
-    
-    # Definir rango de fechas según filtro
-    if period == 'week':
-        # Lunes de esta semana
+    if period == "week":
         start_date = hoy - timedelta(days=hoy.weekday())
-    elif period == 'year':
+    elif period == "year":
         start_date = date(hoy.year, 1, 1)
-    else: # Default: month
+    else:
         start_date = date(hoy.year, hoy.month, 1)
 
-    # 1. Total Inscritos (Siempre es el total histórico activo, no depende del periodo)
-    stmt_total = select(func.count(Alumno.id)).where(
-        Alumno.sede_id == user.sede_id,
-        Alumno.estado == 'inscrito'
-    )
-    total_inscritos = await db.scalar(stmt_total) or 0
-    
-    # 2. Nuevos en el periodo seleccionado
-    stmt_nuevos = select(func.count(Alumno.id)).where(
-        Alumno.sede_id == user.sede_id,
-        Alumno.creado_en >= start_date
-    )
-    nuevos_total = await db.scalar(stmt_nuevos) or 0
-    
-    # 3. Ingresos en el periodo seleccionado
-    stmt_ingresos = select(func.sum(LibroCaja.monto)).where(
-        LibroCaja.sede_id == user.sede_id,
-        LibroCaja.tipo == TipoMovimientoEnum.INGRESO,
-        LibroCaja.fecha >= start_date
-    )
-    ingresos_total = await db.scalar(stmt_ingresos) or 0.0
-    
-    # 4. Mora (Deuda acumulada histórica, no depende del periodo, es estado actual)
-    stmt_mora = (
-        select(
-            func.count(CuotaPlanPago.id),
-            func.sum(CuotaPlanPago.monto_cuota - CuotaPlanPago.monto_pagado)
+    # Query A: total_inscritos + nuevos_total (1 roundtrip)
+    stmt_alumnos = select(
+        func.sum(
+            case((Alumno.estado == "inscrito", 1), else_=0)
+        ).label("total_inscritos"),
+        func.sum(
+            case((Alumno.creado_en >= start_date, 1), else_=0)
+        ).label("nuevos_total"),
+    ).where(Alumno.sede_id == user.sede_id)
+
+    row_alumnos = (await db.execute(stmt_alumnos)).one()
+    total_inscritos = int(row_alumnos.total_inscritos or 0)
+    nuevos_total = int(row_alumnos.nuevos_total or 0)
+
+    # Query B: ingresos_total + mora (2 métricas en 1 roundtrip con subqueries escalares)
+    ingresos_sq = (
+        select(func.coalesce(func.sum(LibroCaja.monto), 0.0))
+        .where(
+            LibroCaja.sede_id == user.sede_id,
+            LibroCaja.tipo == TipoMovimientoEnum.INGRESO,
+            LibroCaja.fecha >= start_date,
         )
+        .scalar_subquery()
+    )
+
+    mora_count_sq = (
+        select(func.count(CuotaPlanPago.id))
         .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
         .join(Alumno, PlanPagoPersonalizado.alumno_id == Alumno.id)
         .where(
             Alumno.sede_id == user.sede_id,
-            CuotaPlanPago.estado == 'pendiente',
-            CuotaPlanPago.fecha_vencimiento < hoy 
+            CuotaPlanPago.estado == "pendiente",
+            CuotaPlanPago.fecha_vencimiento < hoy,
         )
+        .scalar_subquery()
     )
-    row_mora = (await db.execute(stmt_mora)).first()
-    
+
+    mora_sum_sq = (
+        select(func.coalesce(func.sum(CuotaPlanPago.monto_cuota + CuotaPlanPago.mora - CuotaPlanPago.monto_pagado), 0.0))
+        .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
+        .join(Alumno, PlanPagoPersonalizado.alumno_id == Alumno.id)
+        .where(
+            Alumno.sede_id == user.sede_id,
+            CuotaPlanPago.estado == "pendiente",
+            CuotaPlanPago.fecha_vencimiento < hoy,
+        )
+        .scalar_subquery()
+    )
+
+    stmt_fin = select(
+        ingresos_sq.label("ingresos_total"),
+        mora_count_sq.label("pagos_pendientes_cantidad"),
+        mora_sum_sq.label("pagos_pendientes_monto"),
+    )
+
+    row_fin = (await db.execute(stmt_fin)).one()
+
     return {
         "total_inscritos": total_inscritos,
-        "inscritos_cambio_porcentaje": 0, 
-        "ingresos_total": float(ingresos_total),
+        "inscritos_cambio_porcentaje": 0,
+        "ingresos_total": float(row_fin.ingresos_total or 0.0),
         "ingresos_objetivo_porcentaje": 0,
-        "pagos_pendientes_cantidad": row_mora[0] or 0,
-        "pagos_pendientes_monto": float(row_mora[1] or 0.0),
-        "nuevos_total": nuevos_total
+        "pagos_pendientes_cantidad": int(row_fin.pagos_pendientes_cantidad or 0),
+        "pagos_pendientes_monto": float(row_fin.pagos_pendientes_monto or 0.0),
+        "nuevos_total": nuevos_total,
     }
 
 @web_router.get("/api/v1/reportes/dashboard/crecimiento-inscripciones", tags=["Dashboard"])
@@ -1055,6 +1555,28 @@ async def listar_inscripciones_endpoint(
     result = await db.execute(stmt)
     alumnos = result.scalars().all() # .unique() a veces necesario en relaciones M2M
 
+    # Evita cargar Tutor.usuario de forma perezosa dentro del flujo asíncrono.
+    # Una consulta agrupada también impide una consulta adicional por cada fila.
+    usuario_ids_tutores = {
+        tutor.usuario_id
+        for alumno in alumnos
+        for tutor in alumno.tutores
+        if tutor.usuario_id is not None
+    }
+    usuarios_tutores_activos: set[int] = set()
+    if usuario_ids_tutores:
+        usuarios_tutores_activos = set(
+            (
+                await db.execute(
+                    select(Usuario.id).where(
+                        Usuario.id.in_(usuario_ids_tutores),
+                        Usuario.sede_id == user.sede_id,
+                        Usuario.activo.is_(True),
+                    )
+                )
+            ).scalars().all()
+        )
+
     
     # 5. Formateo de Datos para el Frontend
     items = []
@@ -1063,7 +1585,19 @@ async def listar_inscripciones_endpoint(
         # A) Tutor
         nombre_tutor = "Sin tutor"
         telefono_tutor = "--"
-        if alu.tutores:
+        tutor_con_cuenta = next(
+            (
+                tutor
+                for tutor in alu.tutores
+                if tutor.usuario_id in usuarios_tutores_activos
+            ),
+            None,
+        )
+        if tutor_con_cuenta:
+            t = tutor_con_cuenta
+            nombre_tutor = f"{t.nombres} {t.apellidos}"
+            telefono_tutor = t.celular
+        elif alu.tutores:
             t = alu.tutores[0]
             nombre_tutor = f"{t.nombres} {t.apellidos}"
             telefono_tutor = t.celular
@@ -1139,6 +1673,7 @@ async def listar_inscripciones_endpoint(
             "edad_detalle": edad_str,
             "nombre_tutor_1": nombre_tutor,
             "telefono_tutor_1": telefono_tutor,
+            "tiene_tutor_con_cuenta": tutor_con_cuenta is not None,
             "estado": estado_front,
             "fecha_inscripcion": alu.creado_en.strftime("%d/%m/%Y") if alu.creado_en else ""
         })
@@ -1204,6 +1739,313 @@ async def listar_alumnos_simple(
 # GESTIÓN DE FOTOS Y FICHA TÉCNICA
 # ============================================================
 
+class AsignarTutorExistenteRequest(BaseModel):
+    alumno_ids: list[int]
+    tutor_id: int
+    tipo_relacion: str
+    es_principal: bool = True
+    tiene_custodia: bool = True
+    recibe_notificaciones: bool = True
+    autorizado_retirar: bool = True
+
+
+class PreinscribirHermanoRequest(BaseModel):
+    nombres: str
+    apellidos: str
+    fecha_nacimiento: date
+    genero: Literal["M", "F"]
+
+
+def _tutor_pertenece_a_sede(sede_id: int):
+    """Solo permite reutilizar tutores que tienen una cuenta en la sede activa."""
+    return Tutor.usuario.has(and_(Usuario.sede_id == sede_id, Usuario.activo.is_(True)))
+
+
+@web_router.get("/api/v1/tutores/existentes", tags=["Inscripciones"])
+async def buscar_tutores_existentes(
+    termino: str = "",
+    alumno_id: int | None = None,
+    user = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Busca tutores reutilizables, limitados estrictamente a la sede activa."""
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    termino_limpio = termino.strip()
+    stmt = (
+        select(Tutor)
+        .options(selectinload(Tutor.usuario), selectinload(Tutor.alumnos))
+        .where(_tutor_pertenece_a_sede(user.sede_id))
+        .order_by(Tutor.apellidos, Tutor.nombres)
+        .limit(25)
+    )
+    if alumno_id:
+        stmt = stmt.where(~Tutor.alumnos.any(Alumno.id == alumno_id))
+    if termino_limpio:
+        patron = f"%{termino_limpio}%"
+        stmt = stmt.where(or_(
+            Tutor.nombres.ilike(patron),
+            Tutor.apellidos.ilike(patron),
+            Tutor.ci_numero.ilike(patron),
+            Tutor.celular.ilike(patron),
+            Tutor.email.ilike(patron),
+        ))
+
+    tutores = (await db.execute(stmt)).scalars().unique().all()
+    return {
+        "items": [
+            {
+                "id": tutor.id,
+                "nombre_completo": f"{tutor.nombres or ''} {tutor.apellidos or ''}".strip(),
+                "ci_numero": tutor.ci_numero,
+                "celular": tutor.celular,
+                "email": tutor.email,
+                "cuenta_usuario": tutor.usuario.username if tutor.usuario else None,
+                "cantidad_alumnos": len(tutor.alumnos),
+                "alumnos": [
+                    f"{alumno.nombre or ''} {alumno.apellido_paterno or ''}".strip()
+                    for alumno in tutor.alumnos[:4]
+                ],
+            }
+            for tutor in tutores
+        ]
+    }
+
+
+@web_router.post("/api/v1/inscripciones/asignar-tutor-existente", tags=["Inscripciones"])
+async def asignar_tutor_existente(
+    payload: AsignarTutorExistenteRequest,
+    user = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Vincula una cuenta de tutor con uno o varios alumnos sin duplicarla."""
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    alumno_ids = list(dict.fromkeys(payload.alumno_ids))
+    if not alumno_ids or len(alumno_ids) > 20:
+        raise HTTPException(status_code=422, detail="Debes seleccionar entre 1 y 20 alumnos")
+
+    tipo_relacion = payload.tipo_relacion.strip().upper()
+    relaciones_validas = {"MADRE", "PADRE", "ABUELO", "TIO", "TUTOR", "OTRO"}
+    if tipo_relacion not in relaciones_validas:
+        raise HTTPException(status_code=422, detail="El parentesco seleccionado no es válido")
+
+    alumnos = (await db.execute(
+        select(Alumno).where(Alumno.id.in_(alumno_ids), Alumno.sede_id == user.sede_id)
+    )).scalars().all()
+    if len(alumnos) != len(alumno_ids):
+        raise HTTPException(status_code=404, detail="Uno o más alumnos no pertenecen a la sede activa")
+
+    tutor = await db.scalar(
+        select(Tutor).where(Tutor.id == payload.tutor_id, _tutor_pertenece_a_sede(user.sede_id))
+    )
+    if not tutor:
+        raise HTTPException(status_code=404, detail="Tutor no encontrado en la sede activa")
+
+    relaciones_existentes = (await db.execute(
+        select(AlumnoTutor).where(
+            AlumnoTutor.alumno_id.in_(alumno_ids),
+            AlumnoTutor.tutor_id == tutor.id,
+        )
+    )).scalars().all()
+    ids_ya_vinculados = {relacion.alumno_id for relacion in relaciones_existentes}
+    ids_nuevos = [alumno_id for alumno_id in alumno_ids if alumno_id not in ids_ya_vinculados]
+
+    if payload.es_principal and ids_nuevos:
+        alumnos_con_principal = set((await db.execute(
+            select(AlumnoTutor.alumno_id).where(
+                AlumnoTutor.alumno_id.in_(ids_nuevos),
+                AlumnoTutor.es_principal.is_(True),
+            )
+        )).scalars().all())
+        if alumnos_con_principal:
+            raise HTTPException(
+                status_code=409,
+                detail="Uno o más alumnos ya tienen un tutor principal. Desmarca la opción principal.",
+            )
+
+    for alumno_id in ids_nuevos:
+        db.add(AlumnoTutor(
+            alumno_id=alumno_id,
+            tutor_id=tutor.id,
+            tipo_relacion=tipo_relacion,
+            es_principal=payload.es_principal,
+            tiene_custodia=payload.tiene_custodia,
+            recibe_notificaciones=payload.recibe_notificaciones,
+            autorizado_retirar=payload.autorizado_retirar,
+        ))
+
+    await db.commit()
+    return {
+        "success": True,
+        "asignados": len(ids_nuevos),
+        "omitidos": len(ids_ya_vinculados),
+        "mensaje": "Tutor vinculado correctamente" if ids_nuevos else "El tutor ya estaba vinculado",
+    }
+
+
+async def _generar_codigo_alumno_unico(db: AsyncSession) -> str:
+    """Genera el identificador visible evitando colisiones en la sede completa."""
+    alfabeto = string.ascii_uppercase + string.digits
+    for _ in range(30):
+        codigo = "".join(random.choices(alfabeto, k=6))
+        if not await db.scalar(select(Alumno.id).where(Alumno.codigo_unico == codigo)):
+            return codigo
+    raise HTTPException(status_code=503, detail="No se pudo generar un código de inscripción")
+
+
+@web_router.post(
+    "/api/v1/inscripciones/{alumno_id}/preinscribir-hermano",
+    tags=["Inscripciones"],
+)
+async def preinscribir_hermano(
+    alumno_id: int,
+    payload: PreinscribirHermanoRequest,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Preinscribe un hermano reutilizando el tutor principal y su cuenta."""
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
+
+    nombres = payload.nombres.strip()
+    apellidos = payload.apellidos.strip()
+    if len(nombres) < 2 or len(apellidos) < 2:
+        raise HTTPException(status_code=422, detail="Completa nombres y apellidos válidos")
+    if payload.fecha_nacimiento > date.today():
+        raise HTTPException(status_code=422, detail="La fecha de nacimiento no puede ser futura")
+
+    alumno_origen = await db.scalar(
+        select(Alumno).where(Alumno.id == alumno_id, Alumno.sede_id == user.sede_id)
+    )
+    if not alumno_origen:
+        raise HTTPException(status_code=404, detail="Alumno de referencia no encontrado")
+
+    relaciones = (
+        await db.execute(
+            select(AlumnoTutor)
+            .options(selectinload(AlumnoTutor.tutor).selectinload(Tutor.usuario))
+            .where(AlumnoTutor.alumno_id == alumno_id)
+            .order_by(desc(AlumnoTutor.es_principal), AlumnoTutor.id)
+        )
+    ).scalars().all()
+    relacion_origen = next(
+        (
+            relacion
+            for relacion in relaciones
+            if relacion.tutor.usuario
+            and relacion.tutor.usuario.activo
+            and relacion.tutor.usuario.sede_id == user.sede_id
+        ),
+        None,
+    )
+    if not relacion_origen:
+        raise HTTPException(
+            status_code=409,
+            detail="Este alumno todavía no tiene un tutor con cuenta activa",
+        )
+
+    partes_apellido = apellidos.split()
+    apellido_paterno = partes_apellido[0]
+    apellido_materno = " ".join(partes_apellido[1:]) or None
+    duplicado = await db.scalar(
+        select(Alumno.id)
+        .join(AlumnoTutor, AlumnoTutor.alumno_id == Alumno.id)
+        .where(
+            AlumnoTutor.tutor_id == relacion_origen.tutor_id,
+            Alumno.fecha_nacimiento == payload.fecha_nacimiento,
+            func.lower(Alumno.nombre) == nombres.lower(),
+            func.lower(Alumno.apellido_paterno) == apellido_paterno.lower(),
+            Alumno.estado != "baja",
+        )
+    )
+    if duplicado:
+        raise HTTPException(
+            status_code=409,
+            detail="Este niño ya está registrado con la misma cuenta de tutor",
+        )
+
+    try:
+        hermano = Alumno(
+            nombre=nombres,
+            apellido_paterno=apellido_paterno,
+            apellido_materno=apellido_materno,
+            nombres_completos=f"{nombres} {apellidos}",
+            fecha_nacimiento=payload.fecha_nacimiento,
+            genero=payload.genero,
+            sede_id=user.sede_id,
+            codigo_unico=await _generar_codigo_alumno_unico(db),
+            estado="preinscrito",
+            creado_por_id=user.id,
+        )
+        db.add(hermano)
+        await db.flush()
+
+        db.add(
+            AlumnoTutor(
+                alumno_id=hermano.id,
+                tutor_id=relacion_origen.tutor_id,
+                tipo_relacion=relacion_origen.tipo_relacion,
+                es_principal=True,
+                tiene_custodia=relacion_origen.tiene_custodia,
+                recibe_notificaciones=relacion_origen.recibe_notificaciones,
+                autorizado_retirar=relacion_origen.autorizado_retirar,
+            )
+        )
+        edad_hermano = max(
+            0,
+            date.today().year
+            - payload.fecha_nacimiento.year
+            - ((date.today().month, date.today().day) < (payload.fecha_nacimiento.month, payload.fecha_nacimiento.day)),
+        )
+        db.add_all(
+            [
+                AlumnoHermano(
+                    alumno_id=alumno_origen.id,
+                    nombres_completos=hermano.nombres_completos,
+                    edad_anos=edad_hermano,
+                    hermano_alumno_id=hermano.id,
+                ),
+                AlumnoHermano(
+                    alumno_id=hermano.id,
+                    nombres_completos=alumno_origen.nombres_completos
+                    or f"{alumno_origen.nombre} {alumno_origen.apellido_paterno}",
+                    hermano_alumno_id=alumno_origen.id,
+                ),
+            ]
+        )
+
+        accion_url = f"/tutor/inscripciones/{hermano.id}/completar"
+        db.add(
+            Notificacion(
+                usuario_id=relacion_origen.tutor.usuario_id,
+                titulo="Completa la inscripción de un hermano",
+                cuerpo=f"La preinscripción de {hermano.nombres_completos} está lista. Completa su ficha de 10 pasos.",
+                tipo="completar_inscripcion_hermano",
+                relacionado_tipo="alumno",
+                relacionado_id=hermano.id,
+                canal=CanalNotificacion.app,
+                prioridad=PrioridadNotificacion.alta,
+                metadatos={"accion_url": accion_url, "accion_texto": "Completar ficha"},
+            )
+        )
+        await db.commit()
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail="No se pudo preinscribir al hermano") from exc
+
+    return {
+        "success": True,
+        "alumno_id": hermano.id,
+        "mensaje": "Hermano preinscrito. El tutor recibió una notificación para completar la ficha.",
+    }
+
+
 @web_router.post("/api/v1/inscripciones/{alumno_id}/foto", tags=["Inscripciones"])
 async def subir_foto_alumno(
     alumno_id: int,
@@ -1214,21 +2056,14 @@ async def subir_foto_alumno(
     if not user: 
         raise HTTPException(401)
 
-    if not file.content_type.startswith('image/'):
-        raise HTTPException(400, "El archivo debe ser una imagen")
-
     try:
-        # Guardar archivo en disco
-        safe_filename = f"foto_{alumno_id}_{datetime.now().timestamp()}.jpg"
-        ruta_carpeta = Path(settings.MEDIA_DIR) / "fotos_alumnos"
-        ruta_carpeta.mkdir(parents=True, exist_ok=True)
-        
-        ruta_completa = ruta_carpeta / safe_filename
-        
-        with open(ruta_completa, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        url_publica = f"/media/fotos_alumnos/{safe_filename}"
+        stored = await secure_storage.save_upload(
+            file,
+            "fotos_alumnos",
+            allowed_mime_types={"image/jpeg", "image/png", "image/webp"},
+            max_bytes=5 * 1024 * 1024,
+        )
+        url_publica = stored.public_url
         
         # --- CORRECCIÓN AQUÍ ---
         alumno = await db.get(Alumno, alumno_id)
@@ -1249,6 +2084,9 @@ async def subir_foto_alumno(
         
         return {"success": True, "url": alumno.foto_url}
     
+    except HTTPException:
+        await db.rollback()
+        raise
     except Exception as e:
         await db.rollback() # Importante: rollback si falla algo
         print(f"Error subiendo foto: {e}")
@@ -1261,17 +2099,25 @@ async def obtener_ficha_alumno(
     db: AsyncSession = Depends(get_session)
 ):
     """Devuelve TODOS los datos para el File Personal"""
-    if not user: raise HTTPException(401)
+    if not user:
+        raise HTTPException(status_code=401, detail="No autorizado")
     
     stmt = (
         select(Alumno)
-        .options(selectinload(Alumno.tutores)) # Cargar tutores
-        .where(Alumno.id == alumno_id)
+        .options(
+            selectinload(Alumno.tutores).selectinload(Tutor.usuario),
+            selectinload(Alumno.alumnos_tutores).selectinload(AlumnoTutor.tutor),
+        )
+        .where(
+            Alumno.id == alumno_id,
+            Alumno.sede_id == user.sede_id,
+        )
     )
     res = await db.execute(stmt)
     alu = res.scalars().first()
     
-    if not alu: raise HTTPException(404)
+    if not alu:
+        raise HTTPException(status_code=404, detail="Alumno no encontrado en esta sede")
     
     # Calcular edad exacta
     edad_str = ""
@@ -1284,51 +2130,184 @@ async def obtener_ficha_alumno(
         meses_totales = meses
         edad_str = f"{anos} años"
 
-    # Organizar Tutores (Mamá / Papá)
-    mama = {}
-    papa = {}
-    
-    for t in alu.tutores:
-        # Lógica simple para distinguir, puedes mejorarla según tu campo 'relacion'
-        # Aquí asumimos que si el nombre termina en 'a' es mujer (muy básico, mejor usar campo género o relación)
-        # O simplemente enviamos tutor 1 y tutor 2
-        datos_tutor = {
-            "nombre": f"{t.nombres} {t.apellidos}",
-            "ci": f"{t.ci_numero} {t.ci_expedido or ''}",
-            "celular": t.celular,
-            "email": t.email,
-            "profesion": t.profesion,
-            "lugar_trabajo": t.lugar_trabajo,
-            "direccion_trabajo": t.direccion, # Usamos dirección como dirección trabajo
-            "horario": "08:00 - 18:00" # Placeholder o campo real si existe
-        }
-        # Asignar a mamá o papá según orden o lógica
-        if not mama: mama = datos_tutor
-        else: papa = datos_tutor
+    def fecha_iso(valor):
+        return valor.isoformat() if valor else None
+
+    def decimal_numero(valor):
+        return float(valor) if valor is not None else None
+
+    # La relación AlumnoTutor permite conservar el parentesco y los permisos
+    # reales. El orden prioriza al tutor principal para mantener compatibilidad.
+    relaciones = sorted(
+        alu.alumnos_tutores,
+        key=lambda relacion: (not bool(relacion.es_principal), relacion.id),
+    )
+    tutores = []
+    for relacion in relaciones:
+        tutor = relacion.tutor
+        if not tutor:
+            continue
+        tutores.append({
+            "id": tutor.id,
+            "usuario_id": tutor.usuario_id,
+            "nombre": f"{tutor.nombres or ''} {tutor.apellidos or ''}".strip(),
+            "nombres": tutor.nombres,
+            "apellidos": tutor.apellidos,
+            "genero": tutor.genero,
+            "fecha_nacimiento": fecha_iso(tutor.fecha_nacimiento),
+            "foto_url": tutor.foto_url,
+            "ci_numero": tutor.ci_numero,
+            "ci_complemento": tutor.ci_complemento,
+            "ci_expedido": tutor.ci_expedido,
+            "ci": " ".join(filter(None, [tutor.ci_numero, tutor.ci_complemento, tutor.ci_expedido])),
+            "ci_documento_url": tutor.ci_documento_url,
+            "celular": tutor.celular,
+            "celular_alternativo": tutor.celular_alternativo,
+            "email": tutor.email,
+            "direccion": tutor.direccion,
+            "direccion_trabajo": tutor.direccion,
+            "profesion": tutor.profesion,
+            "lugar_trabajo": tutor.lugar_trabajo,
+            "telefono_trabajo": tutor.telefono_trabajo,
+            "tipo_relacion": relacion.tipo_relacion,
+            "es_principal": bool(relacion.es_principal),
+            "tiene_custodia": bool(relacion.tiene_custodia),
+            "recibe_notificaciones": bool(relacion.recibe_notificaciones),
+            "autorizado_retirar": bool(relacion.autorizado_retirar),
+            "creado_en": fecha_iso(tutor.creado_en),
+            "actualizado_en": fecha_iso(tutor.actualizado_en),
+        })
+
+    # Claves históricas usadas por el modal actual.
+    mama = tutores[0] if tutores else {}
+    papa = tutores[1] if len(tutores) > 1 else {}
+
+    alumno = {
+        "id": alu.id,
+        "codigo_unico": alu.codigo_unico,
+        "nombre": alu.nombre,
+        "apellido_paterno": alu.apellido_paterno,
+        "apellido_materno": alu.apellido_materno,
+        "nombre_completo": alu.nombres_completos or " ".join(filter(None, [alu.nombre, alu.apellido_paterno, alu.apellido_materno])),
+        "fecha_nacimiento": alu.fecha_nacimiento.strftime("%d/%m/%Y") if alu.fecha_nacimiento else "-",
+        "fecha_nacimiento_iso": fecha_iso(alu.fecha_nacimiento),
+        "edad_texto": edad_str,
+        "edad_meses": meses_totales,
+        "lugar_nacimiento": alu.lugar_nacimiento,
+        "genero": alu.genero,
+        "foto_url": alu.foto_url,
+        "direccion": alu.direccion_domicilio,
+        "direccion_domicilio": alu.direccion_domicilio,
+        "telefono_fijo": None,
+        "celulares": " / ".join(filter(None, [mama.get('celular'), papa.get('celular')])),
+        "sede_id": alu.sede_id,
+        "turno_id": alu.turno_id,
+        "estado": alu.estado,
+        "fecha_inscripcion": fecha_iso(alu.fecha_inscripcion),
+        "fecha_primera_asistencia": fecha_iso(alu.fecha_primera_asistencia),
+        "fecha_baja": fecha_iso(alu.fecha_baja),
+        "motivo_baja": alu.motivo_baja,
+        "creado_en": fecha_iso(alu.creado_en),
+        "actualizado_en": fecha_iso(alu.actualizado_en),
+        "creado_por_id": alu.creado_por_id,
+    }
 
     return {
-        "alumno": {
-            "nombre_completo": alu.nombres_completos,
-            "fecha_nacimiento": alu.fecha_nacimiento.strftime("%d/%m/%Y") if alu.fecha_nacimiento else "-",
-            "edad_texto": edad_str,
-            "edad_meses": meses_totales,
-            "foto_url": alu.foto_url,
-            "direccion": alu.direccion_domicilio,
-            "telefono_fijo": "--", # Agregar a modelo si falta
-            "celulares": f"{mama.get('celular', '')} / {papa.get('celular', '')}"
+        "alumno": alumno,
+        "nacimiento": {
+            "peso_nacer": decimal_numero(alu.peso_nacer),
+            "talla_nacer": decimal_numero(alu.talla_nacer),
+            "embarazo_normal": alu.embarazo_normal,
+            "embarazo_complicaciones": alu.embarazo_complicaciones,
+            "parto_normal": alu.parto_normal,
+            "parto_complicaciones": alu.parto_complicaciones,
         },
+        "salud": {
+            "carnet_asegurado": alu.carnet_asegurado,
+            "aseguradora": alu.aseguradora,
+            "tiene_alergias": alu.tiene_alergias,
+            "alergias_detalle": alu.alergias_detalle,
+            "medicacion_actual": alu.medicacion_actual,
+            "tratamiento_actual": alu.tratamiento_actual,
+            "enfermedades_previas": alu.enfermedades_previas,
+            "problemas_salud": alu.problemas_salud,
+            "traumatismos_caidas": alu.traumatismos_caidas,
+        },
+        "sueno": {
+            "horario_sueno_nocturno": alu.horario_sueno_nocturno,
+            "horario_sueno_diurno": alu.horario_sueno_diurno,
+            "lugar_sueno": alu.lugar_sueno,
+            "duerme_con": alu.duerme_con,
+            "co_sleeping_bebe_edad": alu.co_sleeping_bebe_edad,
+            "problemas_sueno": alu.problemas_sueno,
+            "momento_problemas_sueno": alu.momento_problemas_sueno,
+            "respuesta_problemas_sueno": alu.respuesta_problemas_sueno,
+            "usa_chupete": alu.usa_chupete,
+            "postura_sueno": alu.postura_sueno,
+            "se_duerme_como": alu.se_duerme_como,
+            "pesadillas_frecuencia": alu.pesadillas_frecuencia,
+            "otros_habitos_sueno": alu.otros_habitos_sueno,
+        },
+        "alimentacion": {
+            "lactancia_materna_meses": alu.lactancia_materna_meses,
+            "uso_biberon_desde_meses": alu.uso_biberon_desde_meses,
+            "problemas_succion_masticacion": alu.problemas_succion_masticacion,
+            "dieta_actual": alu.dieta_actual,
+            "alimentos_en_pure": alu.alimentos_en_pure,
+            "transicion_alimentacion_solida": alu.transicion_alimentacion_solida,
+            "intolerancias_alimenticias": alu.intolerancias_alimenticias,
+            "alimentos_rechaza": alu.alimentos_rechaza,
+            "alimentos_prefiere": alu.alimentos_prefiere,
+            "problemas_alimentacion": alu.problemas_alimentacion,
+            "respuesta_problemas_comer": alu.respuesta_problemas_comer,
+        },
+        "desarrollo": {
+            "edad_control_cabeza_meses": alu.edad_control_cabeza_meses,
+            "edad_sentarse_meses": alu.edad_sentarse_meses,
+            "edad_gatear_meses": alu.edad_gatear_meses,
+            "edad_levantarse_meses": alu.edad_levantarse_meses,
+            "edad_caminar_meses": alu.edad_caminar_meses,
+            "problemas_marcha": alu.problemas_marcha,
+            "edad_balbuceo_meses": alu.edad_balbuceo_meses,
+            "edad_primeras_palabras_meses": alu.edad_primeras_palabras_meses,
+            "edad_primeros_dientes_meses": alu.edad_primeros_dientes_meses,
+            "sintomas_denticion": alu.sintomas_denticion,
+        },
+        "social_familiar": {
+            "quien_atiende": alu.quien_atiende,
+            "familiares_en_casa": alu.familiares_en_casa,
+            "familiar_mas_apego": alu.familiar_mas_apego,
+            "actividades_con_padres": alu.actividades_con_padres,
+            "sentimientos_mas_expresados": alu.sentimientos_mas_expresados,
+            "llora_habitualmente": alu.llora_habitualmente,
+            "circunstancias_llanto": alu.circunstancias_llanto,
+            "objeto_afectivo": alu.objeto_afectivo,
+            "con_quien_juega": alu.con_quien_juega,
+            "juguetes_preferidos": alu.juguetes_preferidos,
+            "relacion_con_desconocidos": alu.relacion_con_desconocidos,
+        },
+        "tutores": tutores,
         "mama": mama,
         "papa": papa,
         "emergencia": {
             "nombre": alu.contacto_emergencia_nombre,
-            "parentesco": "--", 
-            "telefono": "--" # Ajustar si tienes el campo
+            "parentesco": None,
+            "telefono": alu.contacto_emergencia_telefono,
         },
         "recojo": {
             "nombre": alu.familiares_autorizados_recogo,
-            "parentesco": "--",
-            "telefono": "--"
-        }
+            "parentesco": None,
+            "telefono": None,
+        },
+        "documentos": {
+            "carnet_asegurado": alu.carnet_asegurado,
+            "ci_numero_alumno": alu.ci_numero,
+            "ci_complemento_alumno": alu.ci_complemento,
+            "ci_expedido_alumno": alu.ci_expedido,
+            "certificado_nacimiento_url": alu.certificado_nacimiento_url,
+            "libreta_vacunas_url": alu.libreta_vacunas_url,
+            "ci_tutor_principal_url": mama.get("ci_documento_url"),
+        },
     }
 
 
@@ -1336,6 +2315,34 @@ async def obtener_ficha_alumno(
 # ASIGNACIÓN ACADÉMICA (GRUPO, PARALELO, TURNO)
 # ============================================================
 
+
+@web_router.get("/api/v1/inscripciones/{alumno_id}/asignacion", tags=["Inscripciones"])
+async def obtener_asignacion_alumno(
+    alumno_id: int,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    if not user:
+        raise HTTPException(401)
+
+    stmt = (
+        select(Alumno.turno_id, AlumnoParalelo.paralelo_id, Paralelo.grupo_id)
+        .outerjoin(
+            AlumnoParalelo,
+            and_(AlumnoParalelo.alumno_id == Alumno.id, AlumnoParalelo.activo.is_(True)),
+        )
+        .outerjoin(Paralelo, Paralelo.id == AlumnoParalelo.paralelo_id)
+        .where(Alumno.id == alumno_id, Alumno.sede_id == user.sede_id)
+        .limit(1)
+    )
+    asignacion = (await db.execute(stmt)).first()
+    if not asignacion:
+        raise HTTPException(404, "Alumno no encontrado")
+    return {
+        "grupo_id": asignacion.grupo_id,
+        "paralelo_id": asignacion.paralelo_id,
+        "turno_id": asignacion.turno_id,
+    }
 
 
 @web_router.post("/api/v1/inscripciones/{alumno_id}/asignacion", tags=["Inscripciones"])
@@ -1356,7 +2363,17 @@ async def guardar_asignacion_alumno(
         
         # 1. Actualizar Turno en Alumno
         alumno = await db.get(Alumno, alumno_id)
-        if not alumno: raise HTTPException(404, "Alumno no encontrado")
+        if not alumno or alumno.sede_id != user.sede_id:
+            raise HTTPException(404, "Alumno no encontrado")
+
+        if nuevo_paralelo_id:
+            paralelo = await db.get(Paralelo, nuevo_paralelo_id)
+            if not paralelo or paralelo.sede_id != user.sede_id or not paralelo.activo:
+                raise HTTPException(400, "El paralelo no pertenece a la sede o está inactivo")
+        if nuevo_turno_id:
+            turno = await db.get(Turno, nuevo_turno_id)
+            if not turno or turno.sede_id != user.sede_id or not turno.activo:
+                raise HTTPException(400, "El turno no pertenece a la sede o está inactivo")
         
         alumno.turno_id = nuevo_turno_id
         
@@ -1583,6 +2600,7 @@ async def crear_preinscripcion_endpoint(
                 alumno_id=nuevo_alumno.id,
                 max_cuentas=2,
                 whatsapp_numero=data.get('tutor_telefono'),
+                entregado_a=data.get('tutor_nombre'),
                 observaciones=obs_texto,
                 creado_por=user.id
             )
@@ -1918,6 +2936,93 @@ async def comunicaciones_page(request: Request, user = Depends(get_current_user_
         "active_menu": "comunicaciones" # Para resaltar el menú lateral
     })
 
+def _roles_destinatarios_comunicacion(user) -> set[str] | None:
+    """Devuelve los roles visibles al iniciar un chat segun el rol emisor."""
+    roles = {rol.nombre.upper() for rol in (user.roles or [])}
+    if roles & {"ADMINISTRADOR", "DUENO"}:
+        return None
+    if "TUTOR" in roles:
+        return {"PROFESORA", "ADMINISTRADOR", "DUENO"}
+    if "PROFESORA" in roles:
+        return {"TUTOR", "ADMINISTRADOR", "DUENO"}
+    return set()
+
+
+def _consulta_destinatarios_comunicacion(user):
+    roles_permitidos = _roles_destinatarios_comunicacion(user)
+    stmt = (
+        select(Usuario)
+        .options(selectinload(Usuario.roles))
+        .where(
+            Usuario.sede_id == user.sede_id,
+            Usuario.activo.is_(True),
+            Usuario.id != user.id,
+        )
+    )
+    if roles_permitidos is not None:
+        if not roles_permitidos:
+            return stmt.where(False)
+        stmt = stmt.where(Usuario.roles.any(Rol.nombre.in_(roles_permitidos)))
+    return stmt
+
+
+async def _tutor_notificacion_alumno(db: AsyncSession, alumno_id: int):
+    """Obtiene primero el tutor principal habilitado para notificaciones."""
+    stmt = (
+        select(Tutor.usuario_id, Tutor.nombres, Tutor.apellidos)
+        .join(AlumnoTutor, AlumnoTutor.tutor_id == Tutor.id)
+        .where(
+            AlumnoTutor.alumno_id == alumno_id,
+            AlumnoTutor.recibe_notificaciones.is_(True),
+            Tutor.usuario_id.is_not(None),
+        )
+        .order_by(desc(AlumnoTutor.es_principal), AlumnoTutor.id)
+        .limit(1)
+    )
+    return (await db.execute(stmt)).first()
+
+
+@web_router.get("/api/v1/comunicaciones/destinatarios", tags=["Comunicaciones"])
+async def listar_destinatarios_comunicacion(
+    q: str = Query("", max_length=100),
+    limite: int = Query(100, ge=1, le=100),
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Lista un directorio seguro y filtrado para iniciar conversaciones."""
+    if not user:
+        raise HTTPException(401, "No autenticado")
+
+    stmt = _consulta_destinatarios_comunicacion(user)
+    if q.strip():
+        patron = f"%{q.strip()}%"
+        stmt = stmt.where(
+            or_(
+                Usuario.nombres.ilike(patron),
+                Usuario.apellidos.ilike(patron),
+                Usuario.username.ilike(patron),
+            )
+        )
+    usuarios = (
+        await db.execute(stmt.order_by(Usuario.nombres, Usuario.apellidos).limit(limite))
+    ).scalars().unique().all()
+    return {
+        "items": [
+            {
+                "id": usuario.id,
+                "username": usuario.username,
+                "nombres": usuario.nombres,
+                "apellidos": usuario.apellidos,
+                "nombre_completo": f"{usuario.nombres} {usuario.apellidos or ''}".strip(),
+                "foto_perfil_url": usuario.foto_perfil_url,
+                "rol": ", ".join(rol.nombre for rol in usuario.roles) or "Sin rol",
+                "roles": [rol.nombre for rol in usuario.roles],
+            }
+            for usuario in usuarios
+        ]
+    }
+
+
 # --- 1. LISTAR CONVERSACIONES (Bandeja de Entrada) ---
 @web_router.get("/api/v1/comunicaciones/conversaciones", tags=["Comunicaciones"])
 async def listar_conversaciones_real(
@@ -1928,7 +3033,8 @@ async def listar_conversaciones_real(
 
     # 1. Obtener IDs de conversaciones donde participo
     subq_mis_convs = select(ConversacionParticipante.conversacion_id).where(
-        ConversacionParticipante.usuario_id == user.id
+        ConversacionParticipante.usuario_id == user.id,
+        ConversacionParticipante.archivado.is_(False),
     )
 
     # 2. Consultar conversaciones activas
@@ -1942,6 +3048,24 @@ async def listar_conversaciones_real(
 
     result = await db.execute(stmt)
     conversaciones = result.scalars().all()
+
+    ids_conversaciones = [conv.id for conv in conversaciones]
+    no_leidos_por_conversacion: dict[int, int] = {}
+    if ids_conversaciones:
+        stmt_no_leidos = (
+            select(Mensaje.conversacion_id, func.count(Mensaje.id))
+            .outerjoin(
+                MensajeLeido,
+                and_(MensajeLeido.mensaje_id == Mensaje.id, MensajeLeido.usuario_id == user.id),
+            )
+            .where(
+                Mensaje.conversacion_id.in_(ids_conversaciones),
+                Mensaje.remitente_id != user.id,
+                MensajeLeido.id.is_(None),
+            )
+            .group_by(Mensaje.conversacion_id)
+        )
+        no_leidos_por_conversacion = dict((await db.execute(stmt_no_leidos)).all())
 
     items = []
     for conv in conversaciones:
@@ -1976,7 +3100,7 @@ async def listar_conversaciones_real(
 
         # Contar no leídos (Simplificado: Mensajes que no son míos)
         # TODO: Cruzar con tabla MensajeLeido para precisión exacta
-        no_leidos = 0 
+        no_leidos = no_leidos_por_conversacion.get(conv.id, 0)
 
         items.append({
             "id": conv.id,
@@ -1994,8 +3118,8 @@ async def listar_conversaciones_real(
 @web_router.get("/api/v1/comunicaciones/mensajes", tags=["Comunicaciones"])
 async def listar_mensajes_inbox(
     filter: str = "all",
-    page: int = 1,
-    per_page: int = 20,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     search: str = "",
     user = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_session)
@@ -2006,7 +3130,8 @@ async def listar_mensajes_inbox(
     # 1. Buscar mensajes donde participo
     # (Simplificado: Traemos mensajes de mis conversaciones)
     subq_mis_convs = select(ConversacionParticipante.conversacion_id).where(
-        ConversacionParticipante.usuario_id == user.id
+        ConversacionParticipante.usuario_id == user.id,
+        ConversacionParticipante.archivado.is_(False),
     )
 
     stmt = (
@@ -2023,6 +3148,14 @@ async def listar_mensajes_inbox(
 
     if search:
         stmt = stmt.where(Mensaje.contenido.ilike(f"%{search}%"))
+
+    if filter == "unread":
+        stmt = stmt.where(Mensaje.remitente_id != user.id, MensajeLeido.id.is_(None))
+    elif filter == "sent":
+        stmt = stmt.where(Mensaje.remitente_id == user.id)
+
+    count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
+    total = int((await db.execute(count_stmt)).scalar_one())
 
     # Paginación manual simple
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
@@ -2054,9 +3187,31 @@ async def listar_mensajes_inbox(
 
     return {
         "items": items,
-        "total": 100, # TODO: Implementar count real si deseas
-        "pagination": {"current_page": page, "total_pages": 5}
+        "total": total,
+        "pagination": {
+            "current_page": page,
+            "total_pages": max(1, (total + per_page - 1) // per_page),
+        }
     }
+
+async def _require_conversation_membership(
+    db: AsyncSession,
+    conv_id: int,
+    usuario_id: int,
+) -> ConversacionParticipante:
+    participante = (
+        await db.execute(
+            select(ConversacionParticipante).where(
+                ConversacionParticipante.conversacion_id == conv_id,
+                ConversacionParticipante.usuario_id == usuario_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not participante:
+        # No revelamos a terceros si el identificador de conversación existe.
+        raise HTTPException(403, "No perteneces a este chat")
+    return participante
+
 
 # --- 2. DETALLE DE CONVERSACIÓN ---
 @web_router.get("/api/v1/comunicaciones/conversaciones/{conv_id}", tags=["Comunicaciones"])
@@ -2074,8 +3229,7 @@ async def get_conversacion_detalle(
     conv = (await db.execute(stmt)).scalars().first()
     if not conv: raise HTTPException(404)
     
-    if not any(p.usuario_id == user.id for p in conv.participantes):
-        raise HTTPException(403, "No perteneces a este chat")
+    await _require_conversation_membership(db, conv_id, user.id)
 
     titulo = conv.titulo
     foto_url = None
@@ -2114,6 +3268,7 @@ async def listar_mensajes_chat(
     db: AsyncSession = Depends(get_session)
 ):
     if not user: raise HTTPException(401)
+    await _require_conversation_membership(db, conv_id, user.id)
 
     stmt = select(Mensaje).options(selectinload(Mensaje.remitente)).where(
         Mensaje.conversacion_id == conv_id
@@ -2121,16 +3276,29 @@ async def listar_mensajes_chat(
     
     msgs = (await db.execute(stmt)).scalars().all()
     
+    ids_mensajes = [mensaje.id for mensaje in msgs]
+    lectores_por_mensaje: dict[int, set[int]] = {}
+    if ids_mensajes:
+        lecturas = await db.execute(
+            select(MensajeLeido.mensaje_id, MensajeLeido.usuario_id).where(
+                MensajeLeido.mensaje_id.in_(ids_mensajes)
+            )
+        )
+        for mensaje_id, lector_id in lecturas.all():
+            lectores_por_mensaje.setdefault(mensaje_id, set()).add(lector_id)
+
     items = []
     for m in msgs:
+        lectores = lectores_por_mensaje.get(m.id, set())
+        es_mio = m.remitente_id == user.id
         items.append({
             "id": m.id,
             "contenido": m.contenido,
             "emisor_id": m.remitente_id,
             "emisor_nombre": f"{m.remitente.nombres} {m.remitente.apellidos or ''}".strip(),
             "fecha_envio": m.enviado_en.isoformat(),
-            "es_mio": (m.remitente_id == user.id),
-            "leido": True # TODO: Chequear MensajeLeido
+            "es_mio": es_mio,
+            "leido": bool(lectores - {user.id}) if es_mio else user.id in lectores,
         })
         
     return {"items": items}
@@ -2144,9 +3312,12 @@ async def enviar_mensaje_chat(
     db: AsyncSession = Depends(get_session)
 ):
     if not user: raise HTTPException(401)
+    await _require_conversation_membership(db, conv_id, user.id)
     data = await request.json()
-    contenido = data.get("contenido")
+    contenido = str(data.get("contenido") or "").strip()
     if not contenido: raise HTTPException(400, "Mensaje vacío")
+    if len(contenido) > 5000:
+        raise HTTPException(400, "El mensaje supera el máximo de 5000 caracteres")
 
     # A. Guardar en BD
     nuevo_msg = Mensaje(
@@ -2156,6 +3327,11 @@ async def enviar_mensaje_chat(
         tipo=TipoMensaje.texto
     )
     db.add(nuevo_msg)
+    await db.execute(
+        update(ConversacionParticipante)
+        .where(ConversacionParticipante.conversacion_id == conv_id)
+        .values(archivado=False)
+    )
     
     stmt_update = update(Conversacion).where(Conversacion.id == conv_id).values(ultima_actividad_en=func.now())
     await db.execute(stmt_update)
@@ -2197,18 +3373,32 @@ async def crear_conversacion_mensaje(
 ):
     if not user: raise HTTPException(401)
     data = await request.json()
-    destinatarios = data.get("destinatarios", []) 
+    try:
+        destinatarios = {int(item) for item in data.get("destinatarios", [])}
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Destinatarios inválidos")
+    destinatarios.discard(user.id)
     asunto = data.get("asunto", "Sin asunto")
     contenido = data.get("mensaje", "")
     
     if not destinatarios or not contenido:
         raise HTTPException(400, "Faltan datos")
 
+    usuarios_destino = (
+        await db.execute(
+            _consulta_destinatarios_comunicacion(user)
+            .with_only_columns(Usuario.id)
+            .where(Usuario.id.in_(destinatarios))
+        )
+    ).scalars().all()
+    if set(usuarios_destino) != destinatarios:
+        raise HTTPException(403, "Uno o más destinatarios no están permitidos para tu rol")
+
     conv_id = None
 
     # Reutilizar chat directo si es 1 a 1
     if len(destinatarios) == 1:
-        target_id = int(destinatarios[0])
+        target_id = next(iter(destinatarios))
         stmt = select(Conversacion).join(ConversacionParticipante).where(
             Conversacion.tipo == TipoConversacion.directo,
             ConversacionParticipante.usuario_id == user.id
@@ -2253,6 +3443,11 @@ async def crear_conversacion_mensaje(
         tipo=TipoMensaje.texto
     )
     db.add(nuevo_msg)
+    await db.execute(
+        update(ConversacionParticipante)
+        .where(ConversacionParticipante.conversacion_id == conv_id)
+        .values(archivado=False)
+    )
     
     # Actualizar fecha actividad
     await db.execute(update(Conversacion).where(Conversacion.id == conv_id).values(ultima_actividad_en=func.now()))
@@ -2288,6 +3483,11 @@ async def marcar_mensaje_leido(
 ):
     """Marca un mensaje específico como leído"""
     if not user: raise HTTPException(401)
+
+    mensaje = await db.get(Mensaje, mensaje_id)
+    if not mensaje:
+        raise HTTPException(404, "Mensaje no encontrado")
+    await _require_conversation_membership(db, mensaje.conversacion_id, user.id)
     
     # Verificar si ya existe la lectura
     stmt = select(MensajeLeido).where(
@@ -2311,10 +3511,27 @@ async def marcar_conversacion_leida(
 ):
     """Marca todos los mensajes de una conversación como leídos"""
     if not user: raise HTTPException(401)
-    
-    # Lógica simplificada: Insertar lecturas para mensajes no leídos
-    # (Para producción: usar una query INSERT ... SELECT left join)
-    return {"success": True} 
+    await _require_conversation_membership(db, conv_id, user.id)
+
+    stmt = (
+        select(Mensaje.id)
+        .outerjoin(
+            MensajeLeido,
+            and_(MensajeLeido.mensaje_id == Mensaje.id, MensajeLeido.usuario_id == user.id),
+        )
+        .where(
+            Mensaje.conversacion_id == conv_id,
+            Mensaje.remitente_id != user.id,
+            MensajeLeido.id.is_(None),
+        )
+    )
+    ids_no_leidos = (await db.execute(stmt)).scalars().all()
+    db.add_all(
+        MensajeLeido(mensaje_id=mensaje_id, usuario_id=user.id)
+        for mensaje_id in ids_no_leidos
+    )
+    await db.commit()
+    return {"success": True, "marcados": len(ids_no_leidos)}
 
 @web_router.patch("/api/v1/comunicaciones/conversaciones/{conv_id}/archivar", tags=["Comunicaciones"])
 async def archivar_conversacion(
@@ -2324,9 +3541,9 @@ async def archivar_conversacion(
 ):
     """Archiva una conversación (Soft delete o flag)"""
     if not user: raise HTTPException(401)
-    
-    # Si la tabla conversaciones_participantes tuviera campo 'archivado', lo actualizamos ahí.
-    # Por ahora, simulamos éxito.
+    participante = await _require_conversation_membership(db, conv_id, user.id)
+    participante.archivado = True
+    await db.commit()
     return {"success": True}
 
 # --- 7. COMUNICADOS & NOTIFICACIONES ---
@@ -2432,8 +3649,14 @@ async def listar_notificaciones_usuario(
     elif leida is True:
         stmt = stmt.where(Notificacion.leido_en.is_not(None))
 
-    # Ordenar por fecha (más recientes primero)
-    stmt = stmt.order_by(desc(Notificacion.creado_en))
+    # Las prioridades altas aparecen primero; dentro de cada nivel se conserva
+    # el orden cronológico para que la selección tenga un efecto observable.
+    orden_prioridad = case(
+        (Notificacion.prioridad == PrioridadNotificacion.alta, 1),
+        (Notificacion.prioridad == PrioridadNotificacion.media, 2),
+        else_=3,
+    )
+    stmt = stmt.order_by(orden_prioridad, desc(Notificacion.creado_en))
 
     # Total para paginación (simple)
     total = 0 # Puedes implementar count real si quieres
@@ -2452,7 +3675,18 @@ async def listar_notificaciones_usuario(
             "tipo": n.tipo, # PAGO, ACADEMICO, etc.
             "leida": n.leido_en is not None,
             "fecha_creacion": n.creado_en.isoformat(),
-            "prioridad": n.prioridad.value if hasattr(n.prioridad, 'value') else "media"
+            "prioridad": n.prioridad.value if hasattr(n.prioridad, 'value') else "media",
+            "accion_url": (
+                n.metadatos.get("accion_url")
+                if isinstance(n.metadatos, dict)
+                and str(n.metadatos.get("accion_url") or "").startswith("/")
+                else None
+            ),
+            "accion_texto": (
+                n.metadatos.get("accion_texto", "Abrir")
+                if isinstance(n.metadatos, dict)
+                else None
+            ),
         })
 
     # Calcular total no leídas para el badge
@@ -2499,16 +3733,68 @@ async def enviar_notificacion_masiva(
     Crea notificaciones para múltiples usuarios seleccionados.
     """
     if not user: raise HTTPException(401)
-    
+
+    roles = {rol.nombre.upper() for rol in (user.roles or [])}
+    if not roles & {"ADMINISTRADOR", "DUENO", "PROFESORA"}:
+        raise HTTPException(403, "Tu rol no puede crear notificaciones")
+
     data = await request.json()
-    destinatarios = data.get("destinatarios", []) # Lista de IDs
+    try:
+        destinatarios = {int(item) for item in data.get("destinatarios", [])}
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Destinatarios invalidos")
+    destinatarios.discard(user.id)
     titulo = data.get("titulo")
     mensaje = data.get("mensaje")
-    tipo = data.get("tipo", "SISTEMA") # INFO, ALERTA, etc.
+    tipo = str(data.get("tipo", "SISTEMA")).upper()
     prioridad_str = data.get("prioridad", "media").lower()
+    contexto = data.get("contexto") if isinstance(data.get("contexto"), dict) else None
+    relacionado_tipo = None
+    relacionado_id = None
     
     if not destinatarios or not titulo or not mensaje:
         raise HTTPException(400, "Faltan datos requeridos")
+
+    if contexto and contexto.get("tipo") == "deuda":
+        try:
+            alumno_id = int(contexto["alumno_id"])
+            cuota_numero = int(contexto["cuota_numero"])
+        except (KeyError, TypeError, ValueError):
+            raise HTTPException(400, "Contexto de deuda invalido")
+
+        tutor_destino = await _tutor_notificacion_alumno(db, alumno_id)
+        if not tutor_destino:
+            raise HTTPException(409, "El alumno no tiene un tutor habilitado para notificaciones")
+        if destinatarios != {int(tutor_destino.usuario_id)}:
+            raise HTTPException(403, "La notificacion de pago solo puede enviarse al tutor del alumno")
+
+        fecha_vencimiento = await db.scalar(
+            select(CuotaPlanPago.fecha_vencimiento)
+            .join(PlanPagoPersonalizado, PlanPagoPersonalizado.id == CuotaPlanPago.plan_id)
+            .where(
+                PlanPagoPersonalizado.alumno_id == alumno_id,
+                CuotaPlanPago.numero_cuota == cuota_numero,
+            )
+            .order_by(CuotaPlanPago.fecha_vencimiento)
+            .limit(1)
+        )
+        if not fecha_vencimiento:
+            raise HTTPException(404, "No se encontro la cuota indicada")
+        dias_atraso = max(0, (date.today() - fecha_vencimiento).days)
+        prioridad_str = "alta" if dias_atraso >= 30 else ("media" if dias_atraso >= 8 else "baja")
+        tipo = "PAGO"
+        relacionado_tipo = "pago"
+        relacionado_id = alumno_id
+
+    ids_permitidos = (
+        await db.execute(
+            _consulta_destinatarios_comunicacion(user)
+            .with_only_columns(Usuario.id)
+            .where(Usuario.id.in_(destinatarios))
+        )
+    ).scalars().all()
+    if set(ids_permitidos) != destinatarios:
+        raise HTTPException(403, "Uno o mas destinatarios no estan permitidos para tu rol")
 
     # Mapear prioridad
     prioridad_map = {
@@ -2527,6 +3813,8 @@ async def enviar_notificacion_masiva(
                 titulo=titulo,
                 cuerpo=mensaje,
                 tipo=tipo,
+                relacionado_tipo=relacionado_tipo,
+                relacionado_id=relacionado_id,
                 prioridad=prioridad_enum,
                 canal=CanalNotificacion.app,
                 creado_en=datetime.now()
@@ -2543,6 +3831,7 @@ async def enviar_notificacion_masiva(
                 titulo=n.titulo,
                 mensaje=n.cuerpo,
                 tipo=n.tipo,
+                prioridad=n.prioridad.value,
                 creado_en=n.creado_en.isoformat(),
                 leida=False,
                 sede_id=user.sede_id
@@ -2893,16 +4182,14 @@ async def crear_actividad_endpoint(
                 tipo_media = TipoMedia.imagen
                 subcarpeta = "fotos_actividades"
 
-            # Guardar en disco
-            safe_filename = f"{nueva_actividad.id}_{int(datetime.now().timestamp())}_{archivo.filename.replace(' ', '_')}"
-            ruta_carpeta = Path(settings.MEDIA_DIR) / subcarpeta
-            ruta_carpeta.mkdir(parents=True, exist_ok=True)
-            ruta_final = ruta_carpeta / safe_filename
-            
-            with open(ruta_final, "wb") as buffer:
-                shutil.copyfileobj(archivo.file, buffer)
-            
-            url_publica = f"/media/{subcarpeta}/{safe_filename}"
+            allowed_media = {"video/mp4"} if tipo == "VIDEO" else {"image/jpeg", "image/png", "image/webp"}
+            stored = await secure_storage.save_upload(
+                archivo,
+                subcarpeta,
+                allowed_mime_types=allowed_media,
+                max_bytes=50 * 1024 * 1024 if tipo == "VIDEO" else 8 * 1024 * 1024,
+            )
+            url_publica = stored.public_url
 
             # Crear registro en ActividadMedia
             media = ActividadMedia(
@@ -2938,20 +4225,14 @@ async def subir_planificacion_endpoint(
     """Sube un PDF de planificación"""
     if not user: raise HTTPException(401)
     
-    if archivo.content_type != "application/pdf":
-        raise HTTPException(400, "El archivo debe ser un PDF")
-
     try:
-        # 1. Guardar PDF en disco
-        safe_filename = f"PLAN_{user.id}_{int(datetime.now().timestamp())}_{archivo.filename.replace(' ', '_')}"
-        ruta_carpeta = Path(settings.MEDIA_DIR) / "planificaciones"
-        ruta_carpeta.mkdir(parents=True, exist_ok=True)
-        ruta_final = ruta_carpeta / safe_filename
-        
-        with open(ruta_final, "wb") as buffer:
-            shutil.copyfileobj(archivo.file, buffer)
-            
-        url_publica = f"/media/planificaciones/{safe_filename}"
+        stored = await secure_storage.save_upload(
+            archivo,
+            "planificaciones",
+            allowed_mime_types={"application/pdf"},
+            max_bytes=15 * 1024 * 1024,
+        )
+        url_publica = stored.public_url
 
         # 2. Guardar en BD
         nueva_plan = PlanificacionProfesora(
@@ -3738,11 +5019,148 @@ async def crear_turno_endpoint(request: Request, user = Depends(get_current_user
 # Ejemplo en routes.py
 
 @web_router.post("/api/v1/ia/chat", tags=["IA"])
+async def chat_copilot_datilera(
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    if not user:
+        raise HTTPException(401, "Autenticación requerida")
+    data = await request.json()
+    prompt = str(data.get("message") or "").strip()
+    history = data.get("history") if isinstance(data.get("history"), list) else []
+    if not prompt:
+        raise HTTPException(422, "El mensaje es obligatorio")
+
+    roles_privilegiados = {"ADMIN", "ADMINISTRADOR", "DUEÑO", "DUENO", "OWNER", "SUPERADMIN"}
+    nombres_roles = {str(rol.nombre).upper() for rol in (user.roles or [])}
+    permisos = {
+        str(permiso.vista).casefold()
+        for rol in (user.roles or [])
+        for permiso in (rol.permisos or [])
+        if permiso.activo
+    }
+    puede_ver_finanzas = bool(nombres_roles & roles_privilegiados) or any(
+        permiso == "finanzas" or permiso.endswith("_finanzas") or permiso.startswith("finanzas_")
+        for permiso in permisos
+    )
+    try:
+        resultado = await IAChatService(db).procesar_consulta(
+            prompt=prompt,
+            usuario_id=user.id,
+            sede_id=user.sede_id,
+            puede_ver_finanzas=puede_ver_finanzas,
+            history=history,
+            roles=sorted(nombres_roles),
+        )
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return resultado.to_dict()
+
+
+@web_router.get("/api/v1/ia/reportes/finanzas.csv", tags=["IA"])
+async def descargar_reporte_financiero_ia(
+    desde: date,
+    hasta: date,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Exporta el detalle usado por el copiloto, limitado por sede y permisos."""
+    if not user:
+        raise HTTPException(401, "Autenticación requerida")
+    nombres_roles = {str(rol.nombre).upper() for rol in (user.roles or [])}
+    permisos = {
+        str(permiso.vista).casefold()
+        for rol in (user.roles or [])
+        for permiso in (rol.permisos or [])
+        if permiso.activo
+    }
+    roles_privilegiados = {"ADMIN", "ADMINISTRADOR", "DUEÑO", "DUENO", "OWNER", "SUPERADMIN"}
+    puede_exportar = bool(nombres_roles & roles_privilegiados) or any(
+        permiso == "finanzas" or permiso.endswith("_finanzas") or permiso.startswith("finanzas_")
+        for permiso in permisos
+    )
+    if not puede_exportar:
+        raise HTTPException(403, "Permiso insuficiente para exportar información financiera")
+    if desde > hasta or (hasta - desde).days > 731:
+        raise HTTPException(422, "El período debe ser válido y no superar dos años")
+
+    stmt = (
+        select(
+            LibroCaja.fecha,
+            LibroCaja.tipo,
+            LibroCaja.monto,
+            LibroCaja.concepto,
+            LibroCaja.referencia,
+            CategoriaPago.nombre,
+            CategoriaEgreso.nombre,
+        )
+        .outerjoin(CategoriaPago, LibroCaja.categoria_pago_id == CategoriaPago.id)
+        .outerjoin(CategoriaEgreso, LibroCaja.categoria_egreso_id == CategoriaEgreso.id)
+        .where(
+            LibroCaja.sede_id == user.sede_id,
+            LibroCaja.fecha >= desde,
+            LibroCaja.fecha <= hasta,
+        )
+        .order_by(LibroCaja.fecha, LibroCaja.id)
+    )
+    rows = (await db.execute(stmt)).all()
+
+    def segura_excel(valor: object) -> str:
+        texto = str(valor or "")
+        return f"'{texto}" if texto.startswith(("=", "+", "-", "@")) else texto
+
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(["Fecha", "Tipo", "Categoría", "Concepto", "Referencia", "Monto (Bs)"])
+    for fecha, tipo, monto, concepto, referencia, categoria_ingreso, categoria_egreso in rows:
+        categoria = categoria_ingreso if tipo == TipoMovimientoEnum.INGRESO else categoria_egreso
+        writer.writerow([
+            fecha.isoformat(),
+            tipo.value,
+            segura_excel(categoria or "Sin categoría"),
+            segura_excel(concepto),
+            segura_excel(referencia),
+            f"{float(monto or 0):.2f}",
+        ])
+    contenido = "\ufeff" + output.getvalue()
+    nombre = f"reporte_financiero_{desde.isoformat()}_{hasta.isoformat()}.csv"
+    return StreamingResponse(
+        iter([contenido.encode("utf-8")]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )
+
+
+@web_router.post("/api/v1/ia/acciones/confirmar", tags=["IA"])
+async def confirmar_accion_ia(
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    if not user:
+        raise HTTPException(401, "Autenticación requerida")
+    data = await request.json()
+    token = str(data.get("token") or "")
+    if not token:
+        raise HTTPException(422, "La confirmación es obligatoria")
+    try:
+        resultado = await IAChatService(db).confirmar_recordatorio(token, user.id, user.sede_id)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return resultado.to_dict()
+
+
+@web_router.post("/api/v1/ia/chat-legacy", tags=["IA"])
 async def chat_con_sistema(
     request: Request,
     user = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_session)
 ):
+    # Compatibilidad temporal: usa exactamente el mismo motor seguro y actualizado.
+    return await chat_copilot_datilera(request=request, user=user, db=db)
+
+    # Implementación histórica conservada temporalmente para facilitar su eliminación posterior.
     if not user: raise HTTPException(401)
     data = await request.json()
     prompt = data.get("message")
@@ -4082,6 +5500,141 @@ def calcular_prorrateo(fecha_ingreso: date, monto_mensual: float) -> float:
 # --- ENDPOINTS FINANZAS ---
 
 @web_router.post("/api/v1/finanzas/planes-pago/generar", tags=["Finanzas"])
+async def generar_plan_pago_consistente(
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Genera mensualidades consistentes y conserva cualquier historial ya cobrado."""
+
+    if not user:
+        raise HTTPException(401, "No autenticado")
+
+    try:
+        data = await request.json()
+        alumno_id = int(data.get("alumnoid") or 0)
+        fecha_ingreso = datetime.strptime(str(data.get("fechaingreso")), "%Y-%m-%d").date()
+        mensualidad = Decimal(str(data.get("mensualidad")))
+        monto_material = Decimal(str(data.get("montomaterial", 0)))
+        monto_merienda = Decimal(str(data.get("montomerienda", 0)))
+        tipo_pago = str(data.get("tipopago") or "MENSUAL").upper()
+    except (TypeError, ValueError, InvalidOperation):
+        raise HTTPException(422, "Los datos del plan no tienen un formato válido")
+
+    if mensualidad <= 0:
+        raise HTTPException(422, "La mensualidad debe ser mayor que cero")
+    if monto_material < 0 or monto_merienda < 0:
+        raise HTTPException(422, "Los montos adicionales no pueden ser negativos")
+    if tipo_pago not in {"MENSUAL", "SEMESTRAL", "ANUAL"}:
+        raise HTTPException(422, "El tipo de pago no es válido")
+
+    alumno = await db.scalar(
+        select(Alumno).where(Alumno.id == alumno_id, Alumno.sede_id == user.sede_id)
+    )
+    if not alumno:
+        raise HTTPException(404, "Alumno no encontrado en la sede actual")
+
+    plan_existente = await db.scalar(
+        select(PlanPagoPersonalizado).where(PlanPagoPersonalizado.alumno_id == alumno_id)
+    )
+    if plan_existente:
+        tiene_historial = await db.scalar(
+            select(func.count(CuotaPlanPago.id)).where(
+                CuotaPlanPago.plan_id == plan_existente.id,
+                or_(CuotaPlanPago.monto_pagado > 0, CuotaPlanPago.pago_id.is_not(None)),
+            )
+        )
+        if tiene_historial:
+            raise HTTPException(
+                409,
+                "El alumno ya tiene pagos registrados. No se puede reemplazar su plan sin una reprogramación auditada.",
+            )
+        await db.delete(plan_existente)
+        await db.flush()
+
+    calculo = calcular_prorrateo_mensualidad(fecha_ingreso, mensualidad)
+    fecha_inicio_cobro = calculo.fecha_inicio_cobro
+    cantidad_cuotas = 13 - fecha_inicio_cobro.month
+    material_por_cuota = monto_material / Decimal(cantidad_cuotas)
+    merienda_por_cuota = monto_merienda / Decimal(cantidad_cuotas)
+
+    plan = PlanPagoPersonalizado(
+        alumno_id=alumno_id,
+        monto_base=mensualidad,
+        incluye_material=monto_material > 0,
+        monto_material=monto_material,
+        incluye_merienda=monto_merienda > 0,
+        monto_merienda=monto_merienda,
+        monto_total=Decimal("0.00"),
+        numero_cuotas=cantidad_cuotas,
+        monto_cuota=Decimal("0.00"),
+        fecha_inicio=fecha_ingreso,
+        sede_id=user.sede_id,
+        creado_por=user.id,
+        estado="activo",
+    )
+    db.add(plan)
+    await db.flush()
+
+    prorrateo = Prorrateo(
+        alumno_id=alumno_id,
+        fecha_ingreso=fecha_ingreso,
+        dias_cursados=calculo.dias_habiles_cobrados,
+        dias_mes=20,
+        monto_completo=mensualidad,
+        monto_prorrateo=calculo.monto if not calculo.diferido else Decimal("0.00"),
+        aplicado=not calculo.diferido,
+        sede_id=user.sede_id,
+        creado_por=user.id,
+    )
+    db.add(prorrateo)
+
+    total_plan = Decimal("0.00")
+    for indice, mes in enumerate(range(fecha_inicio_cobro.month, 13)):
+        primer_mes = indice == 0
+        monto_mensual = calculo.monto if primer_mes and not calculo.diferido else mensualidad
+        if tipo_pago == "ANUAL":
+            monto_mensual *= Decimal("0.94")
+        elif tipo_pago == "SEMESTRAL" and indice < 6:
+            monto_mensual *= Decimal("0.97")
+
+        total_cuota = (monto_mensual + material_por_cuota + merienda_por_cuota).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        vencimiento = date(fecha_inicio_cobro.year, mes, 10)
+        if primer_mes:
+            vencimiento = fecha_vencimiento_primera_cuota(fecha_inicio_cobro)
+
+        db.add(
+            CuotaPlanPago(
+                plan_id=plan.id,
+                numero_cuota=mes,
+                monto_cuota=total_cuota,
+                fecha_vencimiento=vencimiento,
+                estado="pendiente",
+            )
+        )
+        total_plan += total_cuota
+
+    plan.monto_total = total_plan
+    plan.monto_cuota = (total_plan / Decimal(cantidad_cuotas)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    plan.fecha_fin = date(fecha_inicio_cobro.year, 12, 10)
+
+    await db.commit()
+    return {
+        "success": True,
+        "mensaje": "Plan generado correctamente",
+        "plan_id": plan.id,
+        "cantidad_cuotas": cantidad_cuotas,
+        "primer_pago": float(calculo.monto),
+        "fecha_inicio_cobro": fecha_inicio_cobro.isoformat(),
+        "prorrateo_diferido": calculo.diferido,
+    }
+
+
+@web_router.post("/api/v1/finanzas/planes-pago/generar-legacy-inactivo", include_in_schema=False)
 async def generarplanpago(
     request: Request,
     user=Depends(get_current_user_optional),
@@ -4208,7 +5761,8 @@ async def obtener_cuotas_pendientes(
         .join(PlanPagoPersonalizado)
         .where(
             PlanPagoPersonalizado.alumno_id == alumno_id,
-            CuotaPlanPago.estado == 'pendiente'
+            PlanPagoPersonalizado.sede_id == user.sede_id,
+            CuotaPlanPago.estado.in_(['pendiente', 'vencida'])
         )
         .order_by(CuotaPlanPago.fecha_vencimiento)
     )
@@ -4222,8 +5776,12 @@ async def obtener_cuotas_pendientes(
             "id": c.id,
             "tipo": "CUOTA",
             "numero": c.numero_cuota,
-            "detalle": f"Mensualidad {meses_str[c.numero_cuota]} (Vence: {c.fecha_vencimiento.strftime('%d/%m')})",
-            "monto": float(c.monto_cuota - c.monto_pagado),
+            "detalle": (
+                f"Mensualidad {meses_str[c.numero_cuota]} "
+                f"(Vence: {c.fecha_vencimiento.strftime('%d/%m')})"
+                + (f" · Mora: Bs. {c.mora}" if c.mora else "")
+            ),
+            "monto": float(c.monto_cuota + c.mora - c.monto_pagado),
             "vencimiento": c.fecha_vencimiento.strftime("%d/%m/%Y")
         })
         
@@ -4235,6 +5793,155 @@ async def obtener_cuotas_pendientes(
     return items
 
 @web_router.post("/api/v1/ingresos/cobrar", tags=["Finanzas"])
+async def registrar_cobro_consistente(
+    request: Request,
+    user=Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_session),
+):
+    """Registra un ingreso validado y conserva su asignación exacta a la cuota."""
+
+    if not user:
+        raise HTTPException(401, "No autenticado")
+
+    form = await request.form()
+    try:
+        alumno_id = int(form.get("pagoalumnoid") or 0)
+        categoria_id = int(form.get("pagocategoriaid") or 0)
+        monto = Decimal(str(form.get("pagomonto"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except (TypeError, ValueError, InvalidOperation):
+        raise HTTPException(422, "Alumno, categoría o monto no tienen un formato válido")
+
+    if monto <= 0:
+        raise HTTPException(422, "El monto debe ser mayor que cero")
+
+    alumno = await db.scalar(
+        select(Alumno).where(Alumno.id == alumno_id, Alumno.sede_id == user.sede_id)
+    )
+    if not alumno:
+        raise HTTPException(404, "Alumno no encontrado en la sede actual")
+
+    categoria = await db.scalar(
+        select(CategoriaPago).where(
+            CategoriaPago.id == categoria_id,
+            CategoriaPago.sede_id == user.sede_id,
+            CategoriaPago.activo.is_(True),
+        )
+    )
+    if not categoria:
+        raise HTTPException(422, "La categoría no existe, está inactiva o pertenece a otra sede")
+
+    cuota_id_raw = str(form.get("pagocuotaid") or "").strip()
+    if not cuota_id_raw:
+        raise HTTPException(422, "Debe seleccionar una cuota o concepto")
+
+    metodo = str(form.get("pagometodo") or form.get("pago_metodo") or "EFECTIVO").upper()
+    if metodo not in {"EFECTIVO", "QR", "TRANSFERENCIA"}:
+        raise HTTPException(422, "El método de pago no es válido")
+
+    fecha_raw = form.get("pagofecha") or form.get("pago_fecha")
+    try:
+        fecha_pago = datetime.strptime(str(fecha_raw), "%Y-%m-%d").date() if fecha_raw else date.today()
+    except ValueError:
+        raise HTTPException(422, "La fecha de pago no es válida")
+
+    referencia = str(form.get("pagoreferencia") or form.get("pago_referencia") or "").strip() or None
+    comprobante = form.get("pagocomprobante") or form.get("pago_comprobante") or form.get("pago_compobante")
+
+    cuota: CuotaPlanPago | None = None
+    saldo_posterior: Decimal | None = None
+    concepto = "Ingreso variable"
+    if cuota_id_raw.isdigit():
+        cuota = await db.scalar(
+            select(CuotaPlanPago)
+            .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
+            .where(
+                CuotaPlanPago.id == int(cuota_id_raw),
+                PlanPagoPersonalizado.alumno_id == alumno_id,
+                PlanPagoPersonalizado.sede_id == user.sede_id,
+                CuotaPlanPago.estado.in_(["pendiente", "vencida"]),
+            )
+            .with_for_update()
+        )
+        if not cuota:
+            raise HTTPException(404, "La cuota no está disponible para este alumno")
+
+        saldo = (cuota.monto_cuota + cuota.mora - cuota.monto_pagado).quantize(Decimal("0.01"))
+        if monto > saldo:
+            raise HTTPException(422, f"El monto excede el saldo pendiente de Bs. {saldo}")
+        saldo_posterior = saldo - monto
+        concepto = f"Cuota {cuota.numero_cuota} - Alumno {alumno_id}"
+    else:
+        conceptos_variables = {
+            "VAR_ALMUERZO": "Almuerzos",
+            "VAR_CUIDADO": "Cuidado diario",
+            "VAR_INSCRIPCION": "Inscripción",
+        }
+        if cuota_id_raw not in conceptos_variables:
+            raise HTTPException(422, "El concepto de ingreso no es válido")
+        concepto = conceptos_variables[cuota_id_raw]
+
+    pago = Pago(
+        alumno_id=alumno_id,
+        categoria_pago_id=categoria_id,
+        monto_pagado=monto,
+        fecha_pago=fecha_pago,
+        metodo_pago=metodo,
+        numero_comprobante=referencia,
+        registrado_por=user.id,
+        anulado=False,
+    )
+    db.add(pago)
+    await db.flush()
+
+    if cuota:
+        cuota.monto_pagado = (cuota.monto_pagado + monto).quantize(Decimal("0.01"))
+        cuota.pago_id = pago.id  # Compatibilidad con reportes anteriores.
+        db.add(PagoCuota(pago_id=pago.id, cuota_id=cuota.id, monto_aplicado=monto))
+        if saldo_posterior == 0:
+            cuota.estado = "pagada"
+            cuota.fecha_pago = datetime.combine(fecha_pago, datetime.min.time())
+        else:
+            cuota.estado = "pendiente"
+            cuota.fecha_pago = None
+
+    if comprobante and hasattr(comprobante, "filename") and comprobante.filename:
+        stored = await secure_storage.save_upload(
+            comprobante,
+            "comprobantes",
+            allowed_mime_types={"image/jpeg", "image/png", "image/webp", "application/pdf"},
+            max_bytes=10 * 1024 * 1024,
+        )
+        db.add(
+            Comprobante(
+                pago_id=pago.id,
+                url=stored.public_url,
+                nombre_archivo=Path(comprobante.filename).name[:120],
+            )
+        )
+
+    db.add(
+        LibroCaja(
+            sede_id=user.sede_id,
+            fecha=fecha_pago,
+            tipo=TipoMovimientoEnum.INGRESO,
+            categoria_pago_id=categoria_id,
+            pago_id=pago.id,
+            monto=monto,
+            concepto=concepto,
+            referencia=referencia,
+            usuario_registro_id=user.id,
+        )
+    )
+    await db.commit()
+    return {
+        "success": True,
+        "mensaje": "Pago registrado correctamente",
+        "pago_id": pago.id,
+        "saldo_pendiente": float(saldo_posterior) if saldo_posterior is not None else None,
+    }
+
+
+@web_router.post("/api/v1/ingresos/cobrar-legacy-inactivo", include_in_schema=False)
 async def registrar_cobro_ingreso(
     request: Request,
     user=Depends(get_current_user_optional),
@@ -4293,11 +6000,13 @@ async def registrar_cobro_ingreso(
         # Guardar comprobante (si aplica)
         safefilename = None
         if comprobante and hasattr(comprobante, "filename") and comprobante.filename:
-            safefilename = f"{datetime.now().timestamp()}_{comprobante.filename}"
-            path = Path(settings.MEDIADIR) / "comprobantes"
-            path.mkdir(parents=True, exist_ok=True)
-            with open(path / safefilename, "wb") as f:
-                shutil.copyfileobj(comprobante.file, f)
+            stored = await secure_storage.save_upload(
+                comprobante,
+                "comprobantes",
+                allowed_mime_types={"image/jpeg", "image/png", "image/webp", "application/pdf"},
+                max_bytes=10 * 1024 * 1024,
+            )
+            safefilename = stored.relative_path
 
         # 1) Crear el Pago (modelo real)
         nuevopago = Pago(
@@ -4985,7 +6694,7 @@ async def planes_pago_page(request: Request, user = Depends(get_current_user_opt
 
 # --- AGREGAR EN ROUTES.PY (SECCIÓN FINANZAS) ---
 
-@web_router.get("/api/v1/finanzas/planes-pago/alumno/{alumno_id}", tags=["Finanzas"])
+@web_router.get("/api/v1/finanzas/planes-pago/gestion/alumno/{alumno_id}", tags=["Finanzas"])
 async def obtener_detalle_plan_alumno(
     alumno_id: int,
     user = Depends(get_current_user_optional),
@@ -4997,6 +6706,7 @@ async def obtener_detalle_plan_alumno(
     # 1. Buscar el plan activo
     stmt_plan = select(PlanPagoPersonalizado).where(
         PlanPagoPersonalizado.alumno_id == alumno_id,
+        PlanPagoPersonalizado.sede_id == user.sede_id,
         PlanPagoPersonalizado.estado == 'activo' # O el estado que uses por defecto
     )
     plan = (await db.execute(stmt_plan)).scalars().first()
@@ -5028,14 +6738,14 @@ async def obtener_detalle_plan_alumno(
             "vencimiento": c.fecha_vencimiento.strftime("%d/%m/%Y"),
             "monto_total": float(c.monto_cuota),
             "monto_pagado": float(c.monto_pagado),
-            "saldo": float(c.monto_cuota - c.monto_pagado),
+            "saldo": float(c.monto_cuota + c.mora - c.monto_pagado),
             "estado": estado_final.upper() # PENDIENTE, PAGADO, MORA
         })
 
     return {
         "tiene_plan": True,
         "resumen": {
-            "total_plan": float(plan.monto_total),
+            "total_plan": float(sum((c.monto_cuota for c in cuotas_db), Decimal("0.00"))),
             "tipo": "Personalizado" # O derivar de lógica si guardaste el tipo
         },
         "cuotas": lista_cuotas
@@ -5066,7 +6776,7 @@ async def obtener_reporte_deudores(
             .join(PlanPagoPersonalizado, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
             .join(Alumno, PlanPagoPersonalizado.alumno_id == Alumno.id)
             .where(
-                CuotaPlanPago.estado == 'pendiente',
+                CuotaPlanPago.estado.in_(['pendiente', 'vencida']),
                 CuotaPlanPago.fecha_vencimiento < hoy,
                 Alumno.sede_id == user.sede_id 
             )
@@ -5076,6 +6786,35 @@ async def obtener_reporte_deudores(
         print(">>> EJECUTANDO QUERY...")
         resultados = (await db.execute(stmt)).all()
         print(f">>> QUERY EXITOSA. RESULTADOS: {len(resultados)}")
+
+        alumno_ids = {row[4] for row in resultados}
+        tutores_por_alumno: dict[int, dict] = {}
+        if alumno_ids:
+            stmt_tutores = (
+                select(
+                    AlumnoTutor.alumno_id,
+                    Tutor.usuario_id,
+                    Tutor.nombres,
+                    Tutor.apellidos,
+                )
+                .join(Tutor, Tutor.id == AlumnoTutor.tutor_id)
+                .where(
+                    AlumnoTutor.alumno_id.in_(alumno_ids),
+                    AlumnoTutor.recibe_notificaciones.is_(True),
+                    Tutor.usuario_id.is_not(None),
+                )
+                .order_by(desc(AlumnoTutor.es_principal), AlumnoTutor.id)
+            )
+            for alumno_id_rel, usuario_id, nombres_tutor, apellidos_tutor in (
+                await db.execute(stmt_tutores)
+            ).all():
+                tutores_por_alumno.setdefault(
+                    alumno_id_rel,
+                    {
+                        "usuario_id": usuario_id,
+                        "nombre": f"{nombres_tutor} {apellidos_tutor or ''}".strip(),
+                    },
+                )
 
         lista_deudores = []
         for row in resultados:
@@ -5087,6 +6826,7 @@ async def obtener_reporte_deudores(
             
             nombre_completo = f"{paterno} {materno}, {nombres}".strip().replace("  ", " ")
             dias_atraso = (hoy - cuota.fecha_vencimiento).days
+            tutor_notificacion = tutores_por_alumno.get(alumno_id)
             
             lista_deudores.append({
                 "alumnoid": alumno_id,
@@ -5094,7 +6834,9 @@ async def obtener_reporte_deudores(
                 "concepto": f"Cuota #{cuota.numero_cuota} (Vencía: {cuota.fecha_vencimiento.strftime('%d/%m')})",
                 "cuotanumero": cuota.numero_cuota,
                 "diasatraso": dias_atraso,
-                "totalexigible": float(cuota.monto_cuota - cuota.monto_pagado)
+                "totalexigible": float(cuota.monto_cuota + cuota.mora - cuota.monto_pagado),
+                "tutorusuarioid": tutor_notificacion["usuario_id"] if tutor_notificacion else None,
+                "tutornombre": tutor_notificacion["nombre"] if tutor_notificacion else None,
             })
 
         return lista_deudores
@@ -5342,7 +7084,7 @@ async def obtener_reporte_sueldos(
     reporte = []
     
     for profe in profesoras:
-        nombre_completo = f"{profe.nombres} {profe.apellidos}".strip()
+        nombre_completo = f"{profe.nombres} {profe.apellidos or ''}".strip()
         pago_encontrado = None
         
         # Búsqueda simple: ¿El nombre de la profe está en el detalle del pago?
@@ -6539,36 +8281,31 @@ async def update_perfil_foto(
     if not user: raise HTTPException(401)
     
     # Validar extensión de imagen
-    if not file.content_type.startswith('image/'):
-        raise HTTPException(400, "El archivo debe ser una imagen")
-
     try:
         # 1. Obtener configuración (ruta absoluta del env)
         settings = get_settings()
         
         # 2. Generar nombre seguro único
-        timestamp = int(datetime.now().timestamp())
-        ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-        safe_filename = f"profile_{user.id}_{timestamp}.{ext}"
+        stored = await secure_storage.save_upload(
+            file,
+            "perfiles",
+            allowed_mime_types={"image/jpeg", "image/png", "image/webp"},
+            max_bytes=5 * 1024 * 1024,
+        )
         
         # 3. Definir Rutas
         # RUTA FÍSICA: C:/Users/Ian/Desktop/datilera_media/perfiles/archivo.jpg
         # Usamos Path para manejar las barras / o \ automáticamente en Windows
-        ruta_base = Path(settings.MEDIA_DIR)
-        directorio_destino = ruta_base / "perfiles"
-        archivo_destino = directorio_destino / safe_filename
+        ruta_web = stored.public_url
         
         # Crear carpeta si no existe
-        directorio_destino.mkdir(parents=True, exist_ok=True)
+        # El servicio ya creó el directorio y validó que permanezca bajo MEDIA_DIR.
         
         # 4. Guardar el archivo físicamente
-        with open(archivo_destino, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        
             
         # 5. Actualizar BD con la URL relativa (para el navegador)
         # El navegador pide: http://localhost:8000/media/perfiles/foto.jpg
-        ruta_web = f"/media/perfiles/{safe_filename}"
-        
         user.foto_perfil_url = ruta_web
         await db.commit()
         

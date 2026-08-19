@@ -22,7 +22,7 @@ from app.kernel.application.seguridad.usuario_rol.revocar_rol_usuario import (
 )
 from app.kernel.application.seguridad.usuario_rol.listar_roles_usuario import ListarRolesUsuario
 
-router = APIRouter(prefix="/api/v1/seguridad/usuario-roles", tags=["Usuario-Roles"])
+router = APIRouter(prefix="/seguridad/usuario-roles", tags=["Usuario-Roles"])
 
 
 def get_usuario_repo(session: AsyncSession = Depends(get_session)) -> UsuariosRepository:

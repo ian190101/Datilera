@@ -43,8 +43,15 @@ class RegistrarUsuario:
         if not rol:
             raise RolNoEncontrado()
         hashed = self.hasher.hash_password(req.password)
-        u = await self.usuarios.crear(username=req.username, password_hash=hashed, nombre_completo=req.nombre_completo,
-                                      email=req.email, telefono=req.telefono, sede_id=req.sede_id)
+        u = await self.usuarios.crear(
+            username=req.username,
+            hash_password=hashed,
+            nombres=req.nombre_completo.strip(),
+            apellidos="",
+            email=req.email,
+            telefono=req.telefono,
+            sede_id=req.sede_id,
+        )
         await self.usuarios_roles.asignar(u.id, rol.id)
-        return RegistrarUsuarioResponse(id=u.id, username=u.username, nombre_completo=u.nombre_completo,
+        return RegistrarUsuarioResponse(id=u.id, username=u.nombre_usuario, nombre_completo=u.nombre_completo,
                                         email=u.email, sede_id=u.sede_id, rol=rol.nombre)

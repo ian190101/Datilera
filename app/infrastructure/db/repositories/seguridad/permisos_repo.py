@@ -13,7 +13,7 @@ class PermisosRepository(BaseRepository[PermisoModel]):
         super().__init__(session, PermisoModel)
 
     def _to_domain(self, m: PermisoModel) -> Permiso:
-        return Permiso(recurso=m.vista, accion=Accion(m.accion))
+        return Permiso(vista=m.vista, accion=Accion(m.accion))
 
     async def get_by_id(self, permiso_id: int) -> Optional[Permiso]:
         m = await super().get_by_id(permiso_id)

@@ -37,6 +37,8 @@ class GenerarCodigoRequest(BaseModel):
     max_cuentas: int = Field(default=1, ge=1, le=10)
     expira_en: Optional[date] = None
     observaciones: Optional[str] = None
+    whatsapp_numero: str = ""
+    entregado_a: Optional[str] = None
     creado_por: Optional[int] = None
 
     @field_validator("expira_en")
@@ -86,11 +88,11 @@ class GenerarCodigo:
                 codigo=valor,
                 expira_en=req.expira_en,
                 estado=EstadoCodigo.pendiente,
-                whatsapp_numero="",
+                whatsapp_numero=req.whatsapp_numero,
                 whatsapp_message_id=None,
                 enviado=False,
                 enviado_en=None,
-                entregado_a=None,
+                entregado_a=req.entregado_a,
                 observaciones=req.observaciones,
                 creado_por=req.creado_por
             )

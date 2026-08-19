@@ -40,7 +40,7 @@ from app.kernel.application.portafolio.media import (
 from app.kernel.domain.portafolio import MediaNoEncontradaError
 
 
-router = APIRouter(prefix="/api/v1/portafolio", tags=["Portafolio"])
+router = APIRouter(prefix="/portafolio", tags=["Portafolio"])
 
 
 # --------- PROVEEDORES DE DEPENDENCIAS (LOCALES) ---------

@@ -7,6 +7,8 @@ const API_BASE = '/api/v1';
 // CAMBIO: Detectar protocolo seguro (wss) automáticamente
 const WS_PROTOCOL = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const WS_BASE = `${WS_PROTOCOL}//${window.location.host}/api/v1`;
+let refreshPromise = null;
+let lastSessionRefreshAt = Date.now();
 
 /* ============================================================
    HELPERS DE FETCH CON RETRY Y REFRESH TOKEN
@@ -65,16 +67,56 @@ export async function fetchAPI(url, options = {}) {
 }
 
 async function refreshAccessToken() {
-    try {
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-    });
-    return response.ok;
-    } catch (error) {
-    console.error('Error refreshing token:', error);
-    return false;
-    }
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE}/auth/refresh`, {
+                method: 'POST',
+                credentials: 'include',
+            });
+            if (response.ok) lastSessionRefreshAt = Date.now();
+            return response.ok;
+        } catch (error) {
+            console.error('Error refreshing token:', error);
+            return false;
+        } finally {
+            refreshPromise = null;
+        }
+    })();
+    return refreshPromise;
+}
+
+function initSessionMaintenance() {
+    const refreshIfStale = () => {
+        const fiveMinutes = 5 * 60 * 1000;
+        if (document.visibilityState === 'visible' && Date.now() - lastSessionRefreshAt >= fiveMinutes) {
+            void refreshAccessToken();
+        }
+    };
+
+    document.addEventListener('visibilitychange', refreshIfStale);
+    window.addEventListener('pageshow', refreshIfStale);
+    window.addEventListener('online', refreshIfStale);
+    window.setInterval(refreshIfStale, 5 * 60 * 1000);
+
+    // Después de una suspensión, renovamos antes de abandonar la página actual.
+    document.addEventListener('click', async (event) => {
+        const enlace = event.target.closest?.('a[href]');
+        if (!enlace || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        const destino = new URL(enlace.href, window.location.href);
+        if (destino.origin !== window.location.origin || enlace.target === '_blank' || enlace.hasAttribute('download')) return;
+        if (Date.now() - lastSessionRefreshAt < 5 * 60 * 1000) return;
+
+        event.preventDefault();
+        const renovada = await refreshAccessToken();
+        if (renovada) {
+            window.location.assign(destino.href);
+        } else if (navigator.onLine) {
+            window.location.assign('/login');
+        } else {
+            showToast('Sin conexión. Intenta nuevamente al recuperar internet.', 'warning');
+        }
+    }, true);
 }
 
 
@@ -349,18 +391,49 @@ async function loadNotifications(filter = 'all') {
 function createNotificationHTML(notification) {
     const unreadClass = !notification.leida ? 'unread' : '';
     const timeAgo = formatTimeAgo(notification.fecha_creacion);
+    const prioridad = String(notification.prioridad || 'media').toLowerCase();
+    const accionUrl = String(notification.accion_url || '').startsWith('/')
+        ? String(notification.accion_url)
+        : '';
+    const prioridadUI = {
+        alta: {
+            contenedor: 'border-l-4 border-red-500',
+            icono: 'bg-red-100 dark:bg-red-900',
+            textoIcono: 'text-red-600 dark:text-red-400',
+            badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+            etiqueta: 'Alta',
+        },
+        media: {
+            contenedor: 'border-l-4 border-amber-400',
+            icono: 'bg-amber-100 dark:bg-amber-900',
+            textoIcono: 'text-amber-600 dark:text-amber-400',
+            badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+            etiqueta: 'Media',
+        },
+        baja: {
+            contenedor: 'border-l-4 border-blue-400',
+            icono: 'bg-blue-100 dark:bg-blue-900',
+            textoIcono: 'text-blue-600 dark:text-blue-400',
+            badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+            etiqueta: 'Baja',
+        },
+    }[prioridad];
     
     return `
-        <div class="notification-item ${unreadClass}" data-id="${notification.id}">
+        <div class="notification-item ${unreadClass} ${prioridadUI.contenedor}" data-id="${notification.id}" data-prioridad="${prioridad}">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                        <i class="fas fa-${getNotificationIcon(notification.tipo)} text-primary-600 dark:text-primary-400"></i>
+                    <div class="w-10 h-10 ${prioridadUI.icono} rounded-full flex items-center justify-center">
+                        <i class="fas fa-${getNotificationIcon(notification.tipo)} ${prioridadUI.textoIcono}"></i>
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white">${notification.titulo}</p>
+                    <div class="flex items-center gap-2">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${notification.titulo}</p>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${prioridadUI.badge}">${prioridadUI.etiqueta}</span>
+                    </div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${notification.mensaje}</p>
+                    ${accionUrl ? `<a href="${accionUrl}" class="mt-3 inline-flex items-center rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700"><i class="fas fa-arrow-right mr-2"></i>${notification.accion_texto || 'Abrir'}</a>` : ''}
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">${timeAgo}</p>
                 </div>
                 ${!notification.leida ? '<div class="flex-shrink-0"><div class="w-2 h-2 bg-primary-500 rounded-full"></div></div>' : ''}
@@ -483,6 +556,7 @@ window.logout = async function() {
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initSessionMaintenance();
     initNotifications();
     initWebSocket();
 });

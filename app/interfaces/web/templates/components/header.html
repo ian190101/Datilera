@@ -1,7 +1,9 @@
 <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
     <div class="flex items-center justify-between px-6 py-4">
         
-        <button id="mobile-menu-button" 
+        <button id="mobile-menu-button"
+                type="button"
+                aria-label="Abrir menú principal"
                 class="md:hidden fixed top-4 left-4 z-50 p-3 rounded-lg bg-gray-800/90 backdrop-blur-sm text-white hover:bg-gray-700 focus:outline-none transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -10,14 +12,18 @@
         <div class="flex-1"></div>
         <div class="flex items-center space-x-4 ml-6">
             
-            <button id="theme-toggle" 
+            <button id="theme-toggle"
+                    type="button"
+                    aria-label="Cambiar tema de color"
                     class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
                 <i class="fas fa-moon dark:hidden text-xl"></i>
                 <i class="fas fa-sun hidden dark:block text-xl"></i>
             </button>
             
             <div class="relative">
-                <button id="notifications-btn" 
+                <button id="notifications-btn"
+                        type="button"
+                        aria-label="Abrir notificaciones"
                         class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors relative">
                     <i class="fas fa-bell text-xl"></i>
                     <span id="notification-badge" 
@@ -29,7 +35,9 @@
             
             {% if current_user %}
             <div class="relative" x-data="{ open: false }">
-                <button @click="open = !open" 
+                <button @click="open = !open"
+                        type="button"
+                        aria-label="Abrir menú de {{ current_user.nombre_completo }}"
                         class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                     
                     <div class="relative w-10 h-10">
@@ -50,7 +58,9 @@
                     </div>
                     <div class="hidden md:block text-left">
                         <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ current_user.nombre_completo }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ current_user.role }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ current_user.roles | map(attribute='nombre') | join(', ') or 'Usuario' }}
+                        </p>
                     </div>
                     <i class="fas fa-chevron-down text-gray-400 text-sm"></i>
                 </button>

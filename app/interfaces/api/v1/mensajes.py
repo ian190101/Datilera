@@ -31,7 +31,7 @@ from app.infrastructure.services.websocket_service import WebSocketService
 # from app.infrastructure.services.websocket_service import WebSocketService
 # from app.infrastructure.services.storage_service import StorageService
 
-router = APIRouter(prefix="/api/v1/comunicaciones/mensajes", tags=["Comunicaciones - Mensajes"])
+router = APIRouter(prefix="/comunicaciones/mensajes", tags=["Comunicaciones - Mensajes"])
 
 
 # ==========================================

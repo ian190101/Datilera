@@ -100,6 +100,11 @@ function initEvents() {
   document.getElementById('btn-asignar-modal')?.addEventListener('click', () => {
     abrirModalAsignacion();
   });
+
+  document.getElementById('usuarios-tbody')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-reset-password]');
+    if (button) resetearPasswordUsuario(button.dataset.resetPassword, button.dataset.username || 'usuario');
+  });
 }
 
 /* =========================
@@ -126,13 +131,16 @@ async function loadUsuarios(page = 1) {
     const params = new URLSearchParams();
     params.set('page', String(currentPage));
     params.set('per_page', '10');
-    if (currentFilters.search) params.set('search', currentFilters.search);
-    if (currentFilters.rol) params.set('rol', currentFilters.rol);
+    if (currentFilters.search) params.set('q', currentFilters.search);
+    if (currentFilters.rol) params.set('rol_nombre', currentFilters.rol);
     if (currentFilters.activo !== '') params.set('activo', currentFilters.activo);
 
     const response = await fetchAPI(`${API_BASE}/usuarios?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error(`No se pudieron cargar los usuarios (${response.status})`);
+    }
     const data = await response.json();
-    const items = data.items || data || [];
+    const items = Array.isArray(data.items) ? data.items : [];
     const total = data.total || items.length;
 
     renderUsuarios(items);
@@ -219,6 +227,13 @@ function renderUsuarios(usuarios) {
           </td>
           <td class="px-6 py-4 text-sm">
             ${estadoBadge}
+          </td>
+          <td class="px-6 py-4 text-sm text-right">
+            <button type="button" data-reset-password="${u.id}" data-username="${username}"
+                    class="px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                    title="Generar contraseña temporal">
+              <i class="fas fa-key mr-1"></i>Restablecer
+            </button>
           </td>
         </tr>
       `;
@@ -417,7 +432,7 @@ function enviarWhatsAppProfesora() {
   const appUrl = window.location.origin;
   const nombre = lastProfNombre || '';
   const mensaje = encodeURIComponent(
-    `Hola ${nombre}, te damos la bienvenida a Datilera.\n\nTu código de acceso es: ${lastProfCodigo}\n\nPara completar tu registro, ingresa a:\n${appUrl}/registro-profesora\n\nEste código es personal e intransferible.`,
+    `Hola ${nombre}, te damos la bienvenida a Datilera.\n\nTu código de acceso es: ${lastProfCodigo}\n\nPara completar tu registro, ingresa a:\n${appUrl}/registro/profesor\n\nEste código es personal e intransferible.`,
   );
   const url = `https://wa.me/591${lastProfTelefono}?text=${mensaje}`;
   window.open(url, '_blank');
@@ -576,7 +591,7 @@ window.cargarParalelosDelGrupo = function() {
   if (grupo && grupo.paralelos && grupo.paralelos.length > 0) {
       // Habilitar Select
       selectParalelo.disabled = false;
-      selectParalelo.className = "w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500";
+      selectParalelo.className = "w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-[#DD8E0A] focus:border-[#DD8E0A]";
 
       grupo.paralelos.forEach(p => {
           const opt = document.createElement('option');
@@ -633,4 +648,37 @@ window.guardarAsignacion = async function() {
           btnGuardar.innerHTML = originalText;
       }
   }
+}
+
+async function resetearPasswordUsuario(usuarioId, username) {
+  const confirmacion = await showConfirm(
+    'Restablecer contraseña',
+    `Se cerrarán las sesiones de ${username} y se generará una contraseña temporal.`,
+    'Generar contraseña',
+  );
+  if (!confirmacion.isConfirmed) return;
+  try {
+    const response = await fetchAPI(`${API_BASE}/usuarios/${usuarioId}/resetear-password`, { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || 'No se pudo restablecer la contraseña');
+    await Swal.fire({
+      icon: 'success', title: 'Contraseña temporal generada',
+      html: `<p class="mb-3">Entrégala de forma privada a <strong>${escapeHtml(username)}</strong>. Solo se mostrará ahora.</p>
+             <code class="block text-xl font-bold bg-gray-100 p-3 rounded select-all">${escapeHtml(data.password_temporal)}</code>
+             <p class="mt-3 text-sm text-gray-500">Al iniciar sesión deberá crear una contraseña nueva.</p>`,
+      showCancelButton: true, confirmButtonText: 'Copiar contraseña', cancelButtonText: 'Cerrar',
+      preConfirm: async () => navigator.clipboard.writeText(data.password_temporal),
+    });
+    showToast('Restablecimiento completado', 'success');
+    loadUsuarios(currentPage);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message, 'error');
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+  })[character]);
 }

@@ -16,10 +16,11 @@
 {% block content %}
 
 <!-- Header -->
-<div class="mb-8 flex items-center justify-between">
+<div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Panel General</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400">Resumen de {{ current_user.sede_nombre }}</p>
+        <p id="dashboard-updated-at" class="mt-1 text-xs text-gray-500 dark:text-gray-500">Cargando información reciente...</p>
     </div>
     <div class="flex items-center space-x-3">
         <select id="period-selector" 
@@ -32,7 +33,8 @@
 </div>
 
 <!-- Metrics Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div id="dashboard-content" aria-busy="true">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
     
     <!-- Total Inscritos -->
     <div class="metric-card bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
@@ -42,7 +44,7 @@
                 <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white" id="total-inscritos">--</p>
                 <p class="mt-2 text-sm text-green-600 dark:text-green-400">
                     <i class="fas fa-arrow-up mr-1"></i>
-                    <span id="inscritos-change">--</span> vs mes anterior
+                    <span id="inscritos-change">Cargando periodo...</span>
                 </p>
             </div>
             <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
@@ -59,7 +61,7 @@
                 <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white" id="ingresos-mes">--</p>
                 <p class="mt-2 text-sm text-green-600 dark:text-green-400">
                     <i class="fas fa-arrow-up mr-1"></i>
-                    <span id="ingresos-change">--</span> objetivo
+                    <span id="ingresos-change">Cargando periodo...</span>
                 </p>
             </div>
             <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
@@ -130,5 +132,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script type="module" src="/static/js/dashboard.js"></script>
+<script type="module" src="/static/js/dashboard.js?v=20260714"></script>
 {% endblock %}

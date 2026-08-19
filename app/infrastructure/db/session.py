@@ -53,8 +53,9 @@ else:
     # MySQL/Postgres: pooling configurable
     engine_kwargs.update(
         pool_recycle=int(os.getenv("SQL_POOL_RECYCLE", "1800")),  # 30 min
-        pool_size=int(os.getenv("SQL_POOL_SIZE", "10")),
+        pool_size=int(os.getenv("SQL_POOL_SIZE", "20")),
         max_overflow=int(os.getenv("SQL_MAX_OVERFLOW", "20")),
+        pool_timeout=int(os.getenv("SQL_POOL_TIME_OUT", "30")),
     )
 
 engine = create_async_engine(DATABASE_URL, **engine_kwargs)

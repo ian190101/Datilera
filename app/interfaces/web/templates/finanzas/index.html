@@ -251,14 +251,14 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monto a pagar (Bs.)</label>
-                        <input type="number" step="0.01" id="pago_monto" name="pagomonto" required
+                        <input type="number" step="0.01" min="0.01" id="pago_monto" name="pagomonto" required
                             class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors font-bold text-green-600 dark:text-green-400">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Método</label>
-                            <select id="pago_metodo" name="pago_metodo" onchange="toggleCamposComprobante()"
+                            <select id="pago_metodo" name="pagometodo" onchange="toggleCamposComprobante()"
                                 class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
                                 <option value="EFECTIVO">Efectivo</option>
                                 <option value="QR">QR</option>
@@ -266,7 +266,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fecha</label>
-                            <input type="date" id="pago_fecha" name="pago_fecha" required
+                            <input type="date" id="pago_fecha" name="pagofecha" required
                                 class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
                         </div>
                     </div>
@@ -274,12 +274,12 @@
                     <div id="div-comprobante" class="hidden p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800 space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nro. referencia</label>
-                            <input type="text" id="pago_referencia" name="pago_referencia" placeholder="Ej: 123456"
+                            <input type="text" id="pago_referencia" name="pagoreferencia" placeholder="Ej: 123456"
                                 class="block w-full border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm py-2 px-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500 outline-none transition-colors">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comprobante (foto/PDF)</label>
-                            <input type="file" id="pago_archivo" name="pago_compobante" accept="image/*,.pdf"
+                            <input type="file" id="pago_archivo" name="pagocomprobante" accept="image/jpeg,image/png,image/webp,application/pdf"
                                 class="block w-full text-sm text-gray-500 dark:text-gray-400
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-lg file:border-0
@@ -584,5 +584,5 @@
 
 {% block extra_scripts %}
 
-<script type="module" src="/static/js/finanzas.js"></script>
+<script type="module" src="/static/js/finanzas.js?v=2026071503"></script>
 {% endblock %}

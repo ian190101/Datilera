@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Literal, Sequence
 from urllib.parse import urlparse
 
-from pydantic import AnyHttpUrl, Field, ValidationError, field_validator, AliasChoices
+from pydantic import AnyHttpUrl, Field, ValidationError, field_validator, AliasChoices, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AnyUrl
 
@@ -20,8 +20,11 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = "Datilera"
-    environment: Literal["dev", "staging", "prod"] = "dev"
-    debug: bool = True
+    environment: Literal["dev", "staging", "prod"] = Field(
+        default="dev",
+        validation_alias=AliasChoices("ENVIRONMENT", "ENV"),
+    )
+    debug: bool | None = None
 
     # Base de datos (async)
     # Debe ser un driver async válido: mysql+aiomysql, postgresql+asyncpg, sqlite+aiosqlite
@@ -29,19 +32,33 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(validation_alias="REDIS_URL")
     MEDIA_DIR: str = Field(validation_alias="MEDIA_DIR")
     GEMINI_API_KEY: str = Field(validation_alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="gemini-2.5-flash", validation_alias="GEMINI_MODEL")
     PDF_DIR: str = Field(validation_alias="PDF_DIR", default="pdfs")
 
     # Seguridad / Auth
     jwt_secret: str = Field(validation_alias="JWT_SECRET")
     jwt_algorithm: Literal["HS256", "RS256", "ES256"] = "HS256"
-    jwt_exp_minutes: int = 60
-    refresh_token_expire_days: int = 7
+    jwt_exp_minutes: int = Field(
+        default=60,
+        validation_alias=AliasChoices("JWT_EXP_MINUTES", "ACCESS_EXPIRE_MIN"),
+        ge=5,
+        le=1440,
+    )
+    refresh_token_expire_days: int = Field(
+        default=7,
+        validation_alias=AliasChoices("REFRESH_TOKEN_EXPIRE_DAYS", "REFRESH_EXPIRE_DAYS"),
+        ge=1,
+        le=90,
+    )
 
     # Trusted hosts (Starlette)
-    trusted_hosts: list[str] = Field(default_factory=list, alias="TRUSTED_HOSTS")
+    trusted_hosts: str = Field(default="", alias="TRUSTED_HOSTS")
 
     # CORS / Frontend
-    cors_origins: Sequence[AnyHttpUrl] = Field(default_factory=list)
+    cors_origins: str = Field(
+        default="",
+        validation_alias=AliasChoices("CORS_ORIGINS", "ALLOWED_ORIGINS"),
+    )
     cors_allow_credentials: bool = True
     cors_allow_methods: Sequence[str] = ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
     cors_allow_headers: Sequence[str] = ("Authorization", "Content-Type")
@@ -53,8 +70,8 @@ class Settings(BaseSettings):
     sql_echo: bool = False
 
     # Pool / Engine hints (usados por tu session.py)
-    sql_pool_size: int = 10
-    sql_max_overflow: int = 20
+    sql_pool_size: int = 50
+    sql_max_overflow: int = 50
     sql_pool_recycle: int = 1800              # 30 min
     sql_isolation: str | None = None          # p.ej., "READ COMMITTED"
 
@@ -62,6 +79,23 @@ class Settings(BaseSettings):
     @property
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite+aiosqlite://")
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "prod"
+
+    @property
+    def effective_debug(self) -> bool:
+        """En producción el modo debug nunca puede quedar activo por omisión."""
+        return self.debug if self.debug is not None else self.environment == "dev"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [item.strip().rstrip("/") for item in self.cors_origins.split(",") if item.strip()]
+
+    @property
+    def trusted_host_list(self) -> list[str]:
+        return [item.strip() for item in self.trusted_hosts.split(",") if item.strip()]
 
     # Validaciones ------------------------------------------------------------
 
@@ -90,17 +124,14 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL debe incluir hostname")
         return v
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def _split_csv(cls, v):
-        # Permite definir CORS_ORIGINS como CSV en .env
-        # CORS_ORIGINS=https://app.local,https://admin.local
-        if isinstance(v, str):
-            s = v.strip()
-            if not s:
-                return []
-            return [x.strip() for x in s.split(",")]
-        return v
+    @model_validator(mode="after")
+    def _validate_security_settings(self) -> "Settings":
+        self.jwt_secret = self.jwt_secret.strip()
+        if self.environment == "prod" and len(self.jwt_secret) < 32:
+            raise ValueError("JWT_SECRET debe contener al menos 32 caracteres en producción")
+        if self.environment == "prod" and not self.cors_origin_list:
+            raise ValueError("CORS_ORIGINS debe configurarse explícitamente en producción")
+        return self
 
 
 @lru_cache

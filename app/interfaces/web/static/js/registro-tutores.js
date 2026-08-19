@@ -1,8 +1,44 @@
 // app/interfaces/web/static/js/registro-tutores.js
 
 const API_BASE = '/api/v1';
-let currentStep = 1;
+const registroContexto = window.registroTutorContext || {};
+const modoTutorExistente = registroContexto.modo_tutor_existente === true;
+const primerPaso = modoTutorExistente ? 2 : 1;
+let currentStep = primerPaso;
 const totalSteps = 10;
+
+function setFormValueIfEmpty(name, value) {
+    const input = document.querySelector(`[name="${name}"]`);
+    if (!input || !value || input.value.trim()) return false;
+    input.value = String(value).trim();
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+}
+
+function prefillTutorPrincipal(preinscripcion) {
+    const datos = preinscripcion || {};
+    const parentesco = String(datos.tutor_parentesco || '').trim().toUpperCase();
+    const camposPrecargados = [
+        setFormValueIfEmpty('tutor1_nombres', datos.tutor_nombre),
+        setFormValueIfEmpty('tutor1_relacion', parentesco),
+        setFormValueIfEmpty('tutor1_celular', datos.tutor_telefono),
+    ].some(Boolean);
+
+    if (!camposPrecargados) return;
+
+    const aviso = document.getElementById('aviso-datos-preinscripcion');
+    if (aviso) aviso.classList.remove('hidden');
+
+    const etiquetas = {
+        MADRE: 'Madre (principal)',
+        PADRE: 'Padre (principal)',
+        ABUELO: 'Abuelo/a (principal)',
+        TIO: 'Tío/a (principal)',
+        TUTOR: 'Tutor legal (principal)',
+    };
+    const titulo = document.getElementById('titulo-tutor-principal');
+    if (titulo && etiquetas[parentesco]) titulo.textContent = etiquetas[parentesco];
+}
 
 // --- FUNCIÓN DE INICIO PRINCIPAL ---
 function initApp() {
@@ -20,9 +56,51 @@ function initApp() {
 
     // 2. Inicializar Listeners
     initListeners();
+
+    if (modoTutorExistente) {
+        prepararFichaTutorExistente();
+    }
     
-    // 3. Mostrar paso 1
-    showStep(1);
+    // 3. Mostrar el primer paso permitido para este flujo
+    showStep(primerPaso);
+}
+
+function prepararFichaTutorExistente() {
+    const preview = document.getElementById('preview-nombre-completo');
+    if (preview) preview.textContent = registroContexto.alumno_nombre || '--';
+
+    const valores = {
+        genero: registroContexto.genero,
+        tutor1_nombres: registroContexto.tutor_nombre,
+        tutor1_relacion: registroContexto.tutor_parentesco,
+        tutor1_ci: registroContexto.tutor_ci,
+        tutor1_expedido: registroContexto.tutor_expedido,
+        tutor1_profesion: registroContexto.tutor_profesion,
+        tutor1_lugar_trabajo: registroContexto.tutor_lugar_trabajo,
+        tutor1_direccion: registroContexto.tutor_direccion_trabajo,
+        tutor1_celular: registroContexto.tutor_celular,
+        tutor1_email: registroContexto.tutor_email,
+    };
+    Object.entries(valores).forEach(([nombre, valor]) => setFormValueIfEmpty(nombre, valor));
+
+    const identidad = document.querySelector('[name="tutor1_nombres"]');
+    if (identidad) {
+        identidad.readOnly = true;
+        identidad.classList.add('bg-gray-100');
+    }
+
+    const ciDocumento = document.querySelector('[name="doc_ci_tutor1"]');
+    if (ciDocumento) {
+        ciDocumento.disabled = true;
+        ciDocumento.closest('div')?.classList.add('hidden');
+    }
+    const cuenta = document.querySelector('[name="nombre_usuario"]');
+    const bloqueCuenta = cuenta?.parentElement?.parentElement?.parentElement;
+    bloqueCuenta?.classList.add('hidden');
+    ['nombre_usuario', 'password', 'password_confirm'].forEach(nombre => {
+        const control = document.querySelector(`[name="${nombre}"]`);
+        if (control) control.disabled = true;
+    });
 }
 
 // --- EJECUCIÓN INMEDIATA (Para type="module") ---
@@ -43,7 +121,7 @@ function initListeners() {
         btnSiguiente.addEventListener('click', async () => {
             console.log("🖱️ Click en Siguiente");
             
-            if (currentStep === 1) {
+            if (!modoTutorExistente && currentStep === 1) {
                 // Validación especial para el paso 1 (Código)
                 const isValid = await validarCodigoBackend();
                 if (!isValid) return;
@@ -65,7 +143,7 @@ function initListeners() {
     const btnAnterior = document.getElementById('btn-anterior');
     if (btnAnterior) {
         btnAnterior.addEventListener('click', () => {
-            if (currentStep > 1) {
+            if (currentStep > primerPaso) {
                 currentStep--;
                 showStep(currentStep);
             }
@@ -113,7 +191,7 @@ function showStep(step) {
     const btnSiguiente = document.getElementById('btn-siguiente');
     const btnFinalizar = document.getElementById('btn-finalizar');
 
-    if (btnAnterior) btnAnterior.classList.toggle('hidden', step === 1);
+    if (btnAnterior) btnAnterior.classList.toggle('hidden', step === primerPaso);
     
     if (step === totalSteps) {
         if (btnSiguiente) btnSiguiente.classList.add('hidden');
@@ -130,7 +208,7 @@ function validateStepFields(step) {
     const container = document.getElementById(`step-${step}`);
     if (!container) return true;
 
-    const requiredInputs = container.querySelectorAll('[required]');
+    const requiredInputs = container.querySelectorAll('[required]:not(:disabled)');
     let valid = true;
 
     requiredInputs.forEach(input => {
@@ -195,6 +273,7 @@ async function validarCodigoBackend() {
             if (nombreEl) {
                 nombreEl.textContent = `${data.preinscripcion.nombres} ${data.preinscripcion.apellidos}`;
             }
+            prefillTutorPrincipal(data.preinscripcion);
             return true;
         } else {
             Swal.fire('Error', data.mensaje || 'Código no válido', 'error');
@@ -211,6 +290,15 @@ async function handleFinalSubmit(e) {
     e.preventDefault();
     
     if (!validateStepFields(10)) return;
+
+    const password = document.getElementById('tutor-password')?.value || '';
+    const passwordConfirm = document.getElementById('tutor-password-confirm')?.value || '';
+    if (!modoTutorExistente && password.length < 12) {
+        return Swal.fire({ icon: 'warning', title: 'Contraseña insegura', text: 'La contraseña debe tener al menos 12 caracteres.', confirmButtonColor: '#DD8E0A' });
+    }
+    if (!modoTutorExistente && password !== passwordConfirm) {
+        return Swal.fire({ icon: 'error', title: 'Revisa las contraseñas', text: 'Las contraseñas no coinciden.', confirmButtonColor: '#DD8E0A' });
+    }
 
     const confirm = await Swal.fire({
         title: '¿Finalizar Inscripción?',
@@ -232,12 +320,15 @@ async function handleFinalSubmit(e) {
 
     const formData = new FormData(document.getElementById('form-registro'));
     const codigoInput = document.getElementById('codigo-registro');
-    if (codigoInput) {
+    if (!modoTutorExistente && codigoInput) {
         formData.append('codigo_validado', codigoInput.value.trim().toUpperCase());
     }
 
     try {
-        const res = await fetch(`${API_BASE}/tutores/completar-registro`, {
+        const endpoint = modoTutorExistente
+            ? `${API_BASE}/tutores/completar-inscripcion-existente/${registroContexto.alumno_id}`
+            : `${API_BASE}/tutores/completar-registro`;
+        const res = await fetch(endpoint, {
             method: 'POST',
             body: formData 
         });
@@ -248,11 +339,13 @@ async function handleFinalSubmit(e) {
             await Swal.fire({
                 icon: 'success',
                 title: '¡Registro Exitoso!',
-                text: 'La cuenta ha sido creada. Redirigiendo...',
+                text: modoTutorExistente
+                    ? 'La ficha del hermano fue completada con tu misma cuenta.'
+                    : 'La cuenta ha sido creada. Redirigiendo...',
                 confirmButtonColor: '#10b981',
                 timer: 3000
             });
-            window.location.href = '/login';
+            window.location.href = modoTutorExistente ? (data.redirect_url || '/dashboard') : '/login';
         } else {
             throw new Error(data.detail || data.mensaje || 'Error desconocido');
         }

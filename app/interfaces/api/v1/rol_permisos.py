@@ -22,7 +22,7 @@ from app.kernel.application.seguridad.rol_permiso.revocar_permiso_rol import (
 )
 from app.kernel.application.seguridad.rol_permiso.listar_permisos_rol import ListarPermisosRol
 
-router = APIRouter(prefix="/api/v1/seguridad/rol-permisos", tags=["Rol-Permisos"])
+router = APIRouter(prefix="/seguridad/rol-permisos", tags=["Rol-Permisos"])
 
 
 def get_rol_repo(session: AsyncSession = Depends(get_session)) -> RolesRepository:

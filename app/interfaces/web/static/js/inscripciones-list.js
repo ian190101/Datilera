@@ -17,6 +17,7 @@ function initListeners() {
     document.getElementById('search-input')?.addEventListener('input', debounce(() => loadInscripciones(1), 500));
 
     document.getElementById('form-asignacion')?.addEventListener('submit', guardarAsignacion);
+    document.getElementById('form-preinscribir-hermano')?.addEventListener('submit', guardarPreinscripcionHermano);
     
     // Filtros
     document.getElementById('filter-estado')?.addEventListener('change', () => loadInscripciones(1));
@@ -191,6 +192,7 @@ let avatarHTML = `
             <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ${badgeClass}">${item.estado}</span></td>
             <td class="px-6 py-4 text-right space-x-3">
                 ${btnAsignar} 
+                ${item.estado !== 'INACTIVO' && item.tiene_tutor_con_cuenta ? `<button onclick="abrirPreinscribirHermano(${item.id}, '${encodeURIComponent(item.nombre_alumno)}', '${encodeURIComponent(item.nombre_tutor_1)}')" class="p-1 text-primary-600 hover:bg-primary-50 rounded dark:text-primary-400 dark:hover:bg-primary-900/20" title="Preinscribir hermano" aria-label="Preinscribir hermano"><i class="fas fa-children"></i></button>` : ''}
                 
                 ${item.estado !== 'INACTIVO' ? `<button onclick="desactivarAlumno(${item.id}, '${item.nombre_alumno}')" class="text-red-600 hover:text-red-800 dark:text-red-400" title="Dar de Baja"><i class="fas fa-user-times"></i></button>` : ''}
                 <button onclick="abrirSubirFoto(${item.id})" class="p-1 text-purple-600 hover:bg-purple-50 rounded" title="Subir Foto">
@@ -252,69 +254,494 @@ async function handleUploadFoto(e) {
     finally { btn.disabled = false; btn.innerText = "Subir"; }
 }
 
-// --- FUNCIÓN FICHA COMPLETA (FILE PERSONAL) ---
-window.verFichaCompleta = async (id) => {
+// --- FICHA PERSONAL MULTIPÁGINA ---
+// El modal y la impresión comparten este único árbol DOM. No se interpolan
+// valores sin escapar y las URL solo admiten HTTP(S) o rutas locales absolutas.
+function escapeFichaHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function safeFichaUrl(value, fallback = '') {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
+    if (raw.startsWith('/') && !raw.startsWith('//')) return raw;
     try {
-        const res = await fetchAPI(`${API_BASE}/inscripciones/${id}/ficha`);
-        if(!res.ok) throw new Error("No se pudo cargar la ficha");
-        
-        const data = await res.json();
-        
-        // 1. Datos Alumno
-        setText('ficha-nombre', data.alumno.nombre_completo);
-        setText('ficha-nacimiento', data.alumno.fecha_nacimiento);
-        setText('ficha-edad', data.alumno.edad_texto);
-        setText('ficha-meses', data.alumno.edad_meses);
-        
-        const img = document.getElementById('ficha-foto');
-        img.src = data.alumno.foto_url || '/static/img/default-avatar.png'; // Asegúrate de tener un default
-        
-        // 2. Mamá
-        setText('ficha-mama-nombre', data.mama.nombre || '---');
-        setText('ficha-mama-ci', data.mama.ci || '---');
-        setText('ficha-mama-email', data.mama.email || '---');
-        setText('ficha-mama-cel', data.mama.celular || '---');
-        setText('ficha-mama-prof', data.mama.profesion || '---');
-        setText('ficha-mama-lugar', data.mama.lugar_trabajo || '---');
-        setText('ficha-mama-dir', data.mama.direccion_trabajo || '---');
-
-        // 3. Papá
-        setText('ficha-papa-nombre', data.papa.nombre || '---');
-        setText('ficha-papa-ci', data.papa.ci || '---');
-        setText('ficha-papa-email', data.papa.email || '---');
-        setText('ficha-papa-cel', data.papa.celular || '---');
-        setText('ficha-papa-prof', data.papa.profesion || '---');
-        setText('ficha-papa-lugar', data.papa.lugar_trabajo || '---');
-        setText('ficha-papa-dir', data.papa.direccion_trabajo || '---');
-
-        // 4. Contactos
-        setText('ficha-direccion', data.alumno.direccion || '---');
-        setText('ficha-celulares', data.alumno.celulares || '---');
-        
-        // 5. Emergencia
-        setText('ficha-emerg-nombre', data.emergencia.nombre || '---');
-        setText('ficha-emerg-paren', data.emergencia.parentesco || '---');
-        setText('ficha-emerg-tel', data.emergencia.telefono || '---');
-
-        // 6. Recojo
-        setText('ficha-recojo-nombre', data.recojo.nombre || '---');
-        setText('ficha-recojo-paren', data.recojo.parentesco || '---');
-        setText('ficha-recojo-tel', data.recojo.telefono || '---');
-
-        openModal('modal-ficha');
-
-    } catch(e) {
-        showToast('Error cargando ficha técnica', 'error');
-        console.error(e);
+        const url = new URL(raw);
+        return (url.protocol === 'http:' || url.protocol === 'https:') ? url.href : fallback;
+    } catch (_) {
+        return fallback;
     }
 }
 
-function setText(id, text) {
-    const el = document.getElementById(id);
-    if(el) el.textContent = text;
+function fichaValue(data, ...paths) {
+    for (const path of paths) {
+        const value = path.split('.').reduce((current, key) => current?.[key], data);
+        if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return null;
 }
 
+function fichaDisplay(value, suffix = '') {
+    if (value === undefined || value === null || value === '') return 'No registrado';
+    if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+    if (Array.isArray(value)) {
+        const items = value.filter(item => item !== undefined && item !== null && item !== '');
+        return items.length ? items.join(', ') : 'No registrado';
+    }
+    return `${value}${suffix}`;
+}
+
+function fichaField(label, value, options = {}) {
+    const className = options.wide ? 'ficha-field ficha-field-wide' : 'ficha-field';
+    return `<div class="${className}">
+        <div class="ficha-field-label">${escapeFichaHtml(label)}</div>
+        <div class="ficha-field-value">${escapeFichaHtml(fichaDisplay(value, options.suffix || ''))}</div>
+    </div>`;
+}
+
+function fichaSection(title, content, extraClass = '') {
+    return `<section class="ficha-section ${escapeFichaHtml(extraClass)}">
+        <h2 class="ficha-section-title">${escapeFichaHtml(title)}</h2>
+        <div class="ficha-grid">${content}</div>
+    </section>`;
+}
+
+function fichaHeader(data, pageNumber, totalPages) {
+    const alumno = data.alumno || {};
+    const photo = safeFichaUrl(
+        fichaValue(data, 'alumno.foto_url', 'foto_url'),
+        '/static/img/logo.png'
+    );
+    const name = fichaValue(data, 'alumno.nombre_completo', 'alumno.nombres_completos', 'nombre_completo') || 'Estudiante';
+
+    const code = fichaValue(data, 'alumno.codigo_unico', 'alumno.codigo') || '';
+    return `<header class="ficha-page-header">
+        <div class="ficha-page-logo">
+            <img src="/static/img/logo.png" alt="Logo Datilera">
+        </div>
+        <div class="ficha-page-heading">
+            <h1 class="ficha-page-title">File personal</h1>
+            <p class="ficha-page-subtitle">Centro Infantil de Desarrollo Integral</p>
+            <strong class="ficha-student-name">${escapeFichaHtml(name)}</strong>
+        </div>
+        <div class="ficha-page-meta">
+            <img class="ficha-student-photo" src="${escapeFichaHtml(photo)}" alt="Foto del estudiante">
+            <span class="ficha-page-number">Página ${pageNumber} de ${totalPages}</span>
+            <span>${escapeFichaHtml(code)}</span>
+        </div>
+    </header>`;
+}
+
+function fichaPage(data, pageNumber, totalPages, body) {
+    return `<article class="ficha-page" data-page="${pageNumber}">
+        ${fichaHeader(data, pageNumber, totalPages)}
+        <div class="ficha-page-body">${body}</div>
+        <footer class="ficha-page-footer"><span>Datilera · File personal del alumno</span><span>Página ${pageNumber} de ${totalPages}</span></footer>
+    </article>`;
+}
+
+function normalizeFichaTutores(data) {
+    let tutores = Array.isArray(data.tutores) ? data.tutores : [];
+    if (!tutores.length) tutores = [data.mama, data.papa].filter(Boolean);
+    return tutores;
+}
+
+function renderFichaTutor(tutor, index) {
+    const ci = tutor.ci || [tutor.ci_numero, tutor.ci_complemento, tutor.ci_expedido].filter(Boolean).join(' ');
+    const title = tutor.tipo_relacion || tutor.relacion || (index === 0 ? 'Tutor principal' : `Tutor ${index + 1}`);
+    const fields = [
+            fichaField('Nombre completo', tutor.nombre || tutor.nombre_completo || [tutor.nombres, tutor.apellidos].filter(Boolean).join(' '), { wide: true }),
+            fichaField('Relación', title),
+            fichaField('C.I.', ci),
+            fichaField('Celular', tutor.celular),
+            fichaField('Celular alternativo', tutor.celular_alternativo),
+            fichaField('Correo electrónico', tutor.email),
+            fichaField('Dirección', tutor.direccion),
+            fichaField('Profesión', tutor.profesion),
+            fichaField('Lugar de trabajo', tutor.lugar_trabajo),
+            fichaField('Dirección de trabajo', tutor.direccion_trabajo),
+            fichaField('Teléfono de trabajo', tutor.telefono_trabajo),
+            fichaField('Tutor principal', tutor.es_principal),
+            fichaField('Tiene custodia', tutor.tiene_custodia),
+            fichaField('Recibe notificaciones', tutor.recibe_notificaciones),
+            fichaField('Autorizado para retirar', tutor.autorizado_retirar)
+    ].join('');
+    return `<div class="ficha-subsection ficha-field-wide"><h3>${escapeFichaHtml(title)}</h3><div class="ficha-grid">${fields}</div></div>`;
+}
+
+function renderFichaTutores(data) {
+    const tutores = normalizeFichaTutores(data);
+    if (!tutores.length) return '<p class="ficha-empty">No se registraron padres o tutores.</p>';
+    return tutores.map(renderFichaTutor).join('');
+}
+
+function renderFichaDocument(data) {
+    const target = document.getElementById('ficha-document');
+    if (!target) throw new Error('No existe el contenedor #ficha-document');
+
+    const a = data.alumno || {};
+    const nacimiento = data.nacimiento || {};
+    const salud = data.salud || {};
+    const sueno = data.sueno || data['sueño'] || {};
+    const alimentacion = data.alimentacion || {};
+    const desarrollo = data.desarrollo || {};
+    const social = data.social_familiar || data.social || {};
+    const emergencia = data.emergencia || {};
+    const recojo = data.recojo || {};
+    const documentos = data.documentos || {};
+
+    const page1 = [
+        fichaSection('Datos del estudiante', [
+            fichaField('Nombre completo', fichaValue(data, 'alumno.nombre_completo', 'alumno.nombres_completos'), { wide: true }),
+            fichaField('Código', fichaValue(data, 'alumno.codigo_unico', 'alumno.codigo')),
+            fichaField('C.I.', fichaValue(data, 'alumno.ci', 'alumno.ci_numero')),
+            fichaField('Fecha de nacimiento', a.fecha_nacimiento),
+            fichaField('Edad', a.edad_texto),
+            fichaField('Edad en meses', a.edad_meses),
+            fichaField('Lugar de nacimiento', a.lugar_nacimiento),
+            fichaField('Género', a.genero),
+            fichaField('Dirección domiciliaria', a.direccion || a.direccion_domicilio, { wide: true }),
+            fichaField('Seguro médico / aseguradora', fichaValue(data, 'alumno.aseguradora', 'salud.aseguradora')),
+            fichaField('Carnet de asegurado', fichaValue(data, 'alumno.carnet_asegurado', 'salud.carnet_asegurado')),
+            fichaField('Estado de inscripción', a.estado),
+            fichaField('Fecha de inscripción', a.fecha_inscripcion)
+        ].join(''))
+    ].join('');
+
+    const tutorPages = normalizeFichaTutores(data).map((tutor, index) =>
+        fichaSection(`Padre, madre o tutor ${index + 1}`, renderFichaTutor(tutor, index))
+    );
+    if (!tutorPages.length) tutorPages.push(fichaSection('Padres y tutores', renderFichaTutores(data)));
+
+    const page2 = [
+        fichaSection('Contactos y autorizaciones', [
+            fichaField('Contacto de emergencia', emergencia.nombre || a.contacto_emergencia_nombre, { wide: true }),
+            fichaField('Parentesco', emergencia.parentesco),
+            fichaField('Teléfono de emergencia', emergencia.telefono || a.contacto_emergencia_telefono),
+            fichaField('Familiares autorizados a recoger', recojo.nombre || recojo.detalle || a.familiares_autorizados_recogo, { wide: true }),
+            fichaField('Parentesco / detalle de recojo', recojo.parentesco, { wide: true }),
+            fichaField('Teléfono de recojo', recojo.telefono)
+        ].join(''))
+    ].join('');
+
+    const page3 = [
+        fichaSection('Historia de nacimiento', [
+            fichaField('Embarazo normal', fichaValue(data, 'nacimiento.embarazo_normal', 'alumno.embarazo_normal')),
+            fichaField('Complicaciones del embarazo', fichaValue(data, 'nacimiento.embarazo_complicaciones', 'alumno.embarazo_complicaciones'), { wide: true }),
+            fichaField('Parto normal', fichaValue(data, 'nacimiento.parto_normal', 'alumno.parto_normal')),
+            fichaField('Complicaciones del parto', fichaValue(data, 'nacimiento.parto_complicaciones', 'alumno.parto_complicaciones'), { wide: true }),
+            fichaField('Peso al nacer', fichaValue(data, 'nacimiento.peso_nacer', 'alumno.peso_nacer'), { suffix: ' kg' }),
+            fichaField('Talla al nacer', fichaValue(data, 'nacimiento.talla_nacer', 'alumno.talla_nacer'), { suffix: ' cm' })
+        ].join('')),
+        fichaSection('Salud y antecedentes', [
+            fichaField('Enfermedades previas', fichaValue(data, 'salud.enfermedades_previas', 'alumno.enfermedades_previas'), { wide: true }),
+            fichaField('Problemas de salud', fichaValue(data, 'salud.problemas_salud', 'alumno.problemas_salud'), { wide: true }),
+            fichaField('Tiene alergias', fichaValue(data, 'salud.tiene_alergias', 'alumno.tiene_alergias')),
+            fichaField('Detalle de alergias', fichaValue(data, 'salud.alergias_detalle', 'alumno.alergias_detalle'), { wide: true }),
+            fichaField('Medicación actual', fichaValue(data, 'salud.medicacion_actual', 'alumno.medicacion_actual'), { wide: true }),
+            fichaField('Tratamiento actual', fichaValue(data, 'salud.tratamiento_actual', 'alumno.tratamiento_actual'), { wide: true }),
+            fichaField('Traumatismos o caídas', fichaValue(data, 'salud.traumatismos_caidas', 'alumno.traumatismos_caidas'), { wide: true })
+        ].join(''))
+    ].join('');
+
+    const page4 = [
+        fichaSection('Sueño y descanso', [
+            fichaField('Horario nocturno', fichaValue(data, 'sueno.horario_nocturno', 'sueno.horario_sueno_nocturno', 'alumno.horario_sueno_nocturno')),
+            fichaField('Horario diurno', fichaValue(data, 'sueno.horario_diurno', 'sueno.horario_sueno_diurno', 'alumno.horario_sueno_diurno')),
+            fichaField('Lugar donde duerme', fichaValue(data, 'sueno.lugar_sueno', 'alumno.lugar_sueno')),
+            fichaField('Duerme con', fichaValue(data, 'sueno.duerme_con', 'alumno.duerme_con')),
+            fichaField('De bebé dormía con / hasta qué edad', fichaValue(data, 'sueno.co_sleeping_bebe_edad', 'alumno.co_sleeping_bebe_edad'), { wide: true }),
+            fichaField('Usa chupete', fichaValue(data, 'sueno.usa_chupete', 'alumno.usa_chupete')),
+            fichaField('Postura al dormir', fichaValue(data, 'sueno.postura_sueno', 'alumno.postura_sueno')),
+            fichaField('Cómo se duerme', fichaValue(data, 'sueno.se_duerme_como', 'alumno.se_duerme_como')),
+            fichaField('Pesadillas / frecuencia', fichaValue(data, 'sueno.pesadillas_frecuencia', 'alumno.pesadillas_frecuencia')),
+            fichaField('Problemas de sueño', fichaValue(data, 'sueno.problemas_sueno', 'alumno.problemas_sueno'), { wide: true }),
+            fichaField('Momento de los problemas de sueño', fichaValue(data, 'sueno.momento_problemas_sueno', 'alumno.momento_problemas_sueno')),
+            fichaField('Respuesta familiar ante problemas', fichaValue(data, 'sueno.respuesta_problemas_sueno', 'alumno.respuesta_problemas_sueno'), { wide: true }),
+            fichaField('Otros hábitos de sueño', fichaValue(data, 'sueno.otros_habitos_sueno', 'alumno.otros_habitos_sueno'), { wide: true })
+        ].join(''))
+    ].join('');
+
+    const page5 = [
+        fichaSection('Alimentación', [
+            fichaField('Lactancia materna', fichaValue(data, 'alimentacion.lactancia_materna_meses', 'alumno.lactancia_materna_meses'), { suffix: ' meses' }),
+            fichaField('Uso de biberón desde', fichaValue(data, 'alimentacion.uso_biberon_desde_meses', 'alumno.uso_biberon_desde_meses'), { suffix: ' meses' }),
+            fichaField('Dieta actual', fichaValue(data, 'alimentacion.dieta_actual', 'alumno.dieta_actual'), { wide: true }),
+            fichaField('Alimentos en puré', fichaValue(data, 'alimentacion.alimentos_en_pure', 'alumno.alimentos_en_pure')),
+            fichaField('Problemas de succión o masticación', fichaValue(data, 'alimentacion.problemas_succion_masticacion', 'alumno.problemas_succion_masticacion'), { wide: true }),
+            fichaField('Transición a alimentos sólidos', fichaValue(data, 'alimentacion.transicion_alimentacion_solida', 'alumno.transicion_alimentacion_solida'), { wide: true }),
+            fichaField('Intolerancias alimenticias', fichaValue(data, 'alimentacion.intolerancias_alimenticias', 'alumno.intolerancias_alimenticias')),
+            fichaField('Alimentos que rechaza', fichaValue(data, 'alimentacion.alimentos_rechaza', 'alumno.alimentos_rechaza')),
+            fichaField('Alimentos que prefiere', fichaValue(data, 'alimentacion.alimentos_prefiere', 'alumno.alimentos_prefiere')),
+            fichaField('Problemas de alimentación', fichaValue(data, 'alimentacion.problemas_alimentacion', 'alumno.problemas_alimentacion'), { wide: true }),
+            fichaField('Respuesta familiar ante problemas', fichaValue(data, 'alimentacion.respuesta_problemas_comer', 'alumno.respuesta_problemas_comer'), { wide: true })
+        ].join(''))
+    ].join('');
+
+    const page6 = [
+        fichaSection('Desarrollo evolutivo', [
+            fichaField('Controló la cabeza', fichaValue(data, 'desarrollo.edad_control_cabeza_meses', 'alumno.edad_control_cabeza_meses'), { suffix: ' meses' }),
+            fichaField('Se sentó sin ayuda', fichaValue(data, 'desarrollo.edad_sentarse_meses', 'alumno.edad_sentarse_meses'), { suffix: ' meses' }),
+            fichaField('Gateó', fichaValue(data, 'desarrollo.edad_gatear_meses', 'alumno.edad_gatear_meses'), { suffix: ' meses' }),
+            fichaField('Se levantó / sostuvo', fichaValue(data, 'desarrollo.edad_levantarse_meses', 'alumno.edad_levantarse_meses'), { suffix: ' meses' }),
+            fichaField('Caminó', fichaValue(data, 'desarrollo.edad_caminar_meses', 'alumno.edad_caminar_meses'), { suffix: ' meses' }),
+            fichaField('Balbuceó', fichaValue(data, 'desarrollo.edad_balbuceo_meses', 'alumno.edad_balbuceo_meses'), { suffix: ' meses' }),
+            fichaField('Primeras palabras', fichaValue(data, 'desarrollo.edad_primeras_palabras_meses', 'alumno.edad_primeras_palabras_meses'), { suffix: ' meses' }),
+            fichaField('Primeros dientes', fichaValue(data, 'desarrollo.edad_primeros_dientes_meses', 'alumno.edad_primeros_dientes_meses'), { suffix: ' meses' }),
+            fichaField('Problemas de marcha', fichaValue(data, 'desarrollo.problemas_marcha', 'alumno.problemas_marcha'), { wide: true }),
+            fichaField('Síntomas de dentición', fichaValue(data, 'desarrollo.sintomas_denticion', 'alumno.sintomas_denticion'), { wide: true })
+        ].join(''))
+    ].join('');
+
+    const page7 = [
+        fichaSection('Área social y familiar', [
+            fichaField('Quién le atiende habitualmente', fichaValue(data, 'social_familiar.quien_atiende', 'social.quien_atiende', 'alumno.quien_atiende')),
+            fichaField('Personas que viven en casa', fichaValue(data, 'social_familiar.familiares_en_casa', 'social.familiares_en_casa', 'alumno.familiares_en_casa'), { wide: true }),
+            fichaField('Familiar con mayor apego', fichaValue(data, 'social_familiar.familiar_mas_apego', 'social.familiar_mas_apego', 'alumno.familiar_mas_apego')),
+            fichaField('Objeto afectivo', fichaValue(data, 'social_familiar.objeto_afectivo', 'social.objeto_afectivo', 'alumno.objeto_afectivo')),
+            fichaField('Actividades con los padres', fichaValue(data, 'social_familiar.actividades_con_padres', 'social.actividades_con_padres', 'alumno.actividades_con_padres'), { wide: true }),
+            fichaField('Sentimientos más expresados', fichaValue(data, 'social_familiar.sentimientos_mas_expresados', 'social.sentimientos_mas_expresados', 'alumno.sentimientos_mas_expresados'), { wide: true }),
+            fichaField('Llora habitualmente', fichaValue(data, 'social_familiar.llora_habitualmente', 'social.llora_habitualmente', 'alumno.llora_habitualmente')),
+            fichaField('Circunstancias del llanto', fichaValue(data, 'social_familiar.circunstancias_llanto', 'social.circunstancias_llanto', 'alumno.circunstancias_llanto'), { wide: true }),
+            fichaField('Con quién juega', fichaValue(data, 'social_familiar.con_quien_juega', 'social.con_quien_juega', 'alumno.con_quien_juega')),
+            fichaField('Juguetes preferidos', fichaValue(data, 'social_familiar.juguetes_preferidos', 'social.juguetes_preferidos', 'alumno.juguetes_preferidos')),
+            fichaField('Relación con desconocidos', fichaValue(data, 'social_familiar.relacion_con_desconocidos', 'social.relacion_con_desconocidos', 'alumno.relacion_con_desconocidos'), { wide: true })
+        ].join(''))
+    ].join('');
+
+    const documentRows = Object.entries(documentos).map(([key, documentValue]) => {
+        const label = key.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+        const isDocumentObject = documentValue !== null && typeof documentValue === 'object';
+        const rawUrl = isDocumentObject ? (documentValue.url || documentValue.ruta) : documentValue;
+        const url = safeFichaUrl(rawUrl);
+        const status = isDocumentObject ? (documentValue.estado || (url ? 'Adjunto' : null)) : (url ? 'Adjunto' : documentValue);
+        if (url) {
+            return `<div class="ficha-field">
+                <div class="ficha-field-label">${escapeFichaHtml(label)}</div>
+                <div class="ficha-field-value"><a class="ficha-document-link" href="${escapeFichaHtml(url)}" target="_blank" rel="noopener noreferrer">Documento adjunto</a></div>
+            </div>`;
+        }
+        return fichaField(label, status || 'No adjunto');
+    }).join('');
+
+    const page8 = [
+        fichaSection('Documentación presentada', documentRows || [
+            fichaField('Certificado de nacimiento', a.certificado_nacimiento_url ? 'Adjunto' : 'No adjunto'),
+            fichaField('Libreta de vacunas', a.libreta_vacunas_url ? 'Adjunta' : 'No adjunta')
+        ].join('')),
+        fichaSection('Observaciones administrativas', [
+            fichaField('Fecha de primera asistencia', a.fecha_primera_asistencia),
+            fichaField('Fecha de baja', a.fecha_baja),
+            fichaField('Motivo de baja', a.motivo_baja, { wide: true })
+        ].join('')),
+        '<p class="ficha-security-note">Por seguridad, este documento no muestra contraseñas ni credenciales de acceso.</p>'
+    ].join('');
+
+    const pages = [page1, ...tutorPages, page2, page3, page4, page5, page6, page7, page8];
+    target.innerHTML = pages.map((body, index) => fichaPage(data, index + 1, pages.length, body)).join('');
+}
+
+window.verFichaCompleta = async (id) => {
+    const target = document.getElementById('ficha-document');
+    if (target) target.innerHTML = '<div class="ficha-loading"><i class="fas fa-spinner fa-spin"></i> Cargando ficha completa...</div>';
+    openModal('modal-ficha');
+
+    try {
+        const res = await fetchAPI(`${API_BASE}/inscripciones/${id}/ficha`);
+        if (!res.ok) throw new Error('No se pudo cargar la ficha');
+        renderFichaDocument(await res.json());
+    } catch (error) {
+        if (target) target.innerHTML = '<div class="ficha-error">No se pudo cargar la ficha personal.</div>';
+        showToast('Error cargando ficha personal', 'error');
+        console.error(error);
+    }
+};
+
 // --- LÓGICA DE ASIGNACIÓN ---
+
+let tutorExistenteSeleccionado = null;
+
+function escapeTutorHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+window.abrirPreinscribirHermano = (alumnoId, nombreCodificado, tutorCodificado) => {
+    const form = document.getElementById('form-preinscribir-hermano');
+    form?.reset();
+    document.getElementById('hermano-alumno-origen-id').value = String(alumnoId);
+    document.getElementById('hermano-alumno-origen-nombre').textContent = decodeURIComponent(nombreCodificado);
+    document.getElementById('hermano-tutor-nombre').textContent = decodeURIComponent(tutorCodificado);
+    const fecha = document.getElementById('hermano-fecha-nacimiento');
+    if (fecha) fecha.max = new Date().toISOString().slice(0, 10);
+    openModal('modal-preinscribir-hermano');
+    document.getElementById('hermano-nombres')?.focus();
+};
+
+async function guardarPreinscripcionHermano(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const alumnoOrigenId = Number(document.getElementById('hermano-alumno-origen-id').value);
+    const submit = form.querySelector('button[type="submit"]');
+    const textoOriginal = submit.innerHTML;
+    submit.disabled = true;
+    submit.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+    try {
+        const res = await fetchAPI(`${API_BASE}/inscripciones/${alumnoOrigenId}/preinscribir-hermano`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombres: form.elements.nombres.value.trim(),
+                apellidos: form.elements.apellidos.value.trim(),
+                fecha_nacimiento: form.elements.fecha_nacimiento.value,
+                genero: form.elements.genero.value,
+            }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'No se pudo preinscribir al hermano');
+        showToast(data.mensaje, 'success');
+        closeModal('modal-preinscribir-hermano');
+        await loadInscripciones(currentPage);
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        submit.disabled = false;
+        submit.innerHTML = textoOriginal;
+    }
+}
+
+window.abrirTutorExistente = async (alumnoId, nombreCodificado) => {
+    const form = document.getElementById('form-tutor-existente');
+    form.reset();
+    tutorExistenteSeleccionado = null;
+    document.getElementById('tutor-existente-alumno-id').value = alumnoId;
+    document.getElementById('tutor-existente-alumno-nombre').textContent = `Alumno: ${decodeURIComponent(nombreCodificado)}`;
+    document.getElementById('tutor-existente-id').value = '';
+    document.getElementById('buscar-tutor-existente').value = '';
+    document.getElementById('resultados-tutores-existentes').innerHTML = '<div class="py-6 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando tutores...</div>';
+    openModal('modal-tutor-existente');
+    await Promise.all([buscarTutoresExistentes(), cargarOtrosAlumnosTutor(alumnoId)]);
+};
+
+async function cargarOtrosAlumnosTutor(alumnoIdActual) {
+    const contenedor = document.getElementById('otros-alumnos-tutor');
+    if (!contenedor) return;
+    contenedor.innerHTML = '<div class="py-3 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando alumnos...</div>';
+    try {
+        const params = new URLSearchParams({ page: 1, per_page: 100, search: '', estado: '', grupo: '' });
+        const res = await fetchAPI(`${API_BASE}/inscripciones?${params}`);
+        if (!res.ok) throw new Error('No se pudieron cargar los alumnos');
+        const data = await res.json();
+        const otros = (data.items || []).filter(item => Number(item.id) !== Number(alumnoIdActual) && item.estado !== 'INACTIVO');
+        if (!otros.length) {
+            contenedor.innerHTML = '<p class="py-3 text-center text-sm text-gray-500">No hay otros alumnos disponibles.</p>';
+            return;
+        }
+        contenedor.innerHTML = otros.map(item => `
+            <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                <input type="checkbox" name="otros_alumnos" value="${item.id}" class="rounded text-emerald-600">
+                <span><strong class="block text-gray-900 dark:text-white">${escapeTutorHtml(item.nombre_alumno)}</strong><span class="text-xs text-gray-500">${escapeTutorHtml(item.codigo_inscripcion)} · ${escapeTutorHtml(item.estado)}</span></span>
+            </label>
+        `).join('');
+    } catch (error) {
+        contenedor.innerHTML = '<p class="py-3 text-center text-sm text-red-600">No se pudieron cargar los demás alumnos.</p>';
+        console.error(error);
+    }
+}
+
+async function buscarTutoresExistentes() {
+    const alumnoId = document.getElementById('tutor-existente-alumno-id')?.value;
+    const termino = document.getElementById('buscar-tutor-existente')?.value.trim() || '';
+    const resultados = document.getElementById('resultados-tutores-existentes');
+    if (!alumnoId || !resultados) return;
+
+    resultados.innerHTML = '<div class="py-6 text-center text-sm text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Buscando...</div>';
+    try {
+        const params = new URLSearchParams({ alumno_id: alumnoId, termino });
+        const res = await fetchAPI(`${API_BASE}/tutores/existentes?${params}`);
+        if (!res.ok) throw new Error('No se pudieron cargar los tutores');
+        const data = await res.json();
+        const items = Array.isArray(data.items) ? data.items : [];
+        if (!items.length) {
+            resultados.innerHTML = '<div class="py-6 text-center text-sm text-gray-500">No se encontraron tutores disponibles.</div>';
+            return;
+        }
+        resultados.innerHTML = items.map(tutor => `
+            <button type="button" data-tutor-id="${tutor.id}" class="tutor-existente-opcion w-full rounded-lg border border-gray-200 p-3 text-left transition hover:border-emerald-500 hover:bg-emerald-50 dark:border-gray-600 dark:hover:bg-emerald-900/20">
+                <span class="block font-semibold text-gray-900 dark:text-white">${escapeTutorHtml(tutor.nombre_completo)}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">CI: ${escapeTutorHtml(tutor.ci_numero || 'S/N')} · Celular: ${escapeTutorHtml(tutor.celular || 'S/N')}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">Cuenta: ${escapeTutorHtml(tutor.cuenta_usuario || 'Sin usuario')}</span>
+                <span class="mt-1 block text-xs text-emerald-700 dark:text-emerald-400">${tutor.cantidad_alumnos} alumno(s) vinculado(s)${tutor.alumnos?.length ? `: ${escapeTutorHtml(tutor.alumnos.join(', '))}` : ''}</span>
+            </button>
+        `).join('');
+        resultados.querySelectorAll('.tutor-existente-opcion').forEach(button => {
+            button.addEventListener('click', () => seleccionarTutorExistente(button));
+        });
+    } catch (error) {
+        resultados.innerHTML = '<div class="py-6 text-center text-sm text-red-600">Error al buscar tutores.</div>';
+        console.error(error);
+    }
+}
+
+function seleccionarTutorExistente(button) {
+    document.querySelectorAll('.tutor-existente-opcion').forEach(option => {
+        option.classList.remove('border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-200');
+    });
+    button.classList.add('border-emerald-500', 'bg-emerald-50', 'ring-2', 'ring-emerald-200');
+    tutorExistenteSeleccionado = Number(button.dataset.tutorId);
+    document.getElementById('tutor-existente-id').value = String(tutorExistenteSeleccionado);
+}
+
+async function guardarTutorExistente(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const alumnoId = Number(document.getElementById('tutor-existente-alumno-id').value);
+    const tutorId = Number(document.getElementById('tutor-existente-id').value);
+    if (!tutorId) {
+        showToast('Selecciona un tutor existente', 'warning');
+        return;
+    }
+
+    const submit = form.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    try {
+        const alumnosAdicionales = Array.from(form.querySelectorAll('[name="otros_alumnos"]:checked'))
+            .map(input => Number(input.value));
+        const res = await fetchAPI(`${API_BASE}/inscripciones/asignar-tutor-existente`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                alumno_ids: [alumnoId, ...alumnosAdicionales],
+                tutor_id: tutorId,
+                tipo_relacion: form.tipo_relacion.value,
+                es_principal: form.es_principal.checked,
+                tiene_custodia: form.tiene_custodia.checked,
+                recibe_notificaciones: form.recibe_notificaciones.checked,
+                autorizado_retirar: form.autorizado_retirar.checked,
+            }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'No se pudo vincular el tutor');
+        showToast(data.mensaje || 'Tutor vinculado correctamente', 'success');
+        closeModal('modal-tutor-existente');
+        await loadInscripciones(currentPage);
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        submit.disabled = false;
+    }
+}
 
 window.abrirAsignacion = async (id, nombre) => {
     // 1. Resetear Modal
@@ -537,147 +964,35 @@ function debounce(func, wait) {
 }
 
 
-window.imprimirFichaDetalle = function() {
-    // Helper seguro: si el ID no existe, devuelve vacío en lugar de error
-    const getTextSafe = (id) => {
-        const el = document.getElementById(id);
-        return el ? el.innerText : '';
-    };
+window.imprimirFichaDetalle = async function() {
+    const ficha = document.getElementById('ficha-document');
+    if (!ficha || !ficha.querySelector('.ficha-page')) {
+        showToast('Primero debe cargar una ficha personal', 'warning');
+        return;
+    }
 
-    // 1. Obtener datos (Usando los IDs reales de tu HTML)
-    const nombre = getTextSafe('ficha-nombre');
-    // const codigo = getTextSafe('ficha-codigo'); // ELIMINADO: No existe en el HTML
-    const edad = getTextSafe('ficha-edad');
-    const meses = getTextSafe('ficha-meses'); 
-    const nac = getTextSafe('ficha-nacimiento'); // CORREGIDO: coincide con tu HTML
-    
-    // Foto
-    const imgEl = document.getElementById('ficha-foto');
-    const foto = imgEl ? imgEl.src : '/static/img/default-avatar.png';
-    
-    // Datos de contacto
-    const mamaNombre = getTextSafe('ficha-mama-nombre');
-    const mamaCel = getTextSafe('ficha-mama-cel');
-    const papaNombre = getTextSafe('ficha-papa-nombre');
-    const papaCel = getTextSafe('ficha-papa-cel');
-    
-    // Emergencia y Recojo
-    const emergNombre = getTextSafe('ficha-emerg-nombre');
-    const emergTel = getTextSafe('ficha-emerg-tel');
-    const recojoNombre = getTextSafe('ficha-recojo-nombre');
-    const recojoTel = getTextSafe('ficha-recojo-tel');
+    // Evita que el diálogo de impresión capture una foto o logo a medio cargar.
+    const pendingImages = [...ficha.querySelectorAll('img')]
+        .filter(image => !image.complete)
+        .map(image => new Promise(resolve => {
+            image.addEventListener('load', resolve, { once: true });
+            image.addEventListener('error', resolve, { once: true });
+        }));
+    await Promise.all(pendingImages);
 
-    // 2. Crear ventana nueva
-    const printWindow = window.open('', '', 'height=800,width=900');
-    
-    // 3. Escribir documento
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Ficha - ${nombre}</title>
-            <style>
-                body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
-                .header { display: flex; align-items: center; border-bottom: 2px solid #DD8E0A; padding-bottom: 20px; margin-bottom: 30px; }
-                .foto { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #f3f4f6; margin-right: 25px; }
-                .titulo h1 { margin: 0; font-size: 24px; color: #111827; text-transform: uppercase; }
-                .titulo p { margin: 5px 0 0; color: #6b7280; font-size: 14px; }
-                
-                .section { margin-bottom: 30px; break-inside: avoid; }
-                .section-title { 
-                    font-size: 14px; font-weight: bold; text-transform: uppercase; 
-                    letter-spacing: 1px; color: #DD8E0A; border-bottom: 1px solid #e5e7eb; 
-                    padding-bottom: 5px; margin-bottom: 15px; 
-                }
-                
-                .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-                .field { margin-bottom: 5px; }
-                .label { font-weight: 700; font-size: 11px; color: #6b7280; display: block; text-transform: uppercase; margin-bottom: 2px; }
-                .value { font-size: 14px; color: #1f2937; font-weight: 500; }
-                
-                .contacts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                .contacts-table th { text-align: left; background: #f9fafb; padding: 8px; border-bottom: 2px solid #e5e7eb; color: #374151; font-size: 11px; text-transform: uppercase; }
-                .contacts-table td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
-                
-                .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 20px; }
-                
-                @media print {
-                    body { -webkit-print-color-adjust: exact; padding: 20px; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <img src="${foto}" class="foto" onerror="this.style.display='none'">
-                <div class="titulo">
-                    <h1>${nombre}</h1>
-                    <p>Edad: ${edad} (${meses} meses)</p>
-                </div>
-            </div>
+    const cleanup = () => document.body.classList.remove('ficha-print-mode');
+    window.addEventListener('afterprint', cleanup, { once: true });
+    document.body.classList.add('ficha-print-mode');
 
-            <div class="section">
-                <div class="section-title">Información Personal</div>
-                <div class="grid">
-                    <div class="field">
-                        <span class="label">Fecha de Nacimiento</span>
-                        <span class="value">${nac}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-title">Padres / Tutores</div>
-                <div class="grid">
-                    <div class="field">
-                        <span class="label">Madre / Tutor 1</span>
-                        <span class="value">${mamaNombre || '-'} <br> ${mamaCel ? '📞 ' + mamaCel : ''}</span>
-                    </div>
-                    <div class="field">
-                        <span class="label">Padre / Tutor 2</span>
-                        <span class="value">${papaNombre || '-'} <br> ${papaCel ? '📞 ' + papaCel : ''}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-title">Contactos de Emergencia & Recojo</div>
-                <table class="contacts-table">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Nombre</th>
-                            <th>Teléfono</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Emergencia</strong></td>
-                            <td>${emergNombre}</td>
-                            <td>${emergTel}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Autorizado Recojo</strong></td>
-                            <td>${recojoNombre}</td>
-                            <td>${recojoTel}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="footer">
-                Documento generado el ${new Date().toLocaleDateString()} a las ${new Date().toLocaleTimeString()}
-            </div>
-        </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    
-    printWindow.onload = function() {
-        printWindow.focus();
-        // Pequeño delay para asegurar que la imagen (si hay) cargue
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
-    };
+    // Dos frames permiten aplicar el CSS @media print al mismo DOM mostrado
+    // en el modal antes de abrir el diálogo nativo del navegador.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        try {
+            window.print();
+        } catch (error) {
+            cleanup();
+            console.error('No se pudo imprimir la ficha', error);
+            showToast('No se pudo abrir la impresión', 'error');
+        }
+    }));
 };

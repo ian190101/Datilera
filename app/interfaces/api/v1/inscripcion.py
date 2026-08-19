@@ -88,7 +88,7 @@ class AsignacionAcademicaService:
         return {"grupo_id": 1, "paralelo_id": 1}
 
 
-router = APIRouter(prefix="/api/v1/inscripcion", tags=["Inscripción"])
+router = APIRouter(prefix="/inscripcion", tags=["Inscripción"])
 
 
 # Helpers para construir casos de uso con repos/servicios concretos

@@ -27,6 +27,7 @@ class WSNotificationNewPayload(BaseModel):
     titulo: str
     mensaje: str
     tipo: str
+    prioridad: str = "media"
     creado_en: str
     leida: bool
     sede_id: int

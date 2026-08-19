@@ -10,13 +10,11 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.barcode import qr
 from reportlab.lib.utils import ImageReader
 
-# Utils para convertir números a letras (Simplificado para el ejemplo)
-# En producción te sugiero usar la librería 'num2words' configurada en español
+
+
 def numero_a_letras(monto):
     entero = int(monto)
     decimal = int(round((monto - entero) * 100))
-    # Aquí deberías implementar o importar una función completa de conversión
-    # Por brevedad, retorno un placeholder, pero DEBES usar 'num2words'
     texto_monto = f"{entero} {decimal}/100 BOLIVIANOS" 
     return f"SON: {texto_monto}".upper()
 
@@ -25,10 +23,10 @@ class ReciboService:
         # Configuración de la Empresa (Datos SIAT)
         self.empresa = {
             "nombre": "CENTRO INFANTIL DATILERA",
-            "razon_social": "DATILERA S.R.L.", # Ejemplo
-            "nit": "123456789", # NIT Real de Datilera
-            "direccion": "Av. Ejemplo #123, Zona Norte",
-            "telefono": "4-4444444",
+            "razon_social": "DATILERA S.R.L.", 
+            "nit": "123456789", 
+            "direccion": "Calle Los Ceibos y Av. Circunvalación",
+            "telefono": "77142203",
             "municipio": "Cochabamba - Bolivia",
             "actividad": "ENSEÑANZA PREESCOLAR Y PRIMARIA"
         }

@@ -3,6 +3,7 @@ from .categorias_pago import CategoriaPago
 from .categorias_egreso import CategoriaEgreso  # NUEVO
 from .libro_caja import LibroCaja, TipoMovimientoEnum
 from .pagos import Pago
+from .pagos_cuotas import PagoCuota
 from .comprobantes import Comprobante
 from .planes_pago import PlanPago
 from .planes_cuotas import PlanCuota
@@ -23,6 +24,7 @@ __all__ = [
     "LibroCaja",
     "TipoMovimientoEnum",
     "Pago",
+    "PagoCuota",
     "Comprobante",
     "PlanPago",
     "PlanCuota",

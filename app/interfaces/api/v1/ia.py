@@ -41,7 +41,7 @@ from app.kernel.domain.ia import (
 )
 
 
-router = APIRouter(prefix="/api/v1/ia", tags=["IA"])
+router = APIRouter(prefix="/ia", tags=["IA"])
 
 
 # ============================================================================

@@ -12,7 +12,7 @@ from app.kernel.application.seguridad.sede.obtener_sede import ObtenerSede
 from app.kernel.application.seguridad.sede.desactivar_sede import EliminarSede
 from app.kernel.application.seguridad.sede.listar_sedes import ListarSedes, ListarSedesDTO
 
-router = APIRouter(prefix="/api/v1/sedes", tags=["Sedes"])
+router = APIRouter(prefix="/sedes", tags=["Sedes"])
 
 def get_repo(session: AsyncSession = Depends(get_session)) -> SedeRepository:
     return SedeRepository(session)

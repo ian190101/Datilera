@@ -4,12 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Personal - Datilera</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { 'primary': { 50: '#FEF8E8', 100: '#FEEFC7', 500: '#DD8E0A', 600: '#C67306', 700: '#A45909' } } } }
-        }
-    </script>
+    <link rel="icon" type="image/png" href="/static/img/logo.png">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v=20260714">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -87,6 +83,11 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-bold text-gray-700">Correo electrónico</label>
+                        <input type="email" name="email" class="form-input" autocomplete="email" placeholder="nombre@correo.com">
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-bold text-gray-700">Dirección Domicilio *</label>
                         <input type="text" name="direccion" class="form-input" required placeholder="Calle, Número, Zona">
                     </div>
@@ -101,11 +102,11 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700">Contraseña *</label>
-                                    <input type="password" name="password" id="password" class="form-input" required>
+                                    <input type="password" name="password" id="password" class="form-input" required minlength="12" maxlength="128" autocomplete="new-password">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-gray-700">Repetir Contraseña *</label>
-                                    <input type="password" name="password_confirm" id="password_confirm" class="form-input" required>
+                                    <input type="password" name="password_confirm" id="password_confirm" class="form-input" required minlength="12" maxlength="128" autocomplete="new-password">
                                 </div>
                             </div>
                         </div>
@@ -123,6 +124,7 @@
         </form>
     </div>
 
-    <script type="module" src="/static/js/registro-profesoras.js"></script>
+    <footer class="text-center text-xs text-gray-400 pb-8">© {{ current_year }} Datilera</footer>
+    <script type="module" src="/static/js/registro-profesoras.js?v=20260714-2"></script>
 </body>
 </html>

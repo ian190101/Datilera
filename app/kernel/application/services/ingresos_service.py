@@ -10,6 +10,7 @@ from app.infrastructure.db.models.finanzas.cuota_plan_pago import CuotaPlanPago
 from app.infrastructure.db.models.finanzas.prorrateo import Prorrateo
 from app.infrastructure.db.models.finanzas.descuento import Descuento
 from app.infrastructure.db.models.finanzas.pagos import Pago
+from app.infrastructure.db.models.finanzas.pagos_cuotas import PagoCuota
 from app.infrastructure.db.models.finanzas.libro_caja import LibroCaja, TipoMovimientoEnum
 from app.infrastructure.db.models.finanzas.comprobantes import Comprobante
 from app.infrastructure.db.models.alumnos.alumnos import Alumno
@@ -302,7 +303,37 @@ class IngresosService:
         # NOTA: Como un pago puede cubrir una cuota parcial o total,
         # debemos buscar la cuota que tenga este pago_id.
         # (Si tu modelo CuotaPlanPago tiene relación directa, úsala).
-        stmt_cuota = select(CuotaPlanPago).where(CuotaPlanPago.pago_id == pago.id)
+        asignaciones = (
+            await self.db.execute(
+                select(PagoCuota, CuotaPlanPago)
+                .join(CuotaPlanPago, PagoCuota.cuota_id == CuotaPlanPago.id)
+                .where(PagoCuota.pago_id == pago.id)
+            )
+        ).all()
+        for asignacion, cuota_asignada in asignaciones:
+            cuota_asignada.monto_pagado = max(
+                Decimal("0.00"),
+                cuota_asignada.monto_pagado - asignacion.monto_aplicado,
+            )
+            cuota_asignada.estado = "pendiente"
+            cuota_asignada.fecha_pago = None
+            cuota_asignada.pago_id = await self.db.scalar(
+                select(PagoCuota.pago_id)
+                .join(Pago, Pago.id == PagoCuota.pago_id)
+                .where(
+                    PagoCuota.cuota_id == cuota_asignada.id,
+                    PagoCuota.pago_id != pago.id,
+                    Pago.anulado.is_(False),
+                )
+                .order_by(PagoCuota.id.desc())
+                .limit(1)
+            )
+
+        # La consulta antigua se conserva solo para pagos previos a la migración.
+        stmt_cuota = select(CuotaPlanPago).where(
+            CuotaPlanPago.pago_id == pago.id,
+            CuotaPlanPago.id == (-1 if asignaciones else CuotaPlanPago.id),
+        )
         result_cuota = await self.db.execute(stmt_cuota)
         cuota = result_cuota.scalar_one_or_none()
 

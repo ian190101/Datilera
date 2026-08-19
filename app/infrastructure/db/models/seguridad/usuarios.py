@@ -17,6 +17,8 @@ class Usuario(Base):
     telefono = Column(String(20), nullable=True)
     foto_perfil_url = Column(String(255), nullable=True)
     activo = Column(Boolean, nullable=False, default=True, server_default="1")
+    debe_cambiar_password = Column(Boolean, nullable=False, default=False, server_default="0", index=True)
+    password_temporal_generada_en = Column(DateTime, nullable=True)
     creado_en = Column(DateTime, nullable=False, server_default=func.now())
     actualizado_en = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
     

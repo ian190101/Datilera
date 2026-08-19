@@ -10,6 +10,7 @@ from .sede_entidad import Sede
 from .usuario_rol_entidad import UsuarioRol
 from .rol_permiso_entidad import RolPermiso
 
+
 # ---------------------------------------------
 # 1. Puertos de Salida: Repositorios (Persistence)
 # ---------------------------------------------
@@ -77,6 +78,7 @@ class AbstractUserRepository(ABC):
         """Obtiene todos los permisos efectivos de un usuario (a través de sus roles)."""
         raise NotImplementedError
 
+
 class AbstractRolRepository(ABC):
     """Puerto para la persistencia de Roles."""
 
@@ -98,7 +100,13 @@ class AbstractTokenService(ABC):
     """Puerto para el servicio de creación y validación de tokens (JWT)."""
 
     @abstractmethod
-    def create_access_token(self, user_id: int, sede_id: int, permisos: List[Permiso]) -> str:
+    def create_access_token(
+        self,
+        user_id: int,
+        sede_id: int,
+        permisos: List[str],
+        roles: List[str] | None = None,
+    ) -> str:
         """Genera un JWT Access Token."""
         raise NotImplementedError
 
@@ -178,6 +186,7 @@ class AbstractSedeRepository(ABC):
         """Lista sedes paginadas con filtro opcional por activo y retorna (items, total)."""
         raise NotImplementedError
 
+
 # ---------------------------------------------
 # 4. Puerto de Salida: Roles (Persistence)
 # ---------------------------------------------
@@ -232,7 +241,8 @@ class AbstractRolRepository(ABC):
     async def get_default_rol(self) -> Rol:
         """Obtiene el rol por defecto para nuevos registros."""
         raise NotImplementedError
-    
+
+
 class AbstractUsuarioRolRepository(ABC):
     """Puerto para la gestión de asignaciones usuario-rol."""
 
@@ -261,6 +271,7 @@ class AbstractUsuarioRolRepository(ABC):
         """Lista todas las asignaciones de roles de un usuario."""
         raise NotImplementedError
 
+
 class AbstractRolPermisoRepository(ABC):
     """Puerto para la gestión de asignaciones rol-permiso."""
 
@@ -288,7 +299,8 @@ class AbstractRolPermisoRepository(ABC):
     async def listar_por_rol(self, rol_id: int) -> List[RolPermiso]:
         """Lista todas las asignaciones de permisos de un rol."""
         raise NotImplementedError
-    
+
+
 class AbstractPermisoRepository(ABC):
     """Puerto para la persistencia de Permisos."""
 
@@ -337,6 +349,7 @@ class AbstractPermisoRepository(ABC):
     async def delete_soft(self, permiso_id: int) -> bool:
         """Desactiva (soft delete) un permiso por ID, retorna True si aplicó."""
         raise NotImplementedError
+
     # En AbstractUserRepository
     @abstractmethod
     async def listar_todos_activos_por_sedes(

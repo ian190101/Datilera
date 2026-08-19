@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.session import get_session
@@ -77,7 +77,7 @@ async def crear_tipo_evento(
     """Crear tipo de evento (directora/admin/superadmin)."""
     uc = CrearTipoEventoUseCase(tipos_eventos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO crear tipo evento"}
+    raise HTTPException(status_code=501, detail="Creación de tipos de evento no disponible en esta API")
 
 
 @router.get("/tipos-eventos/{tipo_id}")
@@ -145,7 +145,7 @@ async def crear_evento(
     """Crear evento (profesoras/directora/admin)."""
     uc = CrearEventoUseCase(eventos_repo(db), tipos_eventos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO crear evento"}
+    raise HTTPException(status_code=501, detail="Creación de eventos no disponible en esta API")
 
 
 @router.get("/eventos/{evento_id}")
@@ -257,7 +257,7 @@ async def crear_planificacion(
     """Crear planificación de actividad (profesora)."""
     uc = CrearPlanificacionUseCase(planificacion_repo(db), eventos_repo(db))
     # return await uc.ejecutar(**payload.model_dump())
-    return {"detail": "TODO implementar DTO crear planificación"}
+    raise HTTPException(status_code=501, detail="Creación de planificaciones disponible en el módulo Académico")
 
 
 @router.get("/planificacion/{planificacion_id}")

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.session import get_session
+from app.middleware.api_auth import AuthPrincipal, get_current_principal
 
 # Repositorios
 from app.infrastructure.db.repositories.exportacion.exportacion_repo import (
@@ -88,14 +89,12 @@ def plantilla_repo(db: AsyncSession) -> PlantillaExportacionRepository:
 
 
 # TODO: Reemplazar con autenticación real desde JWT
-def get_current_user_id() -> int:
-    """Mock: Obtiene ID del usuario autenticado."""
-    return 1
+def get_current_user_id(principal: AuthPrincipal = Depends(get_current_principal)) -> int:
+    return principal.usuario_id
 
 
-def get_current_user_sede_id() -> int:
-    """Mock: Obtiene sede del usuario autenticado."""
-    return 1
+def get_current_user_sede_id(principal: AuthPrincipal = Depends(get_current_principal)) -> int:
+    return principal.sede_id
 
 
 # ===========================================================================

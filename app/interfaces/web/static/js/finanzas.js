@@ -13,7 +13,9 @@ function fmtMoney(n) {
 }
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const hoy = new Date();
+  const local = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60_000);
+  return local.toISOString().split('T')[0];
 }
 
 async function fetchForm(url, { method = 'POST', formData }) {
@@ -164,6 +166,8 @@ window.actualizarMontoPagar = function () {
 
     if (!isNaN(montoNum)) {
       montoInput.value = montoNum.toFixed(2); // o simplemente montoNum si prefieres sin formato
+      if (montoNum > 0) montoInput.max = montoNum.toFixed(2);
+      else montoInput.removeAttribute('max');
     } else {
       montoInput.value = ''; // o valor por defecto
     }
@@ -277,6 +281,12 @@ window.guardarPago = async function (e) {
 
   try {
     btn.disabled = true; btn.textContent = 'Procesando...';
+    const monto = Number(document.getElementById('pago_monto')?.value || 0);
+    const maximo = Number(document.getElementById('pago_monto')?.max || 0);
+    if (monto <= 0) throw new Error('El monto debe ser mayor que cero');
+    if (maximo > 0 && monto > maximo) {
+      throw new Error(`El monto no puede superar el saldo de Bs. ${maximo.toFixed(2)}`);
+    }
     const fd = new FormData(form);
     await fetchForm(`${API_BASE}/ingresos/cobrar`, { method: 'POST', formData: fd });
     showToast('Ingreso registrado', 'success');
@@ -382,7 +392,7 @@ async function cargarHistorial() {
 
     try {
         // Consultamos movimientos de HOY
-        const hoy = new Date().toISOString().split('T')[0];
+        const hoy = todayISO();
         const res = await fetchAPI(`${API_BASE}/finanzas/movimientos?fecha_desde=${hoy}&fecha_hasta=${hoy}&limit=50`);
         
         if (!res.ok) throw new Error("Error cargando historial");
@@ -549,9 +559,10 @@ window.cargarListaDeudores = async function() {
                     ${fmtMoney(d.totalexigible || d.monto_deuda || d.monto)}
                 </td>
                 <td class="px-4 py-3 text-center">
-                    <button onclick="irAComunicacionesDeuda()" 
-                            class="text-primary-600 hover:text-primary-800 font-medium text-sm transition-colors"
-                            title="Enviar recordatorio de pago">
+                    <button onclick="irAComunicacionesDeuda(${Number(d.alumnoid)}, ${d.tutorusuarioid ? Number(d.tutorusuarioid) : 'null'}, ${Number(d.cuotanumero)}, ${Number(d.diasatraso || d.dias_atraso || 0)})" 
+                            class="text-primary-600 hover:text-primary-800 font-medium text-sm transition-colors disabled:text-gray-400 disabled:cursor-not-allowed"
+                            ${d.tutorusuarioid ? '' : 'disabled'}
+                            title="${d.tutorusuarioid ? 'Enviar recordatorio de pago al tutor principal' : 'El alumno no tiene un tutor con cuenta habilitada'}">
                         <i class="fas fa-bell mr-1"></i> Avisar
                     </button>
                 </td>
@@ -603,28 +614,54 @@ function actualizarCards(data) {
 
 /* ========================= PESTAÑA MOVIMIENTOS ========================= */
 
+/* ========================= PESTAÑA MOVIMIENTOS ========================= */
+
 window.cargarMovimientosCaja = async function() {
     const tbody = document.getElementById('tabla-movimientos-body');
     if (!tbody) return;
 
-    // 1. Filtros
-    const fInicio = document.getElementById('mov_fecha_inicio')?.value;
-    const fFin = document.getElementById('mov_fecha_fin')?.value;
-    const fTipo = document.getElementById('mov_tipo')?.value;
+    // 1. OBTENER VALORES DEL HTML (IDs correctos según tu index.html)
+    const periodo = document.getElementById('mov_periodo')?.value || 'mes'; // 'mes' o 'gestion'
+    const anio = document.getElementById('mov_anio')?.value || new Date().getFullYear();
+    const mes = document.getElementById('mov_mes')?.value || (new Date().getMonth() + 1);
+    const tipo = document.getElementById('mov_tipo')?.value; // 'todos', 'ingreso', 'egreso'
 
     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-gray-500">Actualizando...</td></tr>`;
 
     try {
-        let url = `${API_BASE}/finanzas/movimientos?limit=200`;
-        if (fInicio) url += `&fecha_desde=${fInicio}`;
-        if (fFin) url += `&fecha_hasta=${fFin}`;
-        if (fTipo && fTipo !== 'TODOS') url += `&tipo=${fTipo}`;
+        // 2. CALCULAR FECHAS (Transformar Año/Mes -> Fecha Inicio/Fin)
+        let fInicio, fFin;
+
+        if (periodo === 'gestion') {
+            // Si elige "Gestión", buscamos todo el año
+            fInicio = `${anio}-01-01`;
+            fFin = `${anio}-12-31`;
+        } else {
+            // Si elige "Mes", calculamos primer y último día
+            // Formato YYYY-MM-DD. padStart asegura que sea '01', '02', etc.
+            const mesStr = String(mes).padStart(2, '0');
+            fInicio = `${anio}-${mesStr}-01`;
+            
+            // Truco JS: día 0 del siguiente mes es el último día del actual
+            const ultimoDia = new Date(anio, mes, 0).getDate();
+            fFin = `${anio}-${mesStr}-${ultimoDia}`;
+        }
+
+        // 3. CONSTRUIR URL
+        let url = `${API_BASE}/finanzas/movimientos?limit=200&fecha_desde=${fInicio}&fecha_hasta=${fFin}`;
+        
+        // Mapear el valor del select al valor que espera el backend
+        if (tipo && tipo !== 'todos') {
+            // El backend espera 'INGRESO' o 'EGRESO' (Mayúsculas)
+            url += `&tipo=${tipo.toUpperCase()}`;
+        }
+
+        console.log("Consultando:", url); // Para depurar
 
         const res = await fetchAPI(url);
         const data = await res.json();
         
-        // 2. ACTUALIZAR ETIQUETAS (SALDO)
-        // Verificamos que los elementos existan antes de asignar
+        // 4. ACTUALIZAR ETIQUETAS (SALDO)
         const elIng = document.getElementById('mov_total_ingresos');
         const elEgr = document.getElementById('mov_total_egresos');
         const elSal = document.getElementById('mov_saldo_periodo');
@@ -632,18 +669,14 @@ window.cargarMovimientosCaja = async function() {
         if (data.resumen) {
             if (elIng) elIng.textContent = fmtMoney(data.resumen.total_ingresos);
             if (elEgr) elEgr.textContent = fmtMoney(data.resumen.total_egresos);
-            
-            if (elSal) {
-                const s = data.resumen.saldo;
-                elSal.textContent = fmtMoney(s);
-            }
+            if (elSal) elSal.textContent = fmtMoney(data.resumen.saldo);
         }
 
-        // 3. PINTAR TABLA ORDENADA
+        // 5. PINTAR TABLA
         const items = data.items || [];
         
         if (items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400">Sin movimientos.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400">No hay movimientos en este periodo.</td></tr>`;
             return;
         }
 
@@ -692,10 +725,20 @@ window.cargarMovimientosCaja = async function() {
 
 
 // Redirige a comunicaciones indicando que es una notificación de deuda
-window.irAComunicacionesDeuda = function() {
-    // Agregamos 'context=deuda' para saber qué texto poner, 
-    // pero NO enviamos ID de alumno para evitar confusiones.
-    window.location.href = `/comunicaciones?action=nueva_notificacion&context=deuda`;
+window.irAComunicacionesDeuda = function(alumnoId, tutorUsuarioId, cuotaNumero, diasAtraso) {
+    if (!tutorUsuarioId) {
+        showToast('El alumno no tiene un tutor con cuenta habilitada', 'warning');
+        return;
+    }
+    const params = new URLSearchParams({
+        action: 'nueva_notificacion',
+        context: 'deuda',
+        alumno_id: String(alumnoId),
+        tutor_usuario_id: String(tutorUsuarioId),
+        cuota_numero: String(cuotaNumero),
+        dias_atraso: String(diasAtraso || 0),
+    });
+    window.location.href = `/comunicaciones?${params.toString()}`;
 };
 
 /* ========================= LÓGICA SUELDOS ========================= */
@@ -727,14 +770,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setear mes actual en filtro sueldos
     const selMesSueldo = document.getElementById('sueldo_mes');
     if(selMesSueldo) selMesSueldo.value = new Date().getMonth() + 1;
+
+    const inputAnioSueldo = document.getElementById('sueldo_anio');
+    if(inputAnioSueldo) inputAnioSueldo.value = new Date().getFullYear();
 });
 
 async function cargarListaProfesorasSelect() {
     try {
         // Usamos el endpoint de usuarios filtrando por rol (asumiendo que existe o reutilizamos lista)
-        const res = await fetchAPI(`${API_BASE}/usuarios?rol=PROFESORA&activo=1`);
+        const res = await fetchAPI(`${API_BASE}/usuarios?rol_nombre=PROFESORA&activo=true&per_page=100`);
         const data = await res.json();
-        const lista = data.items || [];
+        const lista = (data.items || []).filter(u =>
+            Array.isArray(u.roles) && u.roles.some(rol => rol.toUpperCase() === 'PROFESORA')
+        );
         
         const sel = document.getElementById('gasto_profesora');
         sel.innerHTML = '<option value="">-- Seleccione --</option>';

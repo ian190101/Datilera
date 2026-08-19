@@ -1,0 +1,54 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      ENVIRONMENT: dev
+      DATABASE_URL: mysql+aiomysql://datilera:datilera@db:3306/datilera
+      REDIS_URL: redis://redis:6379/0
+      MEDIA_DIR: /app/runtime/media
+      PDF_DIR: /app/runtime/pdfs
+      STATIC_DIR: /app/app/interfaces/web/static
+      TEMPLATES_DIR: /app/app/interfaces/web/templates
+    ports:
+      - "8000:8000"
+    volumes:
+      - media_data:/app/runtime/media
+      - pdf_data:/app/runtime/pdfs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: datilera
+      MYSQL_USER: datilera
+      MYSQL_PASSWORD: datilera
+      MYSQL_ROOT_PASSWORD: cambiar-en-produccion
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql_data:
+  redis_data:
+  media_data:
+  pdf_data:

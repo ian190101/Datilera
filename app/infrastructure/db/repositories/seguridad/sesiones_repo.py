@@ -6,13 +6,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.repositories.base import BaseRepository
 from app.infrastructure.db.models.seguridad import Sesion
 from datetime import datetime
+import hashlib
 
 class SesionesRepository(BaseRepository[Sesion]):
     def __init__(self, session: AsyncSession):
         super().__init__(session, Sesion)
 
     async def crear(self, usuario_id: int, refresh_token: str, expira_en: datetime) -> None:
-        await self.session.execute(insert(Sesion).values(usuario_id=usuario_id, refresh_token=refresh_token, expira_en=expira_en))
+        await self.session.execute(
+            insert(Sesion).values(
+                usuario_id=usuario_id,
+                refresh_token=self._token_hash(refresh_token),
+                expira_en=expira_en,
+            )
+        )
 
     async def listar_por_usuario(self, usuario_id: int) -> Sequence[Sesion]:
         res = await self.session.execute(select(Sesion).where(Sesion.usuario_id == usuario_id).order_by(Sesion.id.desc()))
@@ -27,5 +34,12 @@ class SesionesRepository(BaseRepository[Sesion]):
         return res.rowcount or 0
 
     async def eliminar_por_refresh(self, refresh_token: str) -> bool:
-        res = await self.session.execute(delete(Sesion).where(Sesion.refresh_token == refresh_token))
+        res = await self.session.execute(
+            delete(Sesion).where(Sesion.refresh_token == self._token_hash(refresh_token))
+        )
         return res.rowcount > 0
+
+    @staticmethod
+    def _token_hash(refresh_token: str) -> str:
+        """La base de datos conserva una huella y nunca el token reutilizable."""
+        return hashlib.sha256(refresh_token.encode("utf-8")).hexdigest()

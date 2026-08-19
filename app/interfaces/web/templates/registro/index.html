@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <link rel="icon" type="image/png" href="/static/img/logo.png">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v=20260714">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="min-h-full bg-gradient-to-br from-gray-950 via-gray-900 to-slate-900 text-gray-900">
+    <main class="min-h-screen flex items-center justify-center p-4 sm:p-8">
+        <section class="w-full max-w-4xl">
+            <div class="text-center mb-8">
+                <a href="/login" aria-label="Volver al inicio de sesión">
+                    <img src="/static/img/logo.png" alt="Datilera" class="h-20 w-auto mx-auto">
+                </a>
+                <h1 class="mt-4 text-3xl font-bold text-white">Portal de registro Datilera</h1>
+                <p class="mt-2 text-gray-300">Elige tu tipo de acceso y completa el registro usando el código entregado por la institución.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-5">
+                <a href="/registro/tutor" class="group bg-white rounded-2xl p-7 shadow-xl border-2 border-transparent hover:border-amber-500 transition">
+                    <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mb-5">
+                        <i class="fas fa-people-roof text-2xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold">Padre, madre o tutor</h2>
+                    <p class="mt-2 text-sm text-gray-600">Completa la ficha del estudiante, datos familiares, documentos y tu cuenta de acceso.</p>
+                    <span class="mt-6 inline-flex items-center font-semibold text-amber-700">Continuar <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition"></i></span>
+                </a>
+
+                <a href="/registro/profesor" class="group bg-white rounded-2xl p-7 shadow-xl border-2 border-transparent hover:border-indigo-500 transition">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-5">
+                        <i class="fas fa-chalkboard-user text-2xl"></i>
+                    </div>
+                    <h2 class="text-xl font-bold">Profesor o profesora</h2>
+                    <p class="mt-2 text-sm text-gray-600">Valida el código proporcionado por Dirección y crea tu cuenta docente.</p>
+                    <span class="mt-6 inline-flex items-center font-semibold text-indigo-700">Continuar <i class="fas fa-arrow-right ml-2 group-hover:translate-x-1 transition"></i></span>
+                </a>
+            </div>
+
+            <div class="mt-7 text-center">
+                <a href="/login" class="text-sm text-gray-300 hover:text-white"><i class="fas fa-arrow-left mr-2"></i>Volver a iniciar sesión</a>
+                <p class="mt-5 text-xs text-gray-500">© {{ current_year }} Datilera. Todos los derechos reservados.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

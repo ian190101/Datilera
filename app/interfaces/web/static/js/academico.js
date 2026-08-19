@@ -551,8 +551,7 @@ function renderAsistenciaTable(items) {
                     ${makeBtn('PRESENTE', 'fa-check', 'bg-green-100 text-green-700 ring-2 ring-green-500')}
                     ${makeBtn('AUSENTE', 'fa-times', 'bg-red-100 text-red-700 ring-2 ring-red-500')}
                     ${makeBtn('RETRASO', 'fa-clock', 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500')}
-                    ${makeBtn('JUSTIFICADO', 'fa-file-medical', 'bg-blue-100 text-blue-700 ring-2 ring-blue-500')}
-                </div>
+
                 <input type="hidden" class="input-estado" value="${estado}">
             </td>
             <td class="px-6 py-4 text-center">
@@ -590,7 +589,6 @@ function renderAsistenciaTable(items) {
                     if (nuevoEstado === 'PRESENTE') colorClass = 'bg-green-100 text-green-700 ring-2 ring-green-500';
                     if (nuevoEstado === 'AUSENTE') colorClass = 'bg-red-100 text-red-700 ring-2 ring-red-500';
                     if (nuevoEstado === 'RETRASO') colorClass = 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500';
-                    if (nuevoEstado === 'JUSTIFICADO') colorClass = 'bg-blue-100 text-blue-700 ring-2 ring-blue-500';
 
                     this.className = `btn-estado p-2 rounded-lg transition ${colorClass}`;
 

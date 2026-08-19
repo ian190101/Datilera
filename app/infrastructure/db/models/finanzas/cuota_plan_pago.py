@@ -41,6 +41,7 @@ class CuotaPlanPago(Base):
     # Relaciones
     plan = relationship("PlanPagoPersonalizado", back_populates="cuotas")
     pago = relationship("Pago", back_populates="cuotas")
+    asignaciones_pagos = relationship("PagoCuota", back_populates="cuota")
     
     # Índices compuestos
     __table_args__ = (

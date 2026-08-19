@@ -1,6 +1,10 @@
 # app/interfaces/api/v1/academico.py
 from __future__ import annotations
-from fastapi import APIRouter, Depends, status, Query
+from datetime import time
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel, Field, model_validator
+from sqlalchemy import func, select
 from typing import Annotated, Sequence
 
 from app.infrastructure.db.session import get_session
@@ -10,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.repositories.academico.grupos_repo import GruposRepository
 from app.infrastructure.db.repositories.academico.paralelos_repo import ParalelosRepository
 from app.infrastructure.db.repositories.academico.paralelos_profesoras_repo import ParalelosProfesorasRepository
+from app.infrastructure.db.repositories.academico.horarios_repo import HorariosRepository
+from app.infrastructure.db.models.academico.horarios import Horario as HorarioModel
 
 
 # Casos de uso
@@ -54,6 +60,84 @@ def paralelo_repo(db: AsyncSession) -> ParalelosRepository:
 
 def pp_repo(db: AsyncSession) -> ParalelosProfesorasRepository: 
     return ParalelosProfesorasRepository(db)
+
+
+class HorarioPayload(BaseModel):
+    nombre: str = Field(min_length=1, max_length=50)
+    hora_inicio: time
+    hora_fin: time
+
+    @model_validator(mode="after")
+    def validar_rango(self):
+        self.nombre = self.nombre.strip()
+        if self.hora_inicio >= self.hora_fin:
+            raise ValueError("La hora de inicio debe ser menor que la hora de fin")
+        return self
+
+
+def _horario_response(horario: HorarioModel) -> dict:
+    return {
+        "id": horario.id,
+        "nombre": horario.nombre,
+        "hora_inicio": horario.hora_inicio.strftime("%H:%M"),
+        "hora_fin": horario.hora_fin.strftime("%H:%M"),
+        "creado_en": horario.creado_en.isoformat() if horario.creado_en else None,
+    }
+
+
+# Horarios. Esta API modular es la fuente oficial para la pantalla académica.
+@router.get("/horarios")
+async def listar_horarios(
+    db: SessionDep,
+    search: str = Query("", max_length=50),
+    limit: int = Query(100, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    filtros = []
+    if search.strip():
+        filtros.append(HorarioModel.nombre.ilike(f"%{search.strip()}%"))
+    where = filtros[0] if filtros else None
+    repo = HorariosRepository(db)
+    items = await repo.list(where=where, limit=limit, offset=offset, order_by=HorarioModel.hora_inicio)
+    total_stmt = select(func.count(HorarioModel.id))
+    if where is not None:
+        total_stmt = total_stmt.where(where)
+    total = int((await db.execute(total_stmt)).scalar_one())
+    return {"items": [_horario_response(item) for item in items], "total": total}
+
+
+@router.get("/horarios/{horario_id}")
+async def obtener_horario(horario_id: int, db: SessionDep):
+    horario = await HorariosRepository(db).get(horario_id)
+    if not horario:
+        raise HTTPException(status_code=404, detail="Horario no encontrado")
+    return _horario_response(horario)
+
+
+@router.post("/horarios", status_code=status.HTTP_201_CREATED)
+async def crear_horario(payload: HorarioPayload, db: SessionDep):
+    repo = HorariosRepository(db)
+    if await repo.exists_nombre_ci(nombre=payload.nombre):
+        raise HTTPException(status_code=409, detail="Ya existe un horario con ese nombre")
+    horario = HorarioModel(**payload.model_dump())
+    await repo.create(horario)
+    await db.commit()
+    await db.refresh(horario)
+    return _horario_response(horario)
+
+
+@router.put("/horarios/{horario_id}")
+async def actualizar_horario(horario_id: int, payload: HorarioPayload, db: SessionDep):
+    repo = HorariosRepository(db)
+    horario = await repo.get(horario_id)
+    if not horario:
+        raise HTTPException(status_code=404, detail="Horario no encontrado")
+    if await repo.exists_nombre_ci(nombre=payload.nombre, excluir_id=horario_id):
+        raise HTTPException(status_code=409, detail="Ya existe un horario con ese nombre")
+    await repo.update(horario_id, payload.model_dump())
+    await db.commit()
+    horario = await repo.get(horario_id)
+    return _horario_response(horario)
 
 
 

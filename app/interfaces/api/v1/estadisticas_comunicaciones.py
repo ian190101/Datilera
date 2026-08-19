@@ -15,7 +15,7 @@ from app.kernel.application.comunicaciones.estadisticas import (
     ObtenerEstadisticasSedeUseCase,
 )
 
-router = APIRouter(prefix="/api/v1/comunicaciones/estadisticas", tags=["Comunicaciones - Estadísticas"])
+router = APIRouter(prefix="/comunicaciones/estadisticas", tags=["Comunicaciones - Estadísticas"])
 
 
 # ==========================================

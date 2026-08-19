@@ -39,7 +39,7 @@ from app.infrastructure.services.notificador_service_mock import NotificadorServ
 # TODO: Importar servicio cuando esté implementado
 # from app.infrastructure.services.notificador_service import NotificadorService
 
-router = APIRouter(prefix="/api/v1/comunicaciones/notificaciones", tags=["Comunicaciones - Notificaciones"])
+router = APIRouter(prefix="/comunicaciones/notificaciones", tags=["Comunicaciones - Notificaciones"])
 
 
 # ==========================================

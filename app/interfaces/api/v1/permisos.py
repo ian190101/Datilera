@@ -12,7 +12,7 @@ from app.kernel.application.seguridad.permiso.obtener_permiso import ObtenerPerm
 from app.kernel.application.seguridad.permiso.eliminar_permiso import EliminarPermiso
 from app.kernel.application.seguridad.permiso.listar_permisos import ListarPermisos, ListarPermisosDTO
 
-router = APIRouter(prefix="/api/v1/seguridad/permisos", tags=["Permisos"])
+router = APIRouter(prefix="/seguridad/permisos", tags=["Permisos"])
 
 
 def get_repo(session: AsyncSession = Depends(get_session)) -> PermisosRepository:

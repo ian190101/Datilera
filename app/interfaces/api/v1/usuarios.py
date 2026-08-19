@@ -1,5 +1,9 @@
 # app/interfaces/api/v1/usuarios.py
-from fastapi import APIRouter, Depends, Query, Body
+from datetime import UTC, datetime
+import secrets
+import string
+
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +13,9 @@ from app.infrastructure.db.repositories.seguridad.roles_repo import RolesReposit
 from app.infrastructure.db.repositories.seguridad.sede_repo import SedeRepository
 from app.infrastructure.db.repositories.seguridad.usuarios_roles_repo import UsuarioRolRepository
 from app.infrastructure.auth.auth_utils import PasslibHasher
+from app.infrastructure.db.models.seguridad.usuarios import Usuario as UsuarioModel
+from app.infrastructure.db.repositories.seguridad.sesiones_repo import SesionesRepository
+from app.middleware.api_auth import AuthPrincipal, get_current_principal
 
 from app.kernel.application.seguridad.usuario.crear_usuario import CrearUsuario, CrearUsuarioDTO
 from app.kernel.application.seguridad.usuario.actualizar_usuario import EditarUsuario, EditarUsuarioDTO
@@ -25,7 +32,23 @@ from app.kernel.application.seguridad.usuario_rol.asignar_rol_usuario import (
     AsignarRolUsuarioDTO,
 )
 
-router = APIRouter(prefix="/api/v1/usuarios", tags=["Usuarios"])
+router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+
+def generar_password_temporal(longitud: int = 14) -> str:
+    """Genera una clave legible pero resistente usando un CSPRNG."""
+    if longitud < 12:
+        raise ValueError("La contraseña temporal debe tener al menos 12 caracteres")
+    obligatorios = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%*-_"),
+    ]
+    alfabeto = string.ascii_letters + string.digits + "!@#$%*-_"
+    caracteres = obligatorios + [secrets.choice(alfabeto) for _ in range(longitud - len(obligatorios))]
+    secrets.SystemRandom().shuffle(caracteres)
+    return "".join(caracteres)
 
 
 def get_usuario_repo(session: AsyncSession = Depends(get_session)) -> UsuariosRepository:
@@ -147,6 +170,35 @@ async def cambiar_estado_usuario(
     caso = CambiarEstadoUsuario(usuario_repo)
     result = await caso.execute(dto)
     return result
+
+
+@router.post("/{usuario_id}/resetear-password")
+async def resetear_password_usuario(
+    usuario_id: int,
+    usuario_repo: UsuariosRepository = Depends(get_usuario_repo),
+    hasher: PasslibHasher = Depends(get_hasher),
+    principal: AuthPrincipal = Depends(get_current_principal),
+):
+    """Restablece una cuenta y devuelve la clave temporal una sola vez."""
+    usuario = await usuario_repo.session.get(UsuarioModel, usuario_id)
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if usuario.sede_id != principal.sede_id and not principal.puede_acceder_modulo("Sedes", "Seguridad"):
+        raise HTTPException(status_code=403, detail="No puede restablecer usuarios de otra sede")
+
+    password_temporal = generar_password_temporal()
+    usuario.hash_password = hasher.hash_password(password_temporal)
+    usuario.debe_cambiar_password = True
+    usuario.password_temporal_generada_en = datetime.now(UTC).replace(tzinfo=None)
+    await SesionesRepository(usuario_repo.session).eliminar_todas(usuario_id)
+    await usuario_repo.session.commit()
+    return {
+        "success": True,
+        "usuario_id": usuario.id,
+        "username": usuario.username,
+        "password_temporal": password_temporal,
+        "mensaje": "Contraseña temporal generada. El usuario deberá cambiarla al iniciar sesión.",
+    }
 
 
 @router.get("/{usuario_id}/permisos-efectivos")

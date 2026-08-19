@@ -1,182 +1,142 @@
 import { fetchAPI, showToast } from './main.js';
 
 const API_BASE = '/api/v1';
-
-/* ============================================================
-   VARIABLES GLOBALES
-   ============================================================ */
 let inscripcionesChart = null;
 let ingresosChart = null;
 
-/* ============================================================
-   CARGAR DATOS DEL DASHBOARD
-   ============================================================ */
 async function loadDashboardData() {
+    const dashboard = document.getElementById('dashboard-content');
+    const periodSelector = document.getElementById('period-selector');
+    const period = periodSelector?.value || 'month';
+
     try {
-        // 1. Obtener el periodo seleccionado
-        const periodSelector = document.getElementById('period-selector');
-        const period = periodSelector ? periodSelector.value : 'month';
+        dashboard?.setAttribute('aria-busy', 'true');
+        periodSelector?.setAttribute('disabled', 'disabled');
 
-        console.log("Cargando dashboard para periodo:", period);
+        // Una llamada evita repetir autenticación y consultas por tarjeta/gráfico.
+        const response = await fetchAPI(`${API_BASE}/reportes/dashboard/resumen?period=${period}`);
+        if (!response.ok) throw new Error(`No se pudo cargar el panel (${response.status})`);
+        const data = await response.json();
 
-        // 2. Cargar métricas pasando el periodo como Query Param
-        await Promise.all([
-            loadMetrics(period),
-            loadInscripcionesChart(period),
-            loadIngresosChart(period)
-            // loadRecentCodes() <--- ELIMINADO
-        ]);
+        renderMetrics(data.metricas);
+        renderInscripcionesChart(data.inscripciones);
+        renderIngresosChart(data.ingresos);
+
+        const actualizado = document.getElementById('dashboard-updated-at');
+        if (actualizado) actualizado.textContent = `Actualizado ${formatDateTime(data.actualizado_en)}`;
     } catch (error) {
-        console.error('Error loading dashboard:', error);
-        showToast('Error al cargar datos del dashboard', 'error');
+        console.error('Error al cargar el dashboard:', error);
+        showToast('No se pudieron cargar los datos del dashboard', 'error');
+    } finally {
+        dashboard?.setAttribute('aria-busy', 'false');
+        periodSelector?.removeAttribute('disabled');
     }
 }
 
-/* ============================================================
-   MÉTRICAS (Cards)
-   ============================================================ */
-async function loadMetrics(period) {
-    try {
-        // Pasamos ?period=...
-        const response = await fetchAPI(`${API_BASE}/reportes/dashboard/metricas?period=${period}`);
-        const data = await response.json();
+function renderMetrics(data) {
+    setText('total-inscritos', data.total_inscritos || 0);
+    setText('ingresos-mes', formatCurrency(data.ingresos_total || 0));
+    setText('ingresos-change', 'Registrados en el periodo');
+    setText('pagos-pendientes', data.pagos_pendientes_cantidad || 0);
+    setText('monto-pendiente', formatCurrency(data.pagos_pendientes_monto || 0));
+    setText('nuevos-mes', data.nuevos_total || 0);
 
-        // Total Inscritos
-        document.getElementById('total-inscritos').textContent = data.total_inscritos || 0;
-        
-        // Cambio porcentual (visual)
-        const changeEl = document.getElementById('inscritos-change');
-        const changeVal = data.inscritos_cambio_porcentaje || 0;
-        changeEl.textContent = `${changeVal > 0 ? '+' : ''}${changeVal}%`;
-        changeEl.className = changeVal >= 0 ? "text-green-600 dark:text-green-400 font-bold" : "text-red-600 dark:text-red-400 font-bold";
-
-        // Ingresos Mes/Periodo
-        document.getElementById('ingresos-mes').textContent = formatCurrency(data.ingresos_total || 0);
-        document.getElementById('ingresos-change').textContent = "En este periodo"; 
-
-        // Pagos Pendientes (Mora)
-        document.getElementById('pagos-pendientes').textContent = data.pagos_pendientes_cantidad || 0;
-        document.getElementById('monto-pendiente').textContent = formatCurrency(data.pagos_pendientes_monto || 0);
-
-        // Nuevos
-        document.getElementById('nuevos-mes').textContent = data.nuevos_total || 0;
-    } catch (error) {
-        console.error('Error loading metrics:', error);
+    const changeEl = document.getElementById('inscritos-change');
+    if (changeEl) {
+        const nuevos = data.nuevos_total || 0;
+        changeEl.textContent = `${nuevos} ${nuevos === 1 ? 'registro reciente' : 'registros recientes'}`;
+        changeEl.className = 'text-green-600 dark:text-green-400 font-bold';
     }
 }
 
-/* ============================================================
-   GRÁFICO: CRECIMIENTO DE INSCRIPCIONES
-   ============================================================ */
-async function loadInscripcionesChart(period) {
-    try {
-        const response = await fetchAPI(`${API_BASE}/reportes/dashboard/crecimiento-inscripciones?period=${period}`);
-        const data = await response.json();
+function renderInscripcionesChart(data) {
+    const canvas = document.getElementById('inscripciones-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    Chart.getChart(canvas)?.destroy();
+    inscripcionesChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Inscripciones',
+                data: data.valores,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                borderWidth: 3,
+                tension: 0.35,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#f59e0b',
+            }],
+        },
+        options: chartOptions(),
+    });
+}
 
-        const canvas = document.getElementById('inscripciones-chart');
-        if (!canvas) return; 
+function renderIngresosChart(data) {
+    const canvas = document.getElementById('ingresos-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    Chart.getChart(canvas)?.destroy();
+    ingresosChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: data.labels,
+            datasets: [{
+                label: 'Ingresos',
+                data: data.valores,
+                backgroundColor: '#10b981',
+                borderRadius: 6,
+                barPercentage: 0.62,
+            }],
+        },
+        options: chartOptions(true),
+    });
+}
 
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) existingChart.destroy();
-
-        inscripcionesChart = new Chart(canvas, {
-            type: 'line',
-            data: {
-                labels: data.labels, // Ahora vendrán dinámicos desde el backend
-                datasets: [{
-                    label: 'Inscripciones',
-                    data: data.valores,
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#f59e0b'
-                }]
+function chartOptions(currency = false) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: currency ? {
+                callbacks: { label: (context) => `Ingresos: ${formatCurrency(context.parsed.y)}` },
+            } : {},
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(156, 163, 175, 0.12)' },
+                ticks: currency ? {
+                    callback: (value) => value >= 1000 ? `Bs ${value / 1000}k` : `Bs ${value}`,
+                } : { precision: 0 },
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(156, 163, 175, 0.1)' } },
-                    x: { grid: { display: false }, ticks: { color: '#9ca3af' } }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error loading inscripciones chart:', error);
-    }
+            x: { grid: { display: false }, ticks: { color: '#9ca3af' } },
+        },
+    };
 }
 
-/* ============================================================
-   GRÁFICO: FLUJO DE INGRESOS
-   ============================================================ */
-async function loadIngresosChart(period) {
-    try {
-        const response = await fetchAPI(`${API_BASE}/reportes/dashboard/flujo-ingresos?period=${period}`);
-        const data = await response.json();
-
-        const canvas = document.getElementById('ingresos-chart');
-        if (!canvas) return;
-
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) existingChart.destroy();
-
-        ingresosChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: data.labels, // Ahora son fechas legibles (ej: "28 Dic")
-                datasets: [{
-                    label: 'Ingresos',
-                    data: data.valores,
-                    backgroundColor: '#10b981',
-                    borderRadius: 4,
-                    barPercentage: 0.6,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => 'Ingresos: ' + formatCurrency(context.parsed.y)
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(156, 163, 175, 0.1)' },
-                        ticks: {
-                            callback: (value) => value >= 1000 ? 'Bs ' + (value/1000) + 'k' : 'Bs ' + value
-                        }
-                    },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error loading ingresos chart:', error);
-    }
-}
-
-/* ============================================================
-   EVENTOS
-   ============================================================ */
-const periodSelector = document.getElementById('period-selector');
-if (periodSelector) {
-    periodSelector.addEventListener('change', () => loadDashboardData());
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(value);
 }
 
 function formatCurrency(value) {
-    return `Bs ${value.toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `Bs ${Number(value).toLocaleString('es-BO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    })}`;
 }
 
+function formatDateTime(value) {
+    return new Intl.DateTimeFormat('es-BO', {
+        hour: '2-digit',
+        minute: '2-digit',
+    }).format(new Date(value));
+}
+
+document.getElementById('period-selector')?.addEventListener('change', loadDashboardData);
 document.addEventListener('DOMContentLoaded', () => {
     loadDashboardData();
-    setInterval(() => loadDashboardData(), 300000); // 5 min
+    window.setInterval(loadDashboardData, 300000);
 });

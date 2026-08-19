@@ -22,7 +22,7 @@ from app.kernel.application.comunicaciones.conversaciones import (
 
 from app.kernel.domain.comunicaciones import Participante, TipoConversacion
 
-router = APIRouter(prefix="/api/v1/comunicaciones/conversaciones", tags=["Comunicaciones - Conversaciones"])
+router = APIRouter(prefix="/comunicaciones/conversaciones", tags=["Comunicaciones - Conversaciones"])
 
 
 # ==========================================

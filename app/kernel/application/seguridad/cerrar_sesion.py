@@ -16,6 +16,10 @@ class IRevocadosRepository(Protocol):
 class CerrarSesionRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     refresh_token: str = Field(min_length=20)
+    ip: str | None = None
+    user_agent: str | None = None
+    usuario_id: int | None = None
+    sede_id: int | None = None
 
 class CerrarSesion:
     def __init__(self, sesiones: ISesionRepository, tokens: AbstractTokenService, revocados: IRevocadosRepository, auditoria: AuditoriaAccionRepositoryPort | None = None):
@@ -25,15 +29,21 @@ class CerrarSesion:
         self.auditoria = auditoria 
 
     async def execute(self, req: CerrarSesionRequest) -> None:
-        payload = self.tokens.decode_token(req.refresh_token)
+        try:
+            payload = self.tokens.decode_token(req.refresh_token)
+        except Exception:
+            # Logout es idempotente: una cookie vencida no debe producir error 500.
+            return
         if not payload or payload.get("type") != "refresh":
             raise TokenInvalido()
         jti = payload.get("jti")
-        ok = await self.sesiones.eliminar_por_refresh(req.refresh_token)
-        if ok:
+        await self.sesiones.eliminar_por_refresh(req.refresh_token)
+        if jti:
             await self.revocados.revocar(jti)
-            if self.auditoria:
-                await self.auditoria.registrar(AuditoriaAccion(
-                    usuario_id=req.usuario_id, sede_id=req.sede_id, entidad="auth", entidad_id=str(req.usuario_id) if req.usuario_id else None,
-                    accion="logout", ip=req.ip, user_agent=req.user_agent, datos_despues={"resultado": "ok"}
-                ))
+        if self.auditoria:
+            usuario_id = req.usuario_id or int(payload.get("sub"))
+            await self.auditoria.registrar(AuditoriaAccion(
+                usuario_id=usuario_id, sede_id=req.sede_id, entidad="auth",
+                entidad_id=str(usuario_id), accion="logout", ip=req.ip,
+                user_agent=req.user_agent, datos_despues={"resultado": "ok"}
+            ))

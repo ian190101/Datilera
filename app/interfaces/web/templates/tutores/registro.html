@@ -4,12 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Tutores - Datilera</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: { extend: { colors: { 'primary': { 50: '#FEF8E8', 100: '#FEEFC7', 500: '#DD8E0A', 600: '#C67306', 700: '#A45909' } } } }
-        }
-    </script>
+    <link rel="icon" type="image/png" href="/static/img/logo.png">
+    <link rel="stylesheet" href="/static/css/tailwind.css?v=20260714">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -29,7 +25,7 @@
                 <img src="/static/img/logo.png" alt="Datilera" class="h-10 w-auto mr-3">
                 <h1 class="text-xl font-bold text-gray-800">Ficha de Inscripción</h1>
             </div>
-            <div class="text-sm font-medium text-gray-500 hidden md:block">Año Escolar 2025</div>
+            <div class="text-sm font-medium text-gray-500 hidden md:block">Año Escolar {{ current_year }}</div>
         </div>
     </div>
 
@@ -47,7 +43,7 @@
 
         <form id="form-registro" class="bg-white rounded-xl shadow-lg p-6 md:p-10">
             
-            <div id="step-1" class="step-container active">
+            <div id="step-1" class="step-container{% if not modo_tutor_existente %} active{% endif %}">
                 <div class="text-center py-10">
                     <div class="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i class="fas fa-key text-3xl text-primary-600"></i>
@@ -438,12 +434,26 @@
             </div>
 
             <div id="step-9" class="step-container">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-user-friends text-primary-500 mr-3"></i>Datos de los Padres</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6"><i class="fas fa-user-friends text-primary-500 mr-3"></i>Datos de madre, padre o tutor</h2>
                 
                 <div class="mb-8">
-                    <h3 class="font-bold text-gray-700 border-b pb-2 mb-4">Madre / Tutora (Principal)</h3>
+                    <h3 id="titulo-tutor-principal" class="font-bold text-gray-700 border-b pb-2 mb-2">Madre, padre o tutor principal</h3>
+                    <p id="aviso-datos-preinscripcion" class="hidden mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        <i class="fas fa-check-circle mr-1"></i> Estos datos fueron recuperados de la preinscripción. Puedes corregirlos si fuera necesario.
+                    </p>
                     <div class="grid md:grid-cols-2 gap-4">
                         <div class="md:col-span-2"><label class="text-sm font-medium">Nombre Completo *</label><input type="text" name="tutor1_nombres" class="form-input" required></div>
+                        <div>
+                            <label class="text-sm font-medium">Parentesco *</label>
+                            <select name="tutor1_relacion" class="form-input" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="MADRE">Madre</option>
+                                <option value="PADRE">Padre</option>
+                                <option value="ABUELO">Abuelo/a</option>
+                                <option value="TIO">Tío/a</option>
+                                <option value="TUTOR">Tutor legal</option>
+                            </select>
+                        </div>
                         <div><label class="text-sm font-medium">CI *</label><input type="text" name="tutor1_ci" class="form-input" required></div>
                         <div><label class="text-sm font-medium">Expedido</label><input type="text" name="tutor1_expedido" class="form-input"></div>
                         <div><label class="text-sm font-medium">Profesión</label><input type="text" name="tutor1_profesion" class="form-input"></div>
@@ -456,7 +466,7 @@
 
                 <div class="mb-6 bg-gray-50 p-4 rounded-lg">
                     <h3 class="font-bold text-gray-700 mb-4 flex justify-between items-center">
-                        Padre / Tutor 2 (Opcional)
+                        Segundo padre, madre o tutor (opcional)
                     </h3>
                     <div class="grid md:grid-cols-2 gap-4">
                         <div class="md:col-span-2"><label class="text-sm font-medium">Nombre Completo</label><input type="text" name="tutor2_nombres" class="form-input"></div>
@@ -485,7 +495,7 @@
                             </div>
                             <div class="p-3 border-2 border-dashed rounded bg-gray-50">
                                 <label class="block text-sm font-medium mb-1">CI Tutor Principal *</label>
-                                <input type="file" name="doc_ci_tutor1" class="w-full text-sm" required>
+                                <input type="file" name="doc_ci_tutor1" class="w-full text-sm" {% if not modo_tutor_existente %}required{% endif %}>
                             </div>
                         </div>
                     </div>
@@ -496,11 +506,15 @@
                             <p class="text-xs text-yellow-800 mb-2">Con esta cuenta podrás ver la agenda y reportes de tu hijo/a.</p>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Nombre de Usuario *</label>
-                                <input type="text" name="nombre_usuario" class="form-input" required placeholder="Ej: maria.perez">
+                                <input type="text" name="nombre_usuario" class="form-input" {% if not modo_tutor_existente %}required{% endif %} placeholder="Ej: maria.perez">
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-gray-700">Contraseña *</label>
-                                <input type="password" name="password" class="form-input" required placeholder="Mínimo 8 caracteres">
+                                <input type="password" name="password" id="tutor-password" class="form-input" {% if not modo_tutor_existente %}required{% endif %} minlength="12" maxlength="128" autocomplete="new-password" placeholder="Mínimo 12 caracteres">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700">Confirmar contraseña *</label>
+                                <input type="password" name="password_confirm" id="tutor-password-confirm" class="form-input" {% if not modo_tutor_existente %}required{% endif %} minlength="12" maxlength="128" autocomplete="new-password" placeholder="Repite la contraseña">
                             </div>
                         </div>
                     </div>
@@ -518,6 +532,8 @@
         </form>
     </div>
 
-    <script type="module" src="/static/js/registro-tutores.js"></script>
+    <footer class="text-center text-xs text-gray-400 mt-8">© {{ current_year }} Datilera</footer>
+    <script>window.registroTutorContext = {{ registro_contexto | default({}) | tojson }};</script>
+    <script type="module" src="/static/js/registro-tutores.js?v=20260715-4"></script>
 </body>
 </html>

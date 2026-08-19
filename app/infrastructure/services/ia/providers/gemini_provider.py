@@ -1,75 +1,76 @@
-import google.generativeai as genai
-from app.kernel.domain.ia.ia import IAProviderPort, IARequest, IAResponse, IAMessage
-from app.config.settings import get_settings
+from __future__ import annotations
+
 import logging
 
-settings = get_settings()
+from google import genai
+from google.genai import types
+
+from app.config.settings import get_settings
+from app.kernel.domain.ia.ia import IAProviderPort, IARequest, IAResponse
+
 
 class GeminiProvider(IAProviderPort):
-    def __init__(self):
-        # Configurar API Key (Asegúrate de tener GEMINI_API_KEY en tu .env)
-        if hasattr(settings, "GEMINI_API_KEY"):
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-        else:
-            logging.warning("GEMINI_API_KEY no encontrada en settings")
-            
-        # Modelo por defecto (flash es rápido y barato para MCP)
-        self.default_model = "gemini-2.5-flash"
+    """Adaptador asíncrono para el SDK oficial y vigente google-genai."""
+
+    def __init__(self) -> None:
+        settings = get_settings()
+        self.api_key = settings.GEMINI_API_KEY
+        self.default_model = settings.gemini_model
 
     def get_nombre_proveedor(self) -> str:
         return "gemini"
 
     async def generar_respuesta(self, request: IARequest) -> IAResponse:
         try:
-            # 1. Configurar Modelo
-            # Mapeamos 'system' role a system_instruction si existe
-            system_inst = request.system_instruction
-            
-            # Gemini usa una configuración específica para system instruction
-            model = genai.GenerativeModel(
-                model_name=self.default_model,
-                system_instruction=system_inst
+            history = [
+                types.Content(
+                    role="user" if message.role == "user" else "model",
+                    parts=[types.Part(text=message.content)],
+                )
+                for message in request.messages
+                if message.role != "system"
+            ]
+            config = types.GenerateContentConfig(
+                system_instruction=request.system_instruction,
+                temperature=request.temperature,
+                max_output_tokens=request.max_tokens,
             )
 
-            # 2. Construir Historial
-            # Convertimos el formato estándar IAMessage al formato de Gemini
-            chat_history = []
-            for msg in request.messages:
-                role = "user" if msg.role == "user" else "model"
-                chat_history.append({"role": role, "parts": [msg.content]})
+            async with genai.Client(api_key=self.api_key).aio as client:
+                if history:
+                    chat = client.chats.create(
+                        model=self.default_model,
+                        history=history,
+                        config=config,
+                    )
+                    response = await chat.send_message(request.prompt)
+                else:
+                    response = await client.models.generate_content(
+                        model=self.default_model,
+                        contents=request.prompt,
+                        config=config,
+                    )
 
-            # 3. Iniciar Chat o Generar Contenido
-            if chat_history:
-                chat = model.start_chat(history=chat_history)
-                response = await chat.send_message_async(request.prompt)
-            else:
-                response = await model.generate_content_async(request.prompt)
-
-            # 4. Calcular Tokens (Estimado o real si la API lo devuelve)
-            # Gemini devuelve usage_metadata
             usage = response.usage_metadata
-            t_prompt = usage.prompt_token_count if usage else 0
-            t_resp = usage.candidates_token_count if usage else 0
-            
-            # Costo aproximado Gemini 1.5 Flash (ajustar según precios vigentes)
-            # Entrada: $0.075 / 1M tokens | Salida: $0.30 / 1M tokens
-            cost = (t_prompt * 0.075 / 1_000_000) + (t_resp * 0.30 / 1_000_000)
+            prompt_tokens = int(getattr(usage, "prompt_token_count", 0) or 0)
+            response_tokens = int(getattr(usage, "candidates_token_count", 0) or 0)
+            total_tokens = int(getattr(usage, "total_token_count", 0) or prompt_tokens + response_tokens)
 
             return IAResponse(
-                content=response.text,
+                content=response.text or "",
                 model_name=self.default_model,
-                tokens_prompt=t_prompt,
-                tokens_response=t_resp,
-                tokens_total=t_prompt + t_resp,
-                cost_usd=cost,
-                successful=True
+                tokens_prompt=prompt_tokens,
+                tokens_response=response_tokens,
+                tokens_total=total_tokens,
+                # El precio no se fija en código porque varía por modelo y fecha.
+                cost_usd=0.0,
+                successful=True,
             )
-
-        except Exception as e:
-            logging.error(f"Error en Gemini Provider: {str(e)}")
+        except Exception as exc:
+            logging.exception("Error al generar una respuesta con Gemini")
             return IAResponse(
                 content="",
                 model_name=self.default_model,
                 successful=False,
-                error_message=str(e)
+                error_message=str(exc),
             )

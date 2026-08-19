@@ -8,13 +8,20 @@ Agrupa todos los endpoints relacionados con operaciones financieras:
 - Estado de Cuenta, Libro de Caja
 """
 
+from datetime import date
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.infrastructure.db.session import get_session
+from app.middleware.api_auth import AuthPrincipal, get_current_principal
+from app.infrastructure.db.models.alumnos.alumnos import Alumno
+from app.infrastructure.db.models.finanzas.pagos import Pago
+from app.infrastructure.db.models.finanzas.plan_pago_personalizado import PlanPagoPersonalizado
+from app.infrastructure.db.models.finanzas.cuota_plan_pago import CuotaPlanPago
+from app.infrastructure.db.models.finanzas.libro_caja import LibroCaja, TipoMovimientoEnum
 
-from app.kernel.domain.seguridad.user_entidad import Usuario
 from app.kernel.domain.finanzas.errors import (
     PagoNoEncontradoError,
     EgresoNoEncontradoError,
@@ -145,19 +152,23 @@ from app.infrastructure.services.jobqueue_service import JobQueueService
 # ========================================
 # VERIFICADOR DE PERMISOS
 # ========================================
-def verificar_permisos(usuario: Usuario, permisos_requeridos: list[str]) -> None:
-    """Verifica que el usuario tenga al menos uno de los permisos requeridos."""
-    if not any(permiso in usuario.permisos for permiso in permisos_requeridos):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permisos insuficientes. Se requiere uno de: {', '.join(permisos_requeridos)}"
-        )
+def verificar_permisos(permisos_requeridos: list[str]) -> None:
+    """Valida la configuración local de permisos del caso de uso.
+
+    La autenticación y el acceso al módulo Finanzas se aplican de forma
+    centralizada con ``require_module_access`` al registrar este router. Los
+    nombres históricos de esta lista (p. ej. ``ver_finanzas``) no corresponden
+    al formato vigente ``Recurso:Acción`` y no deben volver a autorizar al
+    usuario por una segunda vía incompatible.
+    """
+    if not permisos_requeridos:
+        raise RuntimeError("El endpoint financiero no declaró su operación")
 
 
 # ========================================
 # ROUTER PRINCIPAL
 # ========================================
-router = APIRouter(prefix="/api/v1/finanzas", tags=["Finanzas"])
+router = APIRouter(prefix="/finanzas", tags=["Finanzas"])
 
 
 # ========================================
@@ -216,17 +227,40 @@ async def registrar_pago_handler(
 @router.get("/pagos/listar", tags=["Finanzas - Pagos"])
 async def listar_pagos_handler(
     db: AsyncSession = Depends(get_session),
+    principal: AuthPrincipal = Depends(get_current_principal),
 ) -> dict[str, Any]:
     """Lista todos los pagos de una sede."""
     permisos_requeridos = ["listar_pagos", "ver_finanzas"]
     verificar_permisos(permisos_requeridos)
     
     try:
-        pagos_repo = PagosRepository(db)
-        use_case = ListarPagosUC(pagos_repo=pagos_repo)
-        
-        pagos = await use_case.execute()
-        return {"success": True, "data": pagos}
+        filtro_sede = Alumno.sede_id == principal.sede_id
+        pagos = (
+            await db.execute(
+                select(Pago)
+                .join(Alumno, Alumno.id == Pago.alumno_id)
+                .where(filtro_sede)
+                .order_by(Pago.fecha_pago.desc(), Pago.id.desc())
+                .limit(100)
+            )
+        ).scalars().all()
+        total = int(
+            (await db.execute(select(func.count(Pago.id)).join(Alumno).where(filtro_sede))).scalar_one()
+        )
+        items = [
+            {
+                "id": pago.id,
+                "alumno_id": pago.alumno_id,
+                "categoria_pago_id": pago.categoria_pago_id,
+                "monto_pagado": pago.monto_pagado,
+                "fecha_pago": pago.fecha_pago.isoformat(),
+                "metodo_pago": pago.metodo_pago,
+                "numero_comprobante": pago.numero_comprobante,
+                "anulado": pago.anulado,
+            }
+            for pago in pagos
+        ]
+        return {"success": True, "data": {"items": items, "total": total, "limit": 100, "offset": 0}}
     
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -311,6 +345,8 @@ async def crear_plan_pago_handler(
     
     except PlanPagoNoEncontradoError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -319,23 +355,66 @@ async def crear_plan_pago_handler(
 async def obtener_plan_pago_alumno_handler(
     alumno_id: int,
     db: AsyncSession = Depends(get_session),
+    principal: AuthPrincipal = Depends(get_current_principal),
 ) -> dict[str, Any]:
     """Obtiene el plan de pago activo de un alumno."""
     permisos_requeridos = ["ver_plan_pago", "ver_finanzas"]
     verificar_permisos(permisos_requeridos)
     
     try:
-        planes_repo = PlanesPagoRepository(db)
-        cuotas_repo = CuotasPlanPagoRepository(db)
-        
-        use_case = ObtenerPlanPagoAlumnoCU(
-            planes_repo=planes_repo,
-            cuotas_repo=cuotas_repo
-        )
-        
-        plan = await use_case.execute(alumno_id=alumno_id)
-        return {"success": True, "data": plan}
-    
+        alumno = (
+            await db.execute(
+                select(Alumno.id).where(Alumno.id == alumno_id, Alumno.sede_id == principal.sede_id)
+            )
+        ).scalar_one_or_none()
+        if not alumno:
+            raise HTTPException(status_code=404, detail="Alumno no encontrado")
+        plan = (
+            await db.execute(
+                select(PlanPagoPersonalizado).where(
+                    PlanPagoPersonalizado.alumno_id == alumno_id,
+                    PlanPagoPersonalizado.sede_id == principal.sede_id,
+                    PlanPagoPersonalizado.estado == "activo",
+                )
+            )
+        ).scalar_one_or_none()
+        if not plan:
+            raise HTTPException(status_code=404, detail="El alumno no tiene un plan de pago activo")
+        cuotas = (
+            await db.execute(
+                select(CuotaPlanPago)
+                .where(CuotaPlanPago.plan_id == plan.id)
+                .order_by(CuotaPlanPago.numero_cuota)
+            )
+        ).scalars().all()
+        monto_pagado = sum((cuota.monto_pagado for cuota in cuotas), start=0)
+        data = {
+            "plan_id": plan.id,
+            "alumno_id": plan.alumno_id,
+            "monto_total": plan.monto_total,
+            "numero_cuotas": plan.numero_cuotas,
+            "monto_cuota": plan.monto_cuota,
+            "monto_pagado_total": monto_pagado,
+            "saldo_pendiente": max(plan.monto_total - monto_pagado, 0),
+            "estado": plan.estado,
+            "cuotas": [
+                {
+                    "cuota_id": cuota.id,
+                    "numero_cuota": cuota.numero_cuota,
+                    "monto_cuota": cuota.monto_cuota,
+                    "monto_pagado": cuota.monto_pagado,
+                    "mora": cuota.mora,
+                    "fecha_vencimiento": cuota.fecha_vencimiento.isoformat(),
+                    "fecha_pago": cuota.fecha_pago.isoformat() if cuota.fecha_pago else None,
+                    "estado": cuota.estado,
+                }
+                for cuota in cuotas
+            ],
+        }
+        return {"success": True, "data": data}
+
+    except HTTPException:
+        raise
     except PlanPagoNoEncontradoError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -1236,24 +1315,55 @@ async def obtener_estado_cuenta_detallado_handler(
 @router.get("/estado-cuenta/alumnos-morosos", tags=["Finanzas - Estado de Cuenta"])
 async def listar_alumnos_morosos_handler(
     db: AsyncSession = Depends(get_session),
+    principal: AuthPrincipal = Depends(get_current_principal),
 ) -> dict[str, Any]:
     """Lista todos los alumnos con mora."""
     permisos_requeridos = ["ver_estado_cuenta", "ver_finanzas"]
     verificar_permisos(permisos_requeridos)
     
     try:
-        estado_cuenta_repo = EstadoCuentaNinoRepository(db)
-        alumnos_repo = AlumnosRepository(db)
-        cuotas_repo = CuotasPlanPagoRepository(db)
-        
-        use_case = ListarAlumnosMorososCU(
-            estado_cuenta_repo=estado_cuenta_repo,
-            alumnos_repo=alumnos_repo,
-            cuotas_repo=cuotas_repo
-        )
-        
-        morosos = await use_case.execute()
-        return {"success": True, "data": morosos}
+        hoy = date.today()
+        filas = (
+            await db.execute(
+                select(
+                    Alumno.id,
+                    Alumno.nombre,
+                    Alumno.apellido_paterno,
+                    Alumno.apellido_materno,
+                    CuotaPlanPago.monto_cuota,
+                    CuotaPlanPago.monto_pagado,
+                    CuotaPlanPago.mora,
+                    CuotaPlanPago.fecha_vencimiento,
+                )
+                .join(PlanPagoPersonalizado, PlanPagoPersonalizado.alumno_id == Alumno.id)
+                .join(CuotaPlanPago, CuotaPlanPago.plan_id == PlanPagoPersonalizado.id)
+                .where(
+                    Alumno.sede_id == principal.sede_id,
+                    PlanPagoPersonalizado.estado == "activo",
+                    CuotaPlanPago.fecha_vencimiento < hoy,
+                    CuotaPlanPago.estado != "pagada",
+                )
+            )
+        ).all()
+        agrupados: dict[int, dict[str, Any]] = {}
+        for fila in filas:
+            item = agrupados.setdefault(
+                fila.id,
+                {
+                    "alumno_id": fila.id,
+                    "alumno_nombre_completo": " ".join(
+                        parte for parte in (fila.nombre, fila.apellido_paterno, fila.apellido_materno) if parte
+                    ),
+                    "dias_mora_maximos": 0,
+                    "total_vencido": 0,
+                    "cantidad_cuotas_vencidas": 0,
+                },
+            )
+            item["dias_mora_maximos"] = max(item["dias_mora_maximos"], (hoy - fila.fecha_vencimiento).days)
+            item["total_vencido"] += max(fila.monto_cuota + fila.mora - fila.monto_pagado, 0)
+            item["cantidad_cuotas_vencidas"] += 1
+        items = sorted(agrupados.values(), key=lambda item: item["dias_mora_maximos"], reverse=True)
+        return {"success": True, "data": {"items": items, "total": len(items)}}
     
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -1404,16 +1514,28 @@ async def listar_movimientos_caja_handler(
 @router.get("/libro-caja/saldo-sede", tags=["Finanzas - Libro Caja"])
 async def obtener_saldo_sede_handler(
     db: AsyncSession = Depends(get_session),
+    principal: AuthPrincipal = Depends(get_current_principal),
 ) -> dict[str, Any]:
     """Obtiene el saldo actual de la sede."""
     permisos_requeridos = ["ver_libro_caja", "ver_finanzas"]
     verificar_permisos(permisos_requeridos)
     
     try:
-        libro_caja_repo = LibroCajaRepository(db)
-        use_case = ObtenerSaldoSedeUseCase(libro_caja_repo=libro_caja_repo)
-        
-        saldo = await use_case.execute()
+        saldo = (
+            await db.execute(
+                select(
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (LibroCaja.tipo == TipoMovimientoEnum.INGRESO, LibroCaja.monto),
+                                else_=-LibroCaja.monto,
+                            )
+                        ),
+                        0,
+                    )
+                ).where(LibroCaja.sede_id == principal.sede_id)
+            )
+        ).scalar_one()
         return {"success": True, "data": saldo}
     
     except Exception as e:

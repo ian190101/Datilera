@@ -1,6 +1,16 @@
 import { fetchAPI, showToast } from './main.js';
 
 const API_BASE = '/api/v1';
+const inventoryItemsById = new Map();
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
 
 /* =======================================================
    HELPERS GLOBALES (Faltaban en tu versión anterior)
@@ -54,6 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if(buscador) {
         buscador.addEventListener('input', debounce(() => cargarInventario(buscador.value), 500));
     }
+
+    document.getElementById('tabla-inventario-body')?.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-movimiento]');
+        if (!button) return;
+        const item = inventoryItemsById.get(Number(button.dataset.itemId));
+        if (item) window.prepararMovimiento(item.id, item.nombre, button.dataset.movimiento);
+    });
 });
 
 /* =======================================================
@@ -71,6 +88,8 @@ window.cargarInventario = async function(search = '') {
         
         const res = await fetchAPI(url);
         const data = await res.json();
+        inventoryItemsById.clear();
+        data.forEach(item => inventoryItemsById.set(Number(item.id), item));
         
         // Actualizar KPIs (Simple)
         if(document.getElementById('kpi-total-productos')) 
@@ -83,31 +102,31 @@ window.cargarInventario = async function(search = '') {
         
         tbody.innerHTML = data.map(item => `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
-                <td class="px-6 py-4 font-mono text-xs font-bold text-gray-600 dark:text-gray-300">${item.codigo}</td>
+                <td class="px-6 py-4 font-mono text-xs font-bold text-gray-600 dark:text-gray-300">${escapeHtml(item.codigo)}</td>
                 <td class="px-6 py-4">
-                    <div class="font-medium text-gray-900 dark:text-white">${item.nombre}</div>
+                    <div class="font-medium text-gray-900 dark:text-white">${escapeHtml(item.nombre)}</div>
                     <div class="text-xs text-gray-500 flex flex-wrap gap-1 mt-1">
-                        ${Object.entries(item.atributos).map(([k,v]) => 
-                            `<span class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-500">${k}: ${v}</span>`
+                        ${Object.entries(item.atributos || {}).map(([k,v]) =>
+                            `<span class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-500">${escapeHtml(k)}: ${escapeHtml(v)}</span>`
                         ).join('')}
                     </div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
-                    <span class="block text-xs font-bold text-indigo-600 uppercase">${item.familia}</span>
-                    <span class="block text-gray-600 dark:text-gray-400">${item.categoria}</span>
+                    <span class="block text-xs font-bold text-indigo-600 uppercase">${escapeHtml(item.familia)}</span>
+                    <span class="block text-gray-600 dark:text-gray-400">${escapeHtml(item.categoria)}</span>
                 </td>
                 <td class="px-6 py-4 text-right font-medium">Bs. ${item.precio.toFixed(2)}</td>
                 <td class="px-6 py-4 text-center">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold ${item.stock < 5 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'}">
-                        ${item.stock} ${item.unidad}
+                        ${Number(item.stock)} ${escapeHtml(item.unidad)}
                     </span>
                 </td>
                 <td class="px-6 py-4 text-center">
                     <div class="flex justify-center gap-2">
-                        <button onclick="prepararMovimiento(${item.id}, '${item.nombre}', 'entrada')" class="p-1 text-green-600 hover:bg-green-50 rounded" title="Entrada Stock">
+                        <button type="button" data-item-id="${Number(item.id)}" data-movimiento="entrada" class="p-1 text-green-600 hover:bg-green-50 rounded" title="Entrada Stock">
                             <i class="fas fa-arrow-down"></i>
                         </button>
-                        <button onclick="prepararMovimiento(${item.id}, '${item.nombre}', 'salida')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Salida Stock">
+                        <button type="button" data-item-id="${Number(item.id)}" data-movimiento="salida" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Salida Stock">
                             <i class="fas fa-arrow-up"></i>
                         </button>
                     </div>
@@ -132,14 +151,14 @@ async function cargarFamiliasSelect() {
         // Llenar select del modal categoría
         const selCat = document.getElementById('cat_familia_id');
         if (selCat) {
-            selCat.innerHTML = data.map(f => `<option value="${f.id}">${f.nombre}</option>`).join('');
+            selCat.innerHTML = data.map(f => `<option value="${Number(f.id)}">${escapeHtml(f.nombre)}</option>`).join('');
         }
         
         // Llenar select del modal Item
         const selItem = document.getElementById('item_familia');
         if (selItem) {
             selItem.innerHTML = '<option value="">Seleccione...</option>' + 
-                                data.map(f => `<option value="${f.id}">${f.nombre}</option>`).join('');
+                                data.map(f => `<option value="${Number(f.id)}">${escapeHtml(f.nombre)}</option>`).join('');
         }
     } catch (e) { console.error(e); }
 }
@@ -153,7 +172,7 @@ window.cargarCategoriasEnItem = async function(familiaId) {
     try {
         const res = await fetchAPI(`${API_BASE}/inventarios/categorias?familia_id=${familiaId}`);
         const data = await res.json();
-        sel.innerHTML = data.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        sel.innerHTML = data.map(c => `<option value="${Number(c.id)}">${escapeHtml(c.nombre)}</option>`).join('');
     } catch(e) { console.error(e); }
 };
 
@@ -347,7 +366,7 @@ window.loadMovimientos = async function() {
         
         tbody.innerHTML = data.map(m => `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700">
-                <td class="px-6 py-4 text-sm text-gray-500">${m.fecha}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${escapeHtml(m.fecha)}</td>
                 <td class="px-6 py-4">
                     <span class="px-2 py-1 rounded-full text-xs font-semibold ${
                         m.tipo === 'ENTRADA' 
@@ -356,13 +375,13 @@ window.loadMovimientos = async function() {
                             ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                             : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' // <--- ESTO FALTABA
                     }">
-                        ${m.tipo}
+                        ${escapeHtml(m.tipo)}
                     </span>
                 </td>
-                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${m.item}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">${m.motivo} <span class="text-xs text-gray-400">(${m.usuario})</span></td>
+                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">${escapeHtml(m.item)}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${escapeHtml(m.motivo)} <span class="text-xs text-gray-400">(${escapeHtml(m.usuario)})</span></td>
                 <td class="px-6 py-4 text-right font-mono font-bold ${m.tipo === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}">
-                    ${m.tipo === 'SALIDA' ? '-' : '+'}${m.cantidad}
+                    ${m.tipo === 'SALIDA' ? '-' : '+'}${Number(m.cantidad)}
                 </td>
             </tr>
         `).join('');

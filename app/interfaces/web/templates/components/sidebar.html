@@ -33,7 +33,7 @@
         </a>
         {% endif %}
         
-        {% if 'Academico:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' or 'TUTOR' or 'TUTORA' %}
+        {% if 'Academico:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' in roles or 'TUTOR' in roles or 'TUTORA' in roles %}
         <a href="/academico" 
            class="nav-item {% if active_menu == 'academico' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
             <i class="fas fa-graduation-cap w-6 text-blue-400 group-hover:text-blue-300"></i>
@@ -49,7 +49,7 @@
         </a>
         {% endif %}
         
-        {% if 'Comunicaciones:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' or 'TUTOR' or 'TUTORA' %}
+        {% if 'Comunicaciones:Ver' in perms or 'ADMINISTRADOR' in roles or 'DIRECTORA' in roles or 'DOCENTE' in roles or 'PROFESORA' in roles or 'TUTOR' in roles or 'TUTORA' in roles %}
         <a href="/comunicaciones" 
            class="nav-item {% if active_menu == 'comunicaciones' %}active{% endif %} flex items-center px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors group">
             <i class="fas fa-comments w-6 text-purple-400 group-hover:text-purple-300"></i>

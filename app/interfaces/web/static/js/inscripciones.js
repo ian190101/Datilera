@@ -274,7 +274,7 @@ function enviarCodigoPorWhatsApp() {
         `Hola ${nombreTutor}, hemos pre-inscrito a *${nombreNino}*.\n\n` +
         `Tu código de acceso es:\n` +
         `🔑 *${codigoGenerado}*\n\n` +
-        `Ingresa a: ${appUrl}/registro-tutor\n`
+        `Ingresa a: ${appUrl}/registro/tutor\n`
     );
     window.open(`https://wa.me/591${telefonoTutor}?text=${mensaje}`, '_blank');
 }
