@@ -26,4 +26,4 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m compileall -q app
       - run: ruff check tests app/middleware app/infrastructure/services/secure_storage.py
-      - run: pytest
+      - run: python -m pytest
